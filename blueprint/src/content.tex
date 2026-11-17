@@ -1,0 +1,117 @@
+% Content of the blueprint, shared by the web and the print version.
+% Each chapter follows one section of the paper; the chapter files are in chapters/.
+% The paper is cited by its own statement numbers and LaTeX labels.
+
+\section*{The paper}
+
+This blueprint follows the paper \emph{A fast dynamo with zero topological entropy} by Lukas
+Niebel (arXiv:2608.02586v3) section by section: Section~1 (introduction and main theorem),
+Section~2 (the local seed), Section~3 (the velocity field on $\T^3$), Section~4 (particle dynamics
+and the absence of exponential stretching), Section~5 (the horizontal operator on $\T^2$),
+Section~6 (the background resolvent), Section~7 (the approximate inverse and the unstable
+eigenvalue), Section~8 (recovery of the magnetic field), and Appendix~A (the semigroup and its spectral growth), the only appendix.  The paper
+is cited by its own statement numbers and LaTeX labels --- ``Theorem~1.2 of the paper'',
+``the paper's \texttt{lem:torus-sector-basic}'', ``\texttt{eq:global-u}'' --- and unlabelled
+passages by their position relative to a label or a section.  A \texttt{\textbackslash ref}
+inside the blueprint prints the \emph{blueprint's} number, which is in general not the paper's.
+
+\section*{Reading guide}
+
+\textbf{What the green marks mean.}  \texttt{\textbackslash leanok} on a \emph{statement}
+means that the Lean declarations named in that node's \texttt{\textbackslash lean} list exist
+in this repository, elaborate, and together say what the statement says; for a
+\texttt{definition} node it means that the Lean definition exists and formalises the object
+described.  \texttt{\textbackslash leanok} inside a \emph{proof} means that the Lean proofs of
+those declarations are complete --- no \texttt{sorry}, and no hypothesis that the paper
+does not also have or discharge somewhere in the chain.  Every statement of the blueprint
+carries a \texttt{\textbackslash lean} list and \texttt{\textbackslash leanok}, and so does
+every proof: there are no non-green statements, and no statement carries
+\texttt{\textbackslash notready}.  This includes every numbered statement of the paper except
+Conjecture~1.1 (\texttt{conj:smooth-fast-dynamo}) and the remarks that discuss the literature
+or alternatives: Remark~1.3 (\texttt{rem:subsequent-resolution}), Remark~7.5
+(\texttt{rem:flexible-buffer-scales}) and Remark~8.4.  Those four have no node and no Lean
+counterpart.  The other remarks of the paper are nodes: Remark~1.4
+(Lemma~\ref{lem:finish:real-part-not-eigenmode}), Remark~1.5
+(Lemmas~\ref{lem:finish:zero-mean} and~\ref{lem:main:velocity-regularity}), Remark~1.6
+(Lemma~\ref{lem:main:normalisation}) and Remark~1.7
+(Theorem~\ref{thm:vanishing-diffusivity}).  Theorem~\ref{thm:main} is
+\texttt{FastDynamo.MainTheoremComplete}, and Lemma~\ref{lem:semigroup-spectral-growth} is
+\texttt{FastDynamo.SemigroupSpectralGrowth}.
+
+\textbf{What the \texttt{\textbackslash uses} arrows mean.}  An arrow records a mathematical
+dependency of the paper's argument, and it is \emph{not} always an edge of the Lean import
+graph.  Five proof arrows of this blueprint point at a node none of whose Lean modules is
+imported, even indirectly, by a module of the citing node --- Lemma~\ref{lem:local:isolation} to
+Lemma~\ref{lem:jump-horizontal-mode}, Lemma~\ref{lem:exact-renormalization} to
+Definition~\ref{def:velocity:scale-family},
+Corollary~\ref{cor:scaled-local-resolvents} and
+Lemma~\ref{lem:transfer:contour-identity} to Proposition~\ref{prop:local-seed}, and
+Theorem~\ref{thm:main} to Lemma~\ref{lem:main:growth-rate-limit}.  In the first four the Lean
+statement is quantified over abstract data (a certified interface record, a set of scaling
+parameters, a resolvent bound) whose concrete inhabitant is built in the cited node's module; in
+the last, the Lean statement of Theorem~\ref{thm:main} is about the growth bound
+\texttt{gamma}, and the theorem that this growth bound is the limit of the paper's definition is
+proved in a module that imports it.  So the arrow is the right mathematical one while the Lean
+dependency runs the other way or not at all.  Conversely, where the Lean dependency does run the
+other way a proof arrow is \emph{omitted}: the proofs of
+Lemma~\ref{lem:dynamics:conditional-growth-bound} and
+Lemma~\ref{lem:dynamics:semigroup-unique} take forward uniqueness of strong solutions as a
+hypothesis of an abstract statement, and that hypothesis is discharged, for the reduced
+operator, for the all-frequency auxiliary operator and for the curl-form induction operator, by
+Lemmas~\ref{lem:dynamics:strong-solution-uniqueness}, \ref{lem:dynamics:product-dissipative}
+and~\ref{lem:dynamics:physical-uniqueness}, whose modules import the abstract ones.
+
+\textbf{The velocity class.}  Throughout the blueprint the velocity $u$ ranges over the
+axially independent (transverse) class \texttt{TransverseRealW1Inf}: real
+$\W^{1,\infty}$ maps $\T^2\to\R^3$, viewed on $\T^3=\T^2\times\T$ as fields independent of
+$x_3$.  The velocity constructed in the paper lies in that class, so the existential
+statements about the velocity (Theorem~\ref{thm:main}, Theorem~\ref{thm:main-spectral},
+Theorem~\ref{thm:main-strengthened} and the nodes that feed them) are \emph{stronger} than
+the paper's Theorem~1.2, which asks only for $u\in\W^{1,\infty}(\T^3;\R^3)$; the universally
+quantified statements over velocities (Lemma~\ref{lem:positive-eigenfunction-solenoidal},
+Proposition~\ref{prop:finish:real-strong-mode}, Lemma~\ref{lem:semigroup-spectral-growth},
+Lemma~\ref{lem:dynamics:physical-uniqueness}) are correspondingly \emph{narrower} than the
+paper's ``for every divergence-free $u\in\W^{1,\infty}(\T^3;\R^3)$'', and are marked
+\texttt{\textbackslash leanok} in that reading.  Clauses that the paper states on
+$\T^3$ are formalised on the product $\T^2\times\T$; the literal three-torus
+$(\R/\Z)^3$ is reached through the measure-preserving identification and the $\Lp^2$
+isometries of \texttt{FastDynamo/Analysis/LiteralThreeTorus.lean}, which is how membership in
+$\Lp^2(\T^3;\R^3)$ and the norm law of the real solution curve are read on $\T^3$
+(Lemma~\ref{lem:main:literal-torus}); that module is where a reader should look for the
+bridge.
+
+\textbf{Where the differences are recorded.}  Every node whose Lean form differs from the
+paper's --- a different route, a different shape of an estimate, an explicit numerical
+threshold in place of ``sufficiently large'', a clause proved chart-side rather than on the
+torus, a numeral chosen by the formalisation --- is followed by a short paragraph, outside
+the theorem environment, that says exactly how, usually naming the Lean module.  Those
+paragraphs, not the statements, are where the differences between the paper and the
+formalisation are recorded; a green statement with no such paragraph is formalised as
+written.
+
+\chapter{Introduction: the theorem and its Lean statement}
+\input{chapters/main}
+
+\chapter{The local seed: a helical velocity with unstable horizontal spectrum}
+\input{chapters/local-seed}
+
+\chapter{The global velocity}
+\input{chapters/velocity}
+
+\chapter{Particle dynamics, the ideal induction group and vanishing diffusivity}
+\input{chapters/particle}
+
+\chapter{The horizontal operator on $\T^2$ and the scaling identity}
+\input{chapters/operator}
+
+\chapter{A uniform estimate for the background resolvent on $\T^2$}
+\input{chapters/background}
+
+\chapter{An approximate inverse for the horizontal problem on $\T^2$ and an unstable eigenvalue}
+\input{chapters/transfer}
+
+\chapter{Recovery of the magnetic field and the main theorem}
+\input{chapters/finish}
+
+\chapter{Appendix A: the semigroup, and the Lean generation chain}
+\input{chapters/dynamics}

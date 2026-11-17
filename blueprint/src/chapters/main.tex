@@ -1,0 +1,1117 @@
+This chapter fixes the objects of Section~1 of the paper -- the induction
+operator on the flat three-torus and the growth rate $\gamma(u,\eps)$ --
+together with the axial Fourier reduction used by the formalisation, and states
+the main theorem, Theorem~1.2 of the paper (\texttt{thm:main}), together with
+the Lean statement layer that carries it.
+
+Theorem~1.2 of the paper is, up to the deviations recorded after Theorem~\ref{thm:main}, the
+Lean predicate \texttt{FastDynamo.MainTheoremComplete}, proved by \texttt{FastDynamo.mainTheoremComplete\_holds}
+(Theorem~\ref{thm:main-complete}); it has no hypothesis.  Its \emph{spectral half} is: one
+real, divergence-free, axially independent
+$\W^{1,\infty}$ velocity field, two constants $\eps_0,\gamma_0>0$ fixed before
+the diffusivity, and, for every $0<\eps\leq\eps_0$, a non-zero axial Fourier
+index $K_\eps$, an eigenvalue $\lambda_\eps$ with $\re\lambda_\eps\geq\gamma_0$
+and a complex magnetic eigenmode
+$V^\eps=\e^{2\pi iK_\eps x_3}b^\eps$ of the induction operator, together with
+the non-zero real datum $\re V^\eps$ and an explicit real, divergence-free
+strong solution obeying the exact exponential norm law.  Its existential form is the Lean
+theorem \texttt{FastDynamo.mainPhysicalConclusion\_holds} (alias
+\texttt{FastDynamo.main\_theorem\_spectral}).
+
+The route by which that theorem is reached is the paper's, and it is short:
+a two-component local seed on the plane (Proposition~\ref{prop:local-seed}), a multiscale
+velocity on the torus (Lemma~\ref{lem:global-velocity}), the horizontal operator
+$A_{\eps,K}$ on $\Hs^2(\T^2;\CC^2)$ with \emph{no} divergence constraint
+(Lemma~\ref{lem:torus-sector-basic}) and its rescaling to the seed
+(Lemma~\ref{lem:exact-renormalization}), one weighted-test coercivity estimate for the
+background (Proposition~\ref{prop:background-resolvent}), a two-summand parametrix
+(Proposition~\ref{prop:global-spectral-transfer}), and the algebraic recovery of the third
+magnetic component (Lemma~\ref{lem:axial-recovery}).
+
+The \emph{dynamical} half of Theorem~\ref{thm:main} is the last sentence of the paper's
+statement: the topological entropy of every time map of the particle flow vanishes, and the
+ideal induction group has exponential growth rate zero in $\Lp^2_\sigma$ operator norm.  It is
+the Lean predicate \texttt{FastDynamo.MainTheoremDynamicalClauses}, discharged at the
+constructed velocity by \texttt{FastDynamo.mainTheoremDynamical\_holds}; the flow is written
+down in closed form and the ideal group is built from the Cauchy formula, in the
+particle-dynamics chapter.  The paper proves those two clauses
+from Proposition~\ref{prop:particle-flow} and Corollary~\ref{cor:ideal-growth}, which say
+more: the linear Lipschitz bound on the flow maps and the two-sided per-datum bounds on the
+ideal group.  Lean keeps that surplus in the larger bundle
+Proposition~\ref{prop:main-lagrangian}, from which the theorem's two clauses are a projection.
+The endpoint that joins the two halves is Theorem~\ref{thm:main-complete}.
+
+The growth-rate clause of the paper's statement, $\gamma(u,\eps)\geq\gamma_0$, is
+formalised by the paper's argument (the growing mode is an exponential minorant of the
+semigroup norm).  The semigroup on
+$\Lp^2_\sigma(\T^3)$ is constructed in Lean from a Hille--Yosida ray, one axial sector at a
+time and then by restriction to the solenoidal subspace
+(Theorem~\ref{thm:dynamics:solenoidal-semigroup}), and its generator is identified with the
+paper's $L_{\eps,u}$ with domain $\Hs^2\cap\Lp^2_\sigma$
+(Theorem~\ref{thm:dynamics:solenoidal-generator}), so it is the paper's $\e^{tL_{\eps,u}}$; its
+growth bound is \texttt{FastDynamo.gamma}, which is a limit for every $(u,\eps)$
+(Lemma~\ref{lem:main:growth-rate-limit}), and the clause is
+Theorem~\ref{thm:main-growth-rate}.  The whole of the paper's Lemma~A.1
+(\texttt{lem:semigroup-spectral-growth}) --- analyticity, compact resolvent, immediate
+compactness, spectral mapping, and $\gamma(u,\eps)$ as the attained spectral bound --- is
+Lemma~\ref{lem:semigroup-spectral-growth}, although Theorem~\ref{thm:main} uses none of it.
+``Its solution'' is backed by a uniqueness theorem for the curl-form equation
+(Lemma~\ref{lem:dynamics:physical-uniqueness}), and $\mathcal T_0$ is \emph{the} solution group
+of the ideal equation in weak form (Corollary~\ref{cor:ideal-growth}).
+
+The remarks and definitions of Section~1 of the paper have nodes: the definitions of a
+dynamo, a fast dynamo and a slow dynamo (Definition~\ref{def:main:dynamo}, with
+Corollary~\ref{cor:main:fast-dynamo}); Remark~1.4, that the real part of the eigenmode is not
+an eigenmode (Lemma~\ref{lem:finish:real-part-not-eigenmode}); Remark~1.5
+(\texttt{rem:scope-intro}), the zero mean of the magnetic fields
+(Lemma~\ref{lem:finish:zero-mean}) and the regularity of the velocity
+(Lemma~\ref{lem:main:velocity-regularity}); Remark~1.6, the normalisation
+(Lemma~\ref{lem:main:normalisation}); Remark~1.7, the vanishing-diffusivity limit
+(Theorem~\ref{thm:vanishing-diffusivity}); and the energy identity
+\texttt{eq:energy-competition} (Lemma~\ref{lem:dynamics:energy-identity}).  Conjecture~1.1
+(\texttt{conj:smooth-fast-dynamo}) and Remark~1.3 (\texttt{rem:subsequent-resolution}), which
+discuss the literature, have no node and no Lean counterpart; the contrast that Remark~1.3
+draws for the velocity constructed here is the ideal--resistive gap recorded after
+Theorem~\ref{thm:main}.
+
+\section{The induction operator and the statement layer}
+
+\begin{definition}[The induction operator and its axial reduction]
+  \label{def:main:induction-operator}
+  \lean{FastDynamo.TransverseRealW1Inf, FastDynamo.IsTransverseDivergenceFree,
+    FastDynamo.TransverseC3H2, FastDynamo.productPhysicalInductionOperator,
+    FastDynamo.productInductionOperator, FastDynamo.reducedInductionOperator,
+    FastDynamo.axialLiftH2, FastDynamo.productDivergenceFromH2,
+    FastDynamo.DomainOperator.IsEigenpair,
+    FastDynamo.DomainOperator.IsStrongSolution}
+  \leanok
+  For a divergence-free $u\in\W^{1,\infty}(\T^3;\R^3)$ and $\eps>0$, the
+  induction operator is
+  \[
+    L_{\eps,u}B:=\curl(u\times B)+\eps\Delta B
+  \]
+  on $\Lp^2_\sigma(\T^3)=\{B\in\Lp^2(\T^3;\CC^3):\Div B=0\}$, with domain
+  $\Hs^2(\T^3;\CC^3)\cap\Lp^2_\sigma(\T^3)$.  The formalisation also uses the
+  auxiliary operator on all vector fields,
+  \[
+    \mathcal{A}_\eps B
+    =\eps\Delta B-(u\cdot\nabla)B+(B\cdot\nabla)u,
+    \qquad
+    D(\mathcal{A}_\eps)=\Hs^2(\T^3;\CC^3),
+  \]
+  which agrees with $L_{\eps,u}$ on divergence-free fields.  For a velocity
+  independent of $x_3$ every fixed-$K$ axial Fourier subspace is invariant
+  under $\mathcal{A}_\eps$: writing $B(y,x_3)=\e^{2\pi iKx_3}b(y)$ and
+  $u=(u_\perp,u_3)$,
+  \begin{equation}
+    A_{\eps,K}b
+    =\eps\bigl(\Delta_\perp-(2\pi K)^2\bigr)b
+    -u_\perp\cdot\nabla_\perp b-2\pi iKu_3b
+    +(b_\perp\cdot\nabla_\perp)u,
+    \qquad
+    D(A_{\eps,K})=\Hs^2(\T^2;\CC^3).
+    \label{eq:main:torus-sector}
+  \end{equation}
+  The horizontal block of \eqref{eq:main:torus-sector}, which acts on $b_\perp$
+  and does not involve $b_3$, is the paper's horizontal operator
+  $A_{\eps,K}$ on $\Lp^2(\T^2;\CC^2)$ with domain $\Hs^2(\T^2;\CC^2)$
+  (\texttt{eq:torus-sector}).
+\end{definition}
+
+In Lean the three operators are
+\texttt{FastDynamo.productPhysicalInductionOperator u eps} ($L_{\eps,u}$),
+\texttt{FastDynamo.productInductionOperator u eps} ($\mathcal{A}_\eps$) and
+\texttt{FastDynamo.reducedInductionOperator u eps K} ($A_{\eps,K}$), and the
+lift $b\mapsto\e^{2\pi iKx_3}b$ is
+\texttt{FastDynamo.axialLiftH2 K}.  Five points of the encoding matter for
+reading every later node.
+
+\begin{itemize}
+  \item \emph{The auxiliary operator and the three-component reduction are the
+    formalisation's.}  The paper has no auxiliary operator: it works with
+    $L_{\eps,u}$ on $\Lp^2_\sigma$ (\texttt{eq:physical-generator}) and, for the
+    spectral construction, with the two-component horizontal operator $A_{\eps,K}$ of
+    its \texttt{eq:torus-sector}, recovering the axial magnetic component afterwards
+    (Lemma~8.1 of the paper, \texttt{lem:axial-recovery}).  Lean's
+    \texttt{reducedInductionOperator} is the three-component operator
+    \eqref{eq:main:torus-sector}, whose horizontal block is the paper's $A_{\eps,K}$,
+    and the passage from the reduced to the physical eigenpair goes through
+    $\mathcal{A}_\eps$.
+  \item Each operator is a \texttt{FastDynamo.DomainOperator}: a pair of
+    bounded maps out of a Banach \emph{graph} domain, an injective inclusion
+    into the ambient space and the operator itself.  Thus
+    $\W^{1,\infty}(\T^2;\R^3)$, $\Hs^2(\T^2;\CC^3)$ and $\Hs^2(\T^3;\CC^3)$ are
+    realised as the closed Fourier-graph submodules
+    \texttt{FastDynamo.TransverseRealW1Inf},
+    \texttt{FastDynamo.TransverseC3H2} and \texttt{FastDynamo.ProductC3H2},
+    complete by construction.  An eigenpair is
+    \texttt{DomainOperator.IsEigenpair}, that is, the ambient image of the
+    eigenvector is non-zero and the operator acts on it by the scalar; a
+    strong solution is \texttt{DomainOperator.IsStrongSolution}, that is, the
+    ambient curve is differentiable in time with derivative the operator
+    applied to the state.
+  \item The velocity type is \emph{transverse}: it is a $\W^{1,\infty}$ field
+    on $\T^2$ with values in $\R^3$, so axial independence is part of the type
+    rather than an extra hypothesis.  Since the paper's construction also
+    produces an $x_3$-independent field, the Lean existential ranges over a
+    smaller class than the paper's and is therefore slightly
+    \emph{stronger}.  The identification of $\W^{1,\infty}$ with the Lipschitz
+    class is not itself formalised; $\W^{1,\infty}$ here means the Fourier
+    graph of an essentially bounded value together with two essentially bounded
+    weak derivatives, and divergence-freeness is the equation
+    \texttt{IsTransverseDivergenceFree u} on the two diagonal weak
+    derivatives (there is no axial term because $\partial_3u=0$).
+  \item The statement layer has no space $\Lp^2_\sigma$ (the closed solenoidal
+    subspace of $\Lp^2(\T^3;\CC^3)$ enters only with the semigroup,
+    Definition~\ref{def:main:growth-rate}).  Solenoidality of a field is the
+    side condition \texttt{productDivergenceFromH2 V = 0}, and the operators are
+    defined on all vector fields, as $\mathcal{A}_\eps$ is.
+  \item $L_{\eps,u}$ is realised weakly: \texttt{productPhysicalInductionOperator}
+    maps $\Hs^2$ into a Fourier $\Hs^{-2}$ space, because $\curl(u\times B)$ with
+    $u\in\W^{1,\infty}$ is a priori only a distribution.  The statement layer
+    therefore asserts \emph{both} the $\Lp^2$-valued eigenvalue equation for
+    $\mathcal{A}_\eps$ and the $\Hs^{-2}$-valued one for $L_{\eps,u}$; together
+    with solenoidality these are equivalent to the paper's $\Lp^2$
+    display, which the physical clause alone would not be.
+\end{itemize}
+
+\begin{definition}[The maximal sustained growth rate]
+  \label{def:main:growth-rate}
+  \lean{FastDynamo.gamma, FastDynamo.literalSolenoidalSubspace,
+    FastDynamo.literalInductionSemigroup,
+    FastDynamo.StronglyContinuousSemigroup.growthBound}
+  \leanok
+  \uses{def:dynamics:growth-bound, thm:dynamics:solenoidal-semigroup}
+  For a time-independent divergence-free $u\in\W^{1,\infty}(\T^3;\R^3)$ and
+  $\eps>0$, set
+  \begin{equation}
+    \gamma(u,\eps)
+    :=\lim_{t\to\infty}\frac1t
+    \log\norm{\e^{tL_{\eps,u}}}_{\Lp^2_\sigma\to\Lp^2_\sigma}.
+    \label{eq:main:semigroup-growth-rate}
+  \end{equation}
+  The limit exists because $t\mapsto\log\norm{\e^{tL_{\eps,u}}}$ is subadditive
+  and every $\C_0$-semigroup is locally bounded in time
+  [Engel--Nagel, Prop.~IV.2.2].
+\end{definition}
+
+The Lean counterpart is \texttt{FastDynamo.gamma}
+(\texttt{FastDynamo/Dynamics/Assembly/MainGrowthRate.lean}): the growth bound
+(Definition~\ref{def:dynamics:growth-bound}) of
+\texttt{literalInductionSemigroup} on the closed solenoidal subspace
+\texttt{literalSolenoidalSubspace} of $\Lp^2(\T^3;\CC^3)$.  The semigroup is a
+$\C_0$-semigroup, constructed and not assumed
+(Theorem~\ref{thm:dynamics:solenoidal-semigroup}).  Three points of the encoding.
+
+\begin{itemize}
+  \item \emph{Which semigroup.}  \texttt{literalInductionSemigroup} is the isometric transport
+    to the literal three-torus of \texttt{solenoidalInductionSemigroup}, whose generator is the
+    paper's $L_{\eps,u}$ with domain $\Hs^2\cap\Lp^2_\sigma$, in the equivalent form recorded at
+    Theorem~\ref{thm:dynamics:solenoidal-generator}: the values are the auxiliary action
+    $\mathcal A_\eps B$ of Definition~\ref{def:main:induction-operator}, which on
+    divergence-free $\Hs^2$ fields is the curl form computed in $\Hs^{-2}$.  A
+    $\C_0$-semigroup is determined by its generator
+    (\texttt{eq\_solenoidalInductionSemigroup\_of\_generator\_eq},
+    \texttt{gamma\_eq\_growthBound\_of\_generator\_eq}), so \texttt{gamma} is the growth bound
+    of the paper's $\e^{tL_{\eps,u}}$.  The route to the semigroup differs from the paper's:
+    Lean generates on all of $\Lp^2(\T^3;\CC^3)$ with the auxiliary operator, restricts to
+    $\Lp^2_\sigma$ and identifies the generator afterwards, where the paper generates on
+    $\Lp^2_\sigma$ by perturbation of $\eps\Delta$ (Lemma~A.1 of the paper).
+  \item \emph{$\limsup$ and $\lim$.}  Lean's \texttt{growthBound} is defined as a
+    $\limsup$ in $[-\infty,\infty]$, so that it is defined for every semigroup with no
+    preliminary work; Lemma~\ref{lem:dynamics:growth-bound-limit} proves that it is the limit
+    for every $\C_0$-semigroup on a Banach space, by the paper's argument, and
+    Lemma~\ref{lem:main:growth-rate-limit} records this for $\gamma(u,\eps)$, which is
+    moreover a real number in $[0,M_u]$ for every $(u,\eps)$.
+  \item \emph{Model.}  The torus is the product model $\T^2\times\T$, transported
+    isometrically to the literal three-torus, and the velocity is axially independent;
+    \texttt{literalSolenoidalSubspace} is the transported Fourier-defined solenoidal subspace
+    of the product model.  The analytic and spectral properties of the semigroup are
+    Lemma~\ref{lem:semigroup-spectral-growth}.
+\end{itemize}
+
+\begin{definition}[Dynamo, fast dynamo, slow dynamo]
+  \label{def:main:dynamo}
+  \lean{FastDynamo.gammaOf, FastDynamo.gammaOf_eq_gamma, FastDynamo.IsDynamoAt,
+    FastDynamo.IsFastDynamo, FastDynamo.IsSlowDynamo}
+  \leanok
+  \uses{def:main:growth-rate}
+  Let $u\in\W^{1,\infty}(\T^3;\R^3)$ be time-independent and divergence-free.  We call $u$ a
+  \emph{dynamo at diffusivity $\eps$} when $\gamma(u,\eps)>0$.  It is a \emph{fast dynamo} if
+  \[
+    \liminf_{\eps\downarrow0}\gamma(u,\eps)>0.
+  \]
+  If $\gamma(u,\eps)>0$ for every sufficiently small $\eps$, but $\gamma(u,\eps)\to0$, we call
+  it a \emph{slow dynamo}.
+\end{definition}
+
+These are the definitions of §1.1 of the paper, verbatim in Lean
+(\texttt{FastDynamo/Dynamics/Assembly/FastDynamo.lean}) for a divergence-free velocity of
+the axially independent class: \texttt{IsDynamoAt} is $0<\gamma(u,\eps)$, \texttt{IsFastDynamo}
+is $0<\liminf$ along $\eps\to0^+$, and \texttt{IsSlowDynamo} is ``eventually positive along
+$\eps\to0^+$ and tending to $0$''.  The limits in $\eps$ are taken of \texttt{gammaOf}, the
+extension of $\gamma(u,\cdot)$ to all real $\eps$ (by $0$ for $\eps\leq0$), because
+\texttt{gamma} takes the proof of $0<\eps$ as an argument; along $\eps\to0^+$ only positive
+$\eps$ matter.  A fast dynamo is not a slow dynamo (\texttt{IsFastDynamo.not\_isSlowDynamo}),
+which the paper leaves implicit; it is recorded with
+Corollary~\ref{cor:main:fast-dynamo}.
+
+\begin{lemma}[The growth rate is a limit]
+  \label{lem:main:growth-rate-limit}
+  \lean{FastDynamo.gamma_tendsto, FastDynamo.gamma_ne_bot_iff, FastDynamo.gamma_tendsto_real,
+    FastDynamo.gamma_eq_lim, FastDynamo.zero_le_gamma,
+    FastDynamo.mainGrowthFloor_le_gamma_lim}
+  \leanok
+  \uses{def:main:growth-rate, lem:dynamics:growth-bound-limit,
+    lem:dynamics:mean-conservation, thm:main-growth-rate, def:main:witnesses}
+  For every divergence-free $u$ and every $\eps>0$ the limit
+  \eqref{eq:main:semigroup-growth-rate} exists and is a real number: there is $L\in\R$ with
+  \[
+    \frac1t\log\norm{\e^{tL_{\eps,u}}}_{\Lp^2_\sigma\to\Lp^2_\sigma}
+    \xrightarrow[t\to\infty]{}L,
+    \qquad
+    L=\gamma(u,\eps),
+    \qquad
+    0\leq L\leq M_u .
+  \]
+  At the explicit witnesses of Definition~\ref{def:main:witnesses} and for every
+  $0<\eps\leq\eps_0$, moreover $\gamma_0\leq L$.
+\end{lemma}
+
+This is the sentence after \texttt{eq:semigroup-growth-rate} in §1.1 of the paper (the limit
+exists), together with the facts that it is finite and non-negative, which the paper does not
+state.  In Lean: \texttt{gamma\_tendsto} (convergence in $[-\infty,\infty)$, from
+Lemma~\ref{lem:dynamics:growth-bound-limit}), \texttt{gamma\_ne\_bot\_iff} and
+\texttt{gamma\_tendsto\_real} (finiteness exactly under an exponential minorant, and then
+convergence in $\R$), \texttt{gamma\_eq\_lim} and \texttt{zero\_le\_gamma} (the minorant
+$\norm{\e^{tL_{\eps,u}}}\geq1$ of Lemma~\ref{lem:dynamics:mean-conservation}), and
+\texttt{mainGrowthFloor\_le\_gamma\_lim} for the witnesses
+(\texttt{FastDynamo/Dynamics/Assembly/MainGrowthRateLimit.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/InductionMeanConservation.lean}).  The convergence takes
+place in \texttt{EReal}, with $\log0$ read as $-\infty$, which is the paper's $[-\infty,\infty)$
+reading; the real-valued form is \texttt{gamma\_eq\_lim}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:growth-bound-limit, lem:dynamics:mean-conservation,
+    thm:main-growth-rate}
+  Lemma~\ref{lem:dynamics:growth-bound-limit} applies to the semigroup on the closed subspace
+  $\Lp^2_\sigma$ of a Hilbert space.  The minorant $\norm{\e^{tL_{\eps,u}}}\geq1$ makes the
+  limit finite and non-negative, and the Hille--Yosida bound
+  $\norm{\e^{tL_{\eps,u}}}\leq\e^{M_ut}$ bounds it by $M_u$.  At the witnesses,
+  Theorem~\ref{thm:main-growth-rate} gives $\gamma_0\leq\gamma(u,\eps)$.
+\end{proof}
+
+
+\begin{definition}[The statement layer]
+  \label{def:main:physical-clauses}
+  \uses{def:main:induction-operator}
+  \lean{FastDynamo.MainReducedClauses, FastDynamo.MainReducedTarget,
+    FastDynamo.MainPhysicalClausesAt,
+    FastDynamo.MainPhysicalClauses, FastDynamo.MainPhysicalConclusion,
+    FastDynamo.mainPhysicalClauses_of_mainReducedClauses,
+    FastDynamo.mainPhysicalConclusion_of_mainReducedTarget}
+  \leanok
+  \emph{The reduced clauses} $\mathrm{MRC}(u,\eps_0,\gamma_0)$ say: for every
+  $0<\eps\leq\eps_0$ there are $K\in\Z\setminus\{0\}$, $\lambda\in\CC$ with
+  $\re\lambda\geq\gamma_0$ and $b\in\Hs^2(\T^2;\CC^3)$ with
+  $A_{\eps,K}b=\lambda b$ and $b\neq0$ in $\Lp^2$.  \emph{The reduced target}
+  is
+  \[
+    \exists\,u\in\W^{1,\infty},\ \Div u=0,\ u\neq0,\ \
+    \exists\,\eps_0,\gamma_0>0:\ \mathrm{MRC}(u,\eps_0,\gamma_0).
+  \]
+  \emph{The physical clauses} $\mathrm{MPC}(u,\eps_0,\gamma_0)$ are the
+  sixteen conjuncts of the spectral half of Theorem~\ref{thm:main} at a fixed
+  velocity and fixed constants, and \emph{the physical conclusion} is the same
+  outer existential over $u,\eps_0,\gamma_0$ with $\mathrm{MPC}$ in place of
+  $\mathrm{MRC}$.  The reduction
+  \[
+    \mathrm{MRC}(u,\eps_0,\gamma_0)\ \Longrightarrow\ \mathrm{MPC}(u,\eps_0,\gamma_0)
+    \qquad(\Div u=0,\ \gamma_0>0)
+  \]
+  is the content of the finish layer.
+\end{definition}
+
+\begin{proof}
+  \leanok
+  \uses{def:finish:real-solution, prop:finish:real-strong-mode,
+    lem:positive-eigenfunction-solenoidal, lem:real-axial-mode}
+  Given a reduced eigenpair, the real strong-mode certificate of the finish
+  layer supplies every physical clause at once: the lift
+  $V=\e^{2\pi iKx_3}b$ is an eigenmode of $\mathcal{A}_\eps$ by the exact
+  sector identity, it is divergence-free by
+  Lemma~\ref{lem:positive-eigenfunction-solenoidal} (which needs
+  $\re\lambda>0$ and $\Div u=0$) and hence an eigenmode of $L_{\eps,u}$, and
+  Lemma~\ref{lem:real-axial-mode} turns the non-zero axial index into the
+  non-vanishing of $\re V$ and the exact norm law for the real curve.
+\end{proof}
+
+The sixteen clauses of $\mathrm{MPC}(u,\eps_0,\gamma_0)$, in the order in
+which \texttt{FastDynamo.MainPhysicalClauses} lists them, are the following.
+Clauses (1)--(3) are the paper's
+$K_\eps\in\Z\setminus\{0\}$, $\re\lambda_\eps\geq\gamma_0$ and
+$0\neq b^\eps\in\Hs^2(\T^2;\CC^3)$.  Clause (4) is the reduced eigenpair
+$A_{\eps,K}b=\lambda b$ of \eqref{eq:main:torus-sector}, kept as the reference
+datum.  Clauses (5)--(7) carry the display
+\eqref{eq:main-spectral-conclusion} of Theorem~\ref{thm:main}: the lift
+$V^\eps=\e^{2\pi iK_\eps x_3}b^\eps$ lies in $\Hs^2(\T^3;\CC^3)$ by typing and
+satisfies the auxiliary-operator equation $\mathcal{A}_\eps V^\eps=\lambda_\eps V^\eps$
+(5), which the paper does not state, it is
+divergence-free, hence lies in $\Lp^2_\sigma(\T^3)$ (6), and it satisfies the
+curl-form equation $L_{\eps,u}V^\eps=\lambda_\eps V^\eps$ (7).  Clause (8) is
+$B_{\rm in}^\eps=\re V^\eps\neq0$.  Clauses (9)--(11) and (15) are the
+real-solution law of Theorem~\ref{thm:main}: the explicit real $\Lp^2$ curve
+$B^\eps(t)=\re(\e^{t\lambda_\eps}V^\eps)$ never vanishes (9), obeys
+$\norm{B^\eps(t)}_2=\e^{t\re\lambda_\eps}\norm{B_{\rm in}^\eps}_2$ (10) and the
+uniform bound $\e^{t\gamma_0}\norm{B_{\rm in}^\eps}_2\leq\norm{B^\eps(t)}_2$
+for $t\geq0$ (11), and is the real field represented by the $\Hs^2$ state
+curve (15).  Clauses (12)--(14) and (16) say that this $\Hs^2$ state curve
+starts at $\re V^\eps$, is fixed by conjugation (that is, real) at every time,
+is divergence-free at every time, and is a strong solution of the induction
+equation.
+
+Two differences from the paper are worth recording.  The norm law (10) is
+proved for \emph{every} real time, not only for $t\geq0$ as in
+\eqref{eq:main-thm-growth}, and the uniform bound (11) with the
+$\eps$-independent rate $\gamma_0$ is an extra clause, an immediate consequence of
+\eqref{eq:main-thm-growth} and $\re\lambda_\eps\geq\gamma_0$ that the paper does not
+state.  Clause (16) asserts that $B^\eps$ is a strong solution; that it is \emph{the}
+solution, as the paper's ``its solution'' says, is
+Lemma~\ref{lem:dynamics:physical-uniqueness}: forward strong solutions of the curl-form
+equation in $\Hs^{-2}$ are unique.  The semigroup on $\Lp^2_\sigma(\T^3)$ carries the datum
+$B_{\rm in}^\eps$ along exactly the curve $B^\eps$, and every forward strong solution with
+datum $B_{\rm in}^\eps$ is that orbit; this is \texttt{FastDynamo.MainSemigroupOrbitClauses},
+the field \texttt{semigroupOrbit} of Theorem~\ref{thm:main-strengthened}, which also asserts
+the sixteen clauses of $\mathrm{MPC}$ at its own triple $(K,\lambda,b)$, so that the eigenmode,
+the real datum and its solution belong to one triple.  That clause cannot
+live in $\mathrm{MPC}$ itself: \texttt{FastDynamo/Main.lean} is in the import closure of the
+semigroup construction, so naming the semigroup there would close a cycle.  The Lean modules
+are \texttt{FastDynamo/Main.lean} (the four predicates and the reduction; the body of
+$\mathrm{MPC}$ at one triple $(K,\lambda,b)$ is \texttt{MainPhysicalClausesAt}),
+\texttt{FastDynamo/Finish/RealSolution.lean} (the certificate that discharges it) and
+\texttt{FastDynamo/Dynamics/Assembly/SemigroupOrbit.lean} (the orbit clause).
+
+\section{The main theorem}
+
+\begin{theorem}[A fast dynamo with zero topological entropy]
+  \label{thm:main}
+  \lean{FastDynamo.MainTheoremComplete, FastDynamo.mainTheoremComplete_holds}
+  \leanok
+  \uses{def:main:induction-operator, def:main:growth-rate, thm:main-growth-rate,
+    prop:particle-flow, cor:ideal-growth}
+  There exist a real-valued autonomous velocity field
+  \[
+    u\in\W^{1,\infty}(\T^3;\R^3),\qquad\Div u=0,
+  \]
+  and constants $\eps_0>0$, $\gamma_0>0$, such that
+  $\gamma(u,\eps)\geq\gamma_0$ for every $0<\eps\leq\eps_0$.  In particular,
+  \begin{equation}
+    \liminf_{\eps\downarrow0}\gamma(u,\eps)\geq\gamma_0.
+    \label{eq:main-growth-conclusion}
+  \end{equation}
+  More precisely, for every $0<\eps\leq\eps_0$ there are
+  $K_\eps\in\Z\setminus\{0\}$, $\lambda_\eps\in\CC$ and
+  $0\neq b^\eps\in\Hs^2(\T^2;\CC^3)$ such that the complex magnetic eigenmode
+  \begin{equation}
+    V^\eps(y,x_3):=\e^{2\pi iK_\eps x_3}b^\eps(y)
+    \in\Hs^2(\T^3;\CC^3)\cap\Lp^2_\sigma(\T^3),
+    \quad
+    L_{\eps,u}V^\eps=\lambda_\eps V^\eps,
+    \quad
+    \re\lambda_\eps\geq\gamma_0.
+    \label{eq:main-spectral-conclusion}
+  \end{equation}
+  Moreover the real-valued datum
+  $B_{\rm in}^\eps:=\re V^\eps\in\Hs^2(\T^3;\R^3)\cap\Lp^2_\sigma(\T^3)$ is
+  non-zero, and its solution satisfies
+  \begin{equation}
+    \norm{B^\eps(t)}_{\Lp^2(\T^3)}
+    =\e^{t\re\lambda_\eps}\norm{B_{\rm in}^\eps}_{\Lp^2(\T^3)}
+    \qquad\text{for every }t\geq0.
+    \label{eq:main-thm-growth}
+  \end{equation}
+
+  Moreover, $h_{\mathrm{top}}(\Phi_t)=0$ for all $t\in\R$ and
+  \[
+    \lim_{t\to\infty}\frac1t
+    \log\norm{\mathcal T_0(t)}_{\Lp^2_\sigma\to\Lp^2_\sigma}=0,
+  \]
+  where $\Phi_t$ is the particle flow of $u$
+  (Definition~\ref{def:dynamics:particle-flow}) and $\mathcal T_0(t)$ the solution
+  group on $\Lp^2_\sigma(\T^3)$ of the ideal induction equation
+  (Definition~\ref{def:dynamics:ideal-induction-group}).
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{thm:main-spectral, thm:main-growth-rate, lem:main:growth-rate-limit,
+    lem:real-axial-mode, prop:particle-flow, cor:ideal-growth, thm:main-strengthened,
+    lem:dynamics:physical-uniqueness}
+  Everything except the growth clause and \eqref{eq:main-growth-conclusion} is
+  Theorem~\ref{thm:main-spectral}; the dynamical half is
+  Proposition~\ref{prop:particle-flow} and Corollary~\ref{cor:ideal-growth}, both of which
+  are formalised (Proposition~\ref{prop:main-lagrangian}).  The growth clause is
+  Theorem~\ref{thm:main-growth-rate}: the eigenvalue $\lambda_\eps$ produced
+  for each $0<\eps\leq\eps_0$ lies in the state space $\Lp^2_\sigma(\T^3)$ and
+  the semigroup orbit of its eigenmode grows exactly like
+  $\e^{t\re\lambda_\eps}$, which gives
+  $\gamma(u,\eps)\geq\re\lambda_\eps\geq\gamma_0$; taking the lower limit as
+  $\eps\downarrow0$ finishes.
+
+  The paper's own route to the growth clause is the same in shape.  It reads the
+  exact growth law \eqref{eq:main-thm-growth} of the \emph{real} datum as an exponential
+  minorant of the operator norm,
+  $\norm{\e^{tL_{\eps,u}}}\geq\norm{B^\eps(t)}_2/\norm{B_{\rm in}^\eps}_2
+  =\e^{t\re\lambda_\eps}$, and concludes
+  $\gamma(u,\eps)\geq\re\lambda_\eps\geq\gamma_0$; the semigroup appendix,
+  Lemma~\ref{lem:semigroup-spectral-growth}, is not invoked here at all.  Lean divides by the
+  norm of the \emph{complex} eigenmode $V^\eps$ rather than of the real datum
+  $B_{\rm in}^\eps$ --- the two give the same inequality, $V^\eps\neq0$ being part of the
+  definition of an eigenpair --- and \eqref{eq:main-thm-growth} itself, which the paper
+  obtains from Lemma~\ref{lem:real-axial-mode}, is clause (10) of
+  Definition~\ref{def:main:physical-clauses}.
+\end{proof}
+
+The Lean statement is \texttt{FastDynamo.MainTheoremComplete}, proved by
+\texttt{mainTheoremComplete\_holds} (\texttt{FastDynamo/MainTheoremStrengthened.lean},
+\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean}); it is
+Theorem~\ref{thm:main-complete}, whose fields are the strengthened spectral statement
+(Theorem~\ref{thm:main-strengthened}), the two dynamical clauses
+(\texttt{MainTheoremDynamical}) and the larger Lagrangian bundle
+(Proposition~\ref{prop:main-lagrangian}).  Clause by clause: the growth clause and
+\eqref{eq:main-growth-conclusion} are Theorem~\ref{thm:main-growth-rate}
+(\texttt{gamma\_ge\_gamma0}, \texttt{mainGrowthFloor\_le\_liminf\_gammaOf}), with
+$\gamma(u,\eps)$ the limit of Lemma~\ref{lem:main:growth-rate-limit};
+\eqref{eq:main-spectral-conclusion}, the non-vanishing of $B_{\rm in}^\eps$ and the exact norm
+law \eqref{eq:main-thm-growth} are Theorem~\ref{thm:main-spectral}; ``its solution'' is the
+semigroup-orbit clause of Theorem~\ref{thm:main-strengthened}, which says that $B_{\rm in}^\eps$
+lies in $\Lp^2_\sigma$, that its orbit under $\e^{tL_{\eps,u}}$ is the explicit real curve
+$B^\eps(t)=\re(\e^{t\lambda_\eps}V^\eps)$ for $t\geq0$, and that \emph{every} forward strong
+solution of the curl-form equation with datum $B_{\rm in}^\eps$ is that orbit and obeys
+\eqref{eq:main-thm-growth} (Lemma~\ref{lem:dynamics:physical-uniqueness}); and the two
+dynamical clauses are \texttt{FastDynamo.mainTheoremDynamical\_holds}, with $\mathcal T_0$ the
+unique solution group of the ideal equation (Corollary~\ref{cor:ideal-growth}).
+
+The Lean statement differs from the paper's in these respects, each recorded at the node
+named.
+\begin{itemize}
+  \item \emph{Shape of the statement.}  The clauses are fields and theorems at the explicit
+    witnesses of Definition~\ref{def:main:witnesses}, not one proposition of the form
+    $\exists u,\eps_0,\gamma_0$, and the per-diffusivity predicates
+    \texttt{MainPhysicalClauses}, \texttt{MainSemigroupOrbitClauses} and
+    \texttt{MainLiteralTorusClauses} each carry their own existential over $(K,\lambda,b)$.
+    \texttt{MainSemigroupOrbitClauses} contains the sixteen clauses of
+    Definition~\ref{def:main:physical-clauses} (\texttt{MainPhysicalClausesAt}) at its own
+    triple, so the eigenmode, the real datum, the strong solution, the semigroup orbit and the
+    uniqueness clause hold at one $(K,\lambda,b)$.  The triple of
+    \texttt{MainLiteralTorusClauses} is the one of \texttt{mainSemigroupOrbitClauses\_holds}
+    by its proof, not by its statement, and the field \texttt{physicalClauses} of
+    Theorem~\ref{thm:main-strengthened} repeats the spectral clauses with a separately chosen
+    triple (the paragraph after Theorem~\ref{thm:main-strengthened}).
+  \item \emph{Velocity class and torus.}  The velocity ranges over the axially independent
+    class \texttt{TransverseRealW1Inf}, so the existential is over a smaller set than the
+    paper's and is stronger; the magnetic clauses live on the product model $\T^2\times\T$,
+    transported isometrically to the literal three-torus (reading guide,
+    Lemma~\ref{lem:main:literal-torus}).
+  \item \emph{The operator} $L_{\eps,u}$ is realised as the curl form with values in
+    $\Hs^{-2}$ in the statement layer and, as generator, in the equivalent auxiliary form on
+    $\Hs^2\cap\Lp^2_\sigma$ (Definition~\ref{def:main:induction-operator},
+    Theorem~\ref{thm:dynamics:solenoidal-generator}).
+  \item \emph{The solution class} of ``its solution'' is not named by the paper; Lean takes the
+    forward strong solutions of the curl-form equation in $\Hs^{-2}$
+    (Lemma~\ref{lem:dynamics:physical-uniqueness}), and the clause adds the lower bound
+    $\e^{t\gamma_0}\norm{B_{\rm in}^\eps}_2\leq\norm{B^\eps(t)}_2$, which the theorem does not
+    state.
+  \item \emph{The ideal solution group} is unique among the solution groups of the weak form
+    of Definition~\ref{def:dynamics:ideal-weak-form}, whose test fields and time integration
+    differ from the paper's distributional notion as recorded there.
+\end{itemize}
+
+\textbf{The ideal--resistive growth gap.}  The paper folds this contrast into
+Theorem~\ref{thm:main}, whose closing line is its left member and
+whose growth clause is its right member: for the velocity constructed here the ideal
+induction group has exponential growth rate zero, while every sufficiently small positive
+diffusivity grows at least at the rate $\gamma_0>0$,
+\[
+  \lim_{t\to\infty}\frac1t
+  \log\norm{\mathcal T_0(t)}_{\Lp^2_\sigma\to\Lp^2_\sigma}
+  =0<\gamma_0\leq\liminf_{\eps\downarrow0}\gamma(u,\eps).
+\]
+The chain is not a statement of the paper, and therefore not a node of this
+blueprint; the paper's own qualitative reading of it is the second paragraph of its
+Remark~1.3 (\texttt{rem:subsequent-resolution}).  In Lean,
+\texttt{FastDynamo.ideal\_resistive\_gap\_holds} is the display itself, and
+\texttt{FastDynamo.ideal\_resistive\_gap\_at\_diffusivity\_holds} is the sharper fixed-$\eps$
+packaging, with $\gamma_0\leq\gamma(u,\eps)$ at every $0<\eps\leq\eps_0$ in place of the lower
+limit.  Its left end is \texttt{HasVanishingIdealOperatorGrowthRate}
+(Corollary~\ref{cor:ideal-growth}), its middle is $\gamma_0>0$, and its right end is
+\texttt{mainGrowthFloor\_le\_liminf\_gammaOf}, the lower limit being taken along the filter
+$\mathcal N_{>0}$ of the total extension \texttt{gammaOf} of $\gamma(u,\cdot)$.
+
+\begin{theorem}[The spectral half of Theorem~\ref{thm:main}]
+  \label{thm:main-spectral}
+  \uses{def:main:physical-clauses}
+  \lean{FastDynamo.MainPhysicalConclusion,
+    FastDynamo.mainPhysicalConclusion_holds,
+    FastDynamo.main_theorem_spectral, FastDynamo.mainReducedTarget_holds}
+  \leanok
+  There exist a real-valued autonomous $u\in\W^{1,\infty}(\T^3;\R^3)$ with
+  $\Div u=0$ and $u\neq0$, and constants $\eps_0,\gamma_0>0$, such that for
+  every $0<\eps\leq\eps_0$ the sixteen clauses
+  $\mathrm{MPC}(u,\eps_0,\gamma_0)$ of
+  Definition~\ref{def:main:physical-clauses} hold: an axial index
+  $K_\eps\neq0$, an eigenvalue with $\re\lambda_\eps\geq\gamma_0$ and a
+  non-zero $b^\eps\in\Hs^2(\T^2;\CC^3)$ producing the solenoidal $\Hs^2$
+  eigenmode $V^\eps=\e^{2\pi iK_\eps x_3}b^\eps$ of
+  \eqref{eq:main-spectral-conclusion}, the non-zero real datum
+  $B_{\rm in}^\eps=\re V^\eps$, and the explicit real, divergence-free strong
+  solution $B^\eps$ with
+  $\norm{B^\eps(t)}_2=\e^{t\re\lambda_\eps}\norm{B_{\rm in}^\eps}_2$ for every
+  $t\in\R$ and $\norm{B^\eps(t)}_2\geq\e^{t\gamma_0}\norm{B_{\rm in}^\eps}_2$
+  for $t\geq0$.
+
+  Equivalently: Theorem~\ref{thm:main} holds with its growth clause and its two dynamical
+  clauses deleted, and ``its solution'' read as ``an explicit real, divergence-free strong
+  solution with that datum''.
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:transfer:parameter-choice, prop:global-spectral-transfer,
+    lem:global-riesz-nonzero, lem:axial-recovery,
+    lem:real-axial-mode, def:finish:real-solution, prop:finish:real-strong-mode}
+  Fix the global parameter chain of
+  Definition~\ref{def:transfer:parameter-choice}; it pins the velocity $u$,
+  the threshold $\eps_0$ and, for each $0<\eps\leq\eps_0$, a matching cell and
+  its axial index $K_\eps\neq0$.  Proposition~\ref{prop:global-spectral-transfer}
+  gives, at that chain and for every such $\eps$, a resolvent of
+  $A_{\eps,K_\eps}$ on the selected contour whose Riesz projection is non-zero;
+  this is the step whose non-vanishing is
+  Lemma~\ref{lem:global-riesz-nonzero}.  The projection has finite rank, so a
+  non-zero Riesz projection yields an eigenpair of $A_{\eps,K_\eps}$
+  inside the contour, whose real part is at least the contour's growth floor
+  $\gamma_0=g_*$ -- a closed term of the fixed local seed, independent of
+  $\eps$, of the velocity, of the sector and of the placement.  The eigenpair is
+  \emph{horizontal}; Lemma~\ref{lem:axial-recovery} recovers the third component and
+  delivers the reduced target.  The reduction of
+  Definition~\ref{def:main:physical-clauses}, which uses
+  Lemma~\ref{lem:real-axial-mode} through the certificate of
+  Definition~\ref{def:finish:real-solution}, then produces all sixteen physical
+  clauses.
+\end{proof}
+
+The Lean proof follows this route.  \texttt{mainReducedTarget\_holds} and
+\texttt{mainPhysicalConclusion\_holds} in \texttt{FastDynamo/MainTheorem.lean} are obtained
+from \texttt{mainReducedClauses\_holds}
+(\texttt{FastDynamo/Global/MainTheoremWitnesses.lean}), which is three lines through the
+modules
+\texttt{Global/GlobalParameterChoiceConcrete.lean} $\to$
+\texttt{Global/GlobalSpectralTransferConcrete.lean} $\to$
+\texttt{Global/TorusGlobalSpectralTransfer.lean}; the finish layer is entered exactly once,
+through \texttt{realStrongModeCertificate\_of\_reducedEigenpair}.
+Corollary~\ref{cor:magnetic-scale} (the two-sided bounds
+$\abs{K_\eps}\asymp\eps^{-1/2}$ and $L_B^\eps\asymp\sqrt\eps$) is \emph{not} used anywhere
+in this chain: it is a separate quantitative statement about the modes once they have been
+produced, and no step of the Lean proof invokes it.
+
+\begin{theorem}[The growth-rate clause of Theorem~\ref{thm:main}]
+  \label{thm:main-growth-rate}
+  \uses{def:main:growth-rate, thm:main-spectral, thm:dynamics:solenoidal-semigroup,
+    lem:dynamics:solenoidal-subspace, def:main:witnesses}
+  \lean{FastDynamo.gamma_ge_gamma0, FastDynamo.mainGrowthFloor_le_gamma_le_stretching,
+    FastDynamo.gamma_le_stretching,
+    FastDynamo.gamma_ne_bot, FastDynamo.gamma_ne_top,
+    FastDynamo.gammaOf, FastDynamo.gammaOf_eq_gamma,
+    FastDynamo.mainGrowthFloor_le_liminf_gammaOf}
+  \leanok
+  At the explicit witnesses $u$, $\eps_0$, $\gamma_0$ of
+  Definition~\ref{def:main:witnesses}, for every $0<\eps\leq\eps_0$,
+  \[
+    \gamma_0\ \leq\ \gamma(u,\eps)\ \leq\ M_u,
+    \qquad
+    M_u=\norm{\nabla_\perp u}_\infty,
+  \]
+  $\gamma(u,\eps)$ being the growth bound (Definition~\ref{def:main:growth-rate})
+  of the semigroup on $\Lp^2_\sigma(\T^3;\CC^3)$ of
+  Theorem~\ref{thm:dynamics:solenoidal-semigroup}.  In particular
+  $\gamma(u,\eps)$ is neither $-\infty$ nor $+\infty$.  Since $\gamma_0$ does not
+  depend on $\eps$, this is the growth clause of Theorem~\ref{thm:main}, and with it
+  \eqref{eq:main-growth-conclusion}.
+\end{theorem}
+
+The lower bound is \texttt{FastDynamo.gamma\_ge\_gamma0}, the upper bound
+\texttt{gamma\_le\_stretching}, and the pair
+\texttt{mainGrowthFloor\_le\_gamma\_le\_stretching}
+(\texttt{FastDynamo/Dynamics/Assembly/MainGrowthRate.lean}); both are fields of
+the strengthened theorem (Theorem~\ref{thm:main-strengthened}).  With
+Lemma~\ref{lem:main:growth-rate-limit}, which shows that $\gamma(u,\eps)$ is the paper's limit,
+this is \eqref{eq:main-growth-conclusion} in the form displayed there; the packaged
+statement is \texttt{mainGrowthFloor\_le\_gamma\_lim}.  Two smaller points.  The
+paper's trailing restatement
+$\liminf_{\eps\downarrow0}\gamma(u,\eps)\geq\gamma_0$ is
+\texttt{mainGrowthFloor\_le\_liminf\_gammaOf}, the $\liminf$ along
+$\mathcal N_{>0}$ of the total extension \texttt{gammaOf} of $\gamma(u,\cdot)$ ---
+\texttt{gamma} carries the proof $0<\eps$ as an argument, so a filter limit in $\eps$ needs
+that extension, which agrees with $\gamma$ on $(0,\infty)$ by
+\texttt{gammaOf\_eq\_gamma}.  It is weaker than the per-diffusivity bound and is recorded
+because it is the form of \eqref{eq:main-growth-conclusion} and of the paper's definition of
+a fast dynamo.  The interval is the paper's: \texttt{gamma\_ge\_gamma0} and
+\texttt{MainTheoremStrengthened.growthRate} carry the hypotheses $0<\eps$ and
+$\eps\leq\eps_0$, the closed interval $0<\eps\leq\eps_0$ on which the paper states the growth
+clause.  The semigroup is the paper's $\e^{tL_{\eps,u}}$, obtained by restriction and
+identified by its generator (Theorem~\ref{thm:dynamics:solenoidal-generator}).  The upper bound is not in the
+paper; it is
+recorded because it is what makes the sandwich informative --- without it the
+lower bound would be compatible with $\gamma=+\infty$ --- and because it is
+uniform in the diffusivity, which is the paper's energy competition
+(\texttt{eq:energy-competition}) read at the level of the semigroup.  The floor $\gamma_0$ is
+a closed term of the fixed local seed with $\gamma_0\geq\tfrac34(448-4\pi^2)\geq288$; these
+numerals are choices of the formalisation, not of the paper
+(Definition~\ref{def:main:witnesses}).
+
+\begin{proof}
+  \leanok
+  \uses{thm:main-spectral, thm:dynamics:solenoidal-semigroup,
+    lem:dynamics:solenoidal-subspace, lem:positive-eigenfunction-solenoidal}
+  This is the paper's route, with one extra Lean-side obligation.  Fix
+  $0<\eps\leq\eps_0$.  The reduced clauses of Theorem~\ref{thm:main-spectral}
+  supply an axial index $K_\eps\neq0$, an eigenvalue $\lambda_\eps$ with
+  $\re\lambda_\eps\geq\gamma_0$ and a non-zero $b^\eps\in\Hs^2(\T^2;\CC^3)$ with
+  $A_{\eps,K_\eps}b^\eps=\lambda_\eps b^\eps$; the exact sector identity promotes
+  this to an eigenpair of $\mathcal{A}_\eps$ at the lift
+  $V^\eps=\e^{2\pi iK_\eps x_3}b^\eps$.  The extra obligation is that $V^\eps$
+  lie in the state space: since $\gamma_0>0$ forces $\re\lambda_\eps>0$, the
+  Lemma~\ref{lem:positive-eigenfunction-solenoidal}, in the membership
+  form of Lemma~\ref{lem:dynamics:solenoidal-subspace}, puts $V^\eps$ in
+  $\Lp^2_\sigma$.  Theorem~\ref{thm:dynamics:solenoidal-semigroup} then converts
+  the eigenvalue into $\re\lambda_\eps\leq\gamma(u,\eps)$ and supplies the
+  ceiling $\gamma(u,\eps)\leq M_u$.  Since the lower bound holds for every
+  $0<\eps\leq\eps_0$ with an $\eps$-independent $\gamma_0$, the lower limit as
+  $\eps\downarrow0$ is at least $\gamma_0$.
+\end{proof}
+
+\begin{corollary}[The constructed velocity is a fast dynamo]
+  \label{cor:main:fast-dynamo}
+  \lean{FastDynamo.isDynamoAt_mainVelocity, FastDynamo.isFastDynamo_mainVelocity,
+    FastDynamo.IsFastDynamo.not_isSlowDynamo}
+  \leanok
+  \uses{def:main:dynamo, thm:main-growth-rate, def:main:witnesses}
+  The velocity $u$ of Definition~\ref{def:main:witnesses} is a dynamo at every diffusivity
+  $0<\eps\leq\eps_0$ and a fast dynamo in the sense of Definition~\ref{def:main:dynamo}; in
+  particular it is not a slow dynamo.
+\end{corollary}
+
+The paper draws this conclusion in its title and abstract and through
+\eqref{eq:main-growth-conclusion}, which is its definition of a fast dynamo; it does not state
+it as a separate result.  Module \texttt{FastDynamo/Dynamics/Assembly/FastDynamo.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{thm:main-growth-rate}
+  $\gamma(u,\eps)\geq\gamma_0>0$ for $0<\eps\leq\eps_0$ by Theorem~\ref{thm:main-growth-rate},
+  and $\liminf_{\eps\downarrow0}\gamma(u,\eps)\geq\gamma_0>0$.  If $\gamma(u,\eps)\to0$ the
+  lower limit would be $0$.
+\end{proof}
+
+\section{The strengthened statement}
+
+The proof produces closed terms for the velocity and both constants, and it
+proves several statements that are strictly stronger than
+Theorem~\ref{thm:main-spectral}.  They are collected in one structure.
+
+\begin{definition}[The explicit witnesses]
+  \label{def:main:witnesses}
+  \uses{def:transfer:parameter-choice, def:velocity:global-velocity,
+    def:local:seed}
+  \lean{FastDynamo.mainVelocity,
+    FastDynamo.mainEps0,
+    FastDynamo.mainGrowthFloor,
+    FastDynamo.mainEps0_eq,
+    FastDynamo.mainEps0_pos,
+    FastDynamo.mainGrowthFloor_eq,
+    FastDynamo.mainGrowthFloor_pos,
+    FastDynamo.mainGrowthFloor_ge_three_quarters,
+    FastDynamo.mainGrowthFloor_ge_numeric,
+    FastDynamo.mainVelocity_isTransverseDivergenceFree,
+    FastDynamo.mainVelocity_ne_zero,
+    FastDynamo.seed_kStar, FastDynamo.seed_wavenumber}
+  \leanok
+  Let $\Theta$ be the global parameter chain of
+  Definition~\ref{def:transfer:parameter-choice} produced by the closure, let
+  $u:=u_\Theta$ be its global velocity
+  (Definition~\ref{def:velocity:global-velocity}), and put
+  \[
+    \eps_0:=\delta_+\frac{k_*^2}{K_0^2},
+    \qquad
+    \gamma_0:=g_*=\re(\text{centre }\Gamma)-\text{radius }\Gamma .
+  \]
+  Here $\delta_+$ is the seed's upper rescaled-diffusivity endpoint, $k_*=1$ the seed's
+  integer wavenumber (so $N=2\pi$), $K_0$ the base axial index of the chain and $\Gamma$ the
+  seed's isolating circle, so that $g_*=\min_{\zeta\in\cG}\re\zeta$.
+\end{definition}
+
+The threshold $\eps_0=\delta_+/K_0^2$ (at $k_*=1$) is the paper's value, the display
+after \texttt{eq:diffusivity-intervals} in §3.2 of the paper, with no further cap;
+\texttt{mainEps0\_eq} is that formula, and $\gamma_0=g_*$ is the choice made in the paper's
+proof of Theorem~1.2.  The growth floor is a closed term of the fixed local seed alone: it
+depends on neither $\eps$, nor the velocity, nor the sector, nor the axial shift, nor the
+placement.
+
+The numerals that follow are choices of the formalisation, not of the paper.  The paper
+takes the radial scale $\varrho$ of the segment $\kappa=\varrho(1+it)$ ``sufficiently
+large'', obtains $\re\lambda_*\geq\tfrac7{16}\varrho^2-4\pi^2$
+(\texttt{eq:local-eigenvalue}), and fixes the isolating circle $\Gamma$ only qualitatively,
+so it gives no numerical value of $\gamma_0=g_*$.  Lean takes $\varrho=32$ and $N=2\pi$,
+which gives $\re\lambda_*\geq448-4\pi^2$, and a circle centred at $\lambda_*$ of radius at
+most $\re\lambda_*/4$, which gives $g_*\geq\tfrac34\re\lambda_*$
+(Lemmas~\ref{lem:local:segment-root} and~\ref{lem:local:isolation}); together they give
+\[
+  \gamma_0\ \geq\ \tfrac34\bigl(448-4\pi^2\bigr)\ \approx\ 306.4,
+  \qquad\text{and in particular}\qquad
+  \gamma_0\ \geq\ 288 .
+\]
+In Lean these are \texttt{FastDynamo.mainEps0\_eq},
+\texttt{FastDynamo.mainGrowthFloor\_eq},
+\texttt{FastDynamo.mainGrowthFloor\_ge\_three\_quarters} and
+\texttt{FastDynamo.mainGrowthFloor\_ge\_numeric}
+(\texttt{FastDynamo/Global/MainTheoremWitnesses.lean}); the numeral $288$ comes from
+$\pi\leq4$, and the sharp value is $\approx306.4$.  Note that $\eps_0$ is explicit only as a
+formula: $K_0$ is obtained from an existence statement about the closure thresholds and is
+not computed, so no numeral for $\eps_0$ is claimed.
+
+\begin{lemma}[Normalisation]
+  \label{lem:main:normalisation}
+  \uses{def:main:induction-operator, def:main:physical-clauses,
+    def:main:witnesses, def:main:growth-rate, def:dynamics:particle-flow,
+    def:dynamics:ideal-induction-group}
+  \lean{FastDynamo.reducedInductionAction_smul,
+    FastDynamo.reducedInductionOperator_isEigenpair_smul_iff,
+    FastDynamo.mainReducedClauses_smul,
+    FastDynamo.MainPhysicalConclusionNormalized,
+    FastDynamo.mainPhysicalConclusionNormalized_of_mainReducedTarget,
+    FastDynamo.mainPhysicalClauses_normalizedVelocity,
+    FastDynamo.productInductionAction_smul,
+    FastDynamo.productInductionAction_normalizedVelocity,
+    FastDynamo.StronglyContinuousSemigroup.timeRescale,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_timeRescale,
+    FastDynamo.literalInductionSemigroup_normalizedVelocity,
+    FastDynamo.gamma_normalizedVelocity,
+    FastDynamo.normalizedGrowthFloor_le_gamma,
+    FastDynamo.normalizedGrowthFloor_le_liminf_gammaOf,
+    FastDynamo.mainSemigroupOrbitClauses_normalizedVelocity,
+    FastDynamo.IsParticleFlow.timeRescale, FastDynamo.IsIdealInductionGroup.timeRescale,
+    FastDynamo.normalizedLiteralVelocity,
+    FastDynamo.isIdealInductionGroup_normalizedLiteralVelocity,
+    FastDynamo.normalizedLiteralFlow_unique,
+    FastDynamo.MainTheoremNormalized, FastDynamo.mainTheoremNormalized_holds}
+  \leanok
+  Put $M=\max\{1,\norm{u}_{\W^{1,\infty}}\}$ and $\widetilde u=u/M$.  Then
+  \[
+    L_{\eps,\widetilde u}=M^{-1}L_{M\eps,u},
+    \qquad
+    \gamma(\widetilde u,\eps)=M^{-1}\gamma(u,M\eps).
+  \]
+  Hence Theorem~\ref{thm:main} remains valid for $\widetilde u$, with threshold
+  $\widetilde\eps=\eps_0/M$ and lower bound $\widetilde\gamma=\gamma_0/M$ on the growth rate.
+  Moreover, the particle flow and ideal induction group for $\widetilde u$ are the
+  corresponding objects for $u$ evaluated at time $t/M$.  This preserves the ideal growth rate
+  and the vanishing of topological entropy.  In particular, the velocity may be required to
+  satisfy $\norm{\widetilde u}_{\W^{1,\infty}}\leq1$ without changing any of the conclusions of
+  Theorem~\ref{thm:main}.
+\end{lemma}
+
+This is Remark~1.6 of the paper (unlabelled), whose wording the statement follows.  In Lean it
+is the structure \texttt{MainTheoremNormalized} at $\widetilde u=$
+\texttt{normalizedVelocity mainVelocity}, proved by \texttt{mainTheoremNormalized\_holds}
+(\texttt{FastDynamo/MainTheoremNormalized.lean}): $\norm{\widetilde u}\leq1$; the two
+identities (\texttt{action\_eq}, and \texttt{gamma\_eq} from the identity of semigroups
+$\e^{tL_{\eps,\widetilde u}}=\e^{(t/M)L_{M\eps,u}}$, \texttt{semigroup\_eq}); every clause of
+Theorem~\ref{thm:main} for $\widetilde u$ with $M^{-1}\eps_0$ and $M^{-1}\gamma_0$ (the spectral
+clauses, the growth-rate clause and its $\liminf$ form, the semigroup-orbit and solution
+clause, and the two dynamical clauses); the flow $t\mapsto\Phi_{t/M}$, which is the only
+particle flow of $\widetilde u$, and the ideal solution group $t\mapsto\mathcal T_0(t/M)$; and
+Proposition~\ref{prop:main-lagrangian} for $\widetilde u$.  The deviations:
+\begin{itemize}
+  \item The first identity is stated for the auxiliary all-frequency action $\mathcal A_\eps$
+    on all of $\Hs^2$ (\texttt{productInductionAction\_normalizedVelocity}), the action of the
+    generator, which on divergence-free fields is the curl form
+    (Theorem~\ref{thm:dynamics:solenoidal-generator}); for the reduced operator the same
+    homogeneity $A_{c\eps,cu,K}=c\,A_{\eps,u,K}$ is \texttt{reducedInductionAction\_smul}.
+  \item The norm in $M$ is the norm of \texttt{TransverseRealW1Inf},
+    $\norm u=\max(\norm u_\infty,\norm{\partial_1u}_\infty,\norm{\partial_2u}_\infty)$ with
+    $\norm\cdot_\infty$ the essential supremum of the Euclidean norm; the paper does not
+    specify the norm $\norm\cdot_{\W^{1,\infty}}$, and every identity holds for any $M>0$.
+  \item Proposition~\ref{prop:main-lagrangian} for $\widetilde u$ is proved with the constant
+    $(1+M^{-1})C_{\rm L}$; the paper does not restate the constants.
+\end{itemize}
+The normalised witness is \emph{named}, not merely some velocity in the unit ball.  Modules
+\texttt{FastDynamo/Dynamics/SemigroupTimeRescaling.lean},
+\texttt{FastDynamo/Dynamics/Assembly/NormalizedGrowthRate.lean},
+\texttt{FastDynamo/Dynamics/NormalizedLagrangianClauses.lean} and
+\texttt{FastDynamo/Operator/ReducedInductionScaling.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{thm:main-spectral, thm:main-growth-rate, prop:particle-flow, cor:ideal-growth,
+    lem:dynamics:semigroup-unique, lem:dynamics:physical-uniqueness}
+  The three velocity-dependent terms of the induction operator are $\R$-linear in $u$ and the
+  diffusion term is linear in $\eps$, which gives $L_{c\eps,cu}=c\,L_{\eps,u}$.  The semigroup
+  of $cu$ at $c\eps$ and the semigroup of $u$ at $\eps$ run at time $ct$ are realised by
+  operators that differ by the factor $c$, so they coincide by uniqueness of the realising
+  semigroup; the growth bound of $t\mapsto S(ct)$ is $c\,\omega_0(S)$.  For the clauses, given
+  $0<\eps\leq M^{-1}\eps_0$ apply the unnormalised clauses at $M\eps\leq\eps_0$ and rescale
+  the eigenvalue.  If $\Phi$ is the flow of $u$, then $t\mapsto\Phi_{t/M}$ solves the flow
+  equation of $u/M$, and the Cauchy formula, the weak form and uniqueness rescale with it; the
+  entropy of $\Phi_{t/M}$ is zero and the logarithmic rates are unchanged by a linear change of
+  time.
+\end{proof}
+
+\begin{lemma}[Qualitative regularity of the velocity]
+  \label{lem:main:velocity-regularity}
+  \uses{def:main:witnesses, def:velocity:global-velocity,
+    def:velocity:scale-family}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.GlobalVelocityQualitative,
+    FastDynamo.mainVelocityChartRepresentative_qualitative,
+    FastDynamo.differentiable_mainVelocityPeriodizedRepresentative,
+    FastDynamo.contDiffAt_mainVelocityPeriodizedRepresentative,
+    FastDynamo.fderiv_mainVelocityPeriodizedRepresentative_accumulationPoint,
+    FastDynamo.not_continuousAt_fderiv_mainVelocityPeriodizedRepresentative,
+    FastDynamo.lipschitzWith_mainVelocityPeriodizedRepresentative,
+    FastDynamo.lipschitzWith_mainVelocityTorusRepresentative,
+    FastDynamo.mainVelocityTorusRepresentative_transverseTorusPoint_eq_periodized}
+  \leanok
+  Let $u$ be the velocity of Definition~\ref{def:main:witnesses} and let
+  $U\colon\R^2\to\R^3$ be its $\Z^2$-periodic lift, so that $u$ is $U$ read on
+  $\T^2$ and, being independent of $x_3$, on $\T^3$.  Write
+  $p_\infty=(0,\tfrac12)$ for the accumulation point.  Then:
+  \begin{itemize}
+    \item $U$ is Lipschitz, and so are $u$ on $\T^2$ for the quotient metric
+      and its axially independent extension to $\T^3$;
+    \item $U$ is differentiable at every point of $\R^2$;
+    \item $U$ is smooth of every order at every point outside
+      $p_\infty+\Z^2$;
+    \item $DU(p_\infty)=0$, yet $DU$ is discontinuous at $p_\infty$.
+  \end{itemize}
+  Thus $u$ is differentiable everywhere and smooth away from the accumulation
+  circle $\{p_\infty\}\times\T$, its derivative vanishes on that circle, and
+  $u\notin\C^1$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The local profile $v$ is smooth, and regularity is lost only because the
+  cell sum has non-vanishing gradients at infinitely many shrinking horizontal
+  scales.  The rescaled cells have amplitude $O(\ell_n)$ and gradients $O(1)$,
+  so the disjoint sum is Lipschitz and its derivative tends to $0$ at
+  $p_\infty$, which gives differentiability with $Du(p_\infty,\cdot)=0$.
+  Both cut-offs are constant near each cell centre, so there the amplitude
+  $\ell_n$ of the local copy cancels its dilation exactly and
+  \[
+    Du(p_n,x_3)=
+    \begin{pmatrix}
+      0      & -\Omega & 0 \\
+      \Omega & 0       & 0 \\
+      0      & 0       & 0
+    \end{pmatrix}
+    \neq0
+    \qquad(x_3\in\T),
+  \]
+  one and the same non-zero matrix at every $n$.  Since $p_n\to p_\infty$ while
+  $Du(p_\infty,\cdot)=0$, the derivative $Du$ is discontinuous at every point of the
+  accumulation circle; a continuous representative of the weak gradient would have to agree
+  with $Du$ everywhere, so none exists and $u\notin\C^1$.
+\end{proof}
+
+The lift $U$ is the Lean declaration
+\texttt{mainVelocityPeriodizedRepresentative}, the $\Z^2$-periodisation of the
+chart-side representative; the theorem
+\texttt{mainVelocityTorusRepresentative\_transverseTorusPoint\_eq\_periodized}
+identifies it with the pullback of the torus-side representative along the
+quotient map \emph{at every point of the plane}, including the accumulation
+point, which the placement chart itself misses.  The four bullets are Lean
+theorems verbatim, the accumulation circle appearing as the plane point
+\texttt{accumulationPoint} $=(0,\tfrac12)$ together with its integer
+translates.  The proof is the paper's (§3.4 of the paper), along the cell centres:
+\texttt{fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource\_\allowbreak cellCenter\_\allowbreak eq} gives one and the
+same derivative at every centre,
+\texttt{lineDeriv\_parameterizedSmoothedVelocity\_zero\_apply\_one} is the entry
+$(\partial_{e_1}v)(0)(e_2)=\Omega$ that makes it non-zero, and
+\texttt{not\_\allowbreak continuousAt\_\allowbreak fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource} concludes along
+\texttt{tendsto\_cellCenter\_accumulationPoint}; for the lift $U$ this is
+\texttt{not\_\allowbreak continuousAt\_\allowbreak fderiv\_\allowbreak mainVelocityPeriodizedRepresentative}.  The matrix itself is not assembled in
+Lean; only the one entry is, which is all the non-vanishing needs.  Two caveats.  First, the final sentence of the lemma -- the
+passage from the lift to a statement about a function on $\T^3$ -- is
+\emph{not} itself formalised for differentiability, smoothness or the failure
+of $\C^1$: the Lean development contains no \texttt{ContDiff} statement about a
+map defined on $\T^3$, only the standard chart form above.  Lipschitz
+continuity is the exception: it is proved torus-side as well, by
+\texttt{lipschitzWith\_mainVelocityTorusRepresentative} for the quotient metric
+of $\T^2$ and by \texttt{lipschitzWith\_mainLiteralVelocity} on the literal
+three-torus, and the torus-side representative is almost everywhere the
+$\Lp^\infty$ value of $u$.  Second, the Lipschitz constant is explicit but not
+claimed optimal: it is twice the chart-side bound
+\texttt{mainVelocityLipschitzBound}.  The modules are
+\texttt{FastDynamo/Global/TorusGlobalVelocityRegularity.lean} and
+\texttt{FastDynamo/Global/TorusGlobalVelocityLipschitz.lean}.
+
+\begin{lemma}[The literal three-torus]
+  \label{lem:main:literal-torus}
+  \uses{def:main:witnesses, def:main:physical-clauses, def:finish:real-solution}
+  \lean{FastDynamo.toLiteralR3L2, FastDynamo.literalRealTrajectory,
+    FastDynamo.literalVelocity, FastDynamo.mainLiteralVelocity,
+    FastDynamo.lipschitzWith_mainLiteralVelocity}
+  \leanok
+  The magnetic clauses of Theorem~\ref{thm:main-spectral} and the Lipschitz
+  bound on the velocity hold on the literal three-torus
+  $\T^3=(\R/\Z)^3$: for every $0<\eps\leq\eps_0$ the transported real
+  trajectory $B^\eps$ lies in $\Lp^2(\T^3;\R^3)$, never vanishes, obeys
+  $\norm{B^\eps(t)}_2=\e^{t\re\lambda_\eps}\norm{B^\eps(0)}_2$ for every
+  $t\in\R$ and $\norm{B^\eps(t)}_2\geq\e^{t\gamma_0}\norm{B^\eps(0)}_2$ for
+  $t\geq0$, and $u$ is an axially independent Lipschitz function on $\T^3$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The development works in the product model $\T^2\times\T$ with the product
+  of the transverse volume and the Haar measure of the circle.  That model is
+  identified with the literal $\T^3=(\R/\Z)^3$, realised in Lean as
+  \texttt{Torus 3}, carrying its own volume, by a
+  measure-preserving equivalence, and the induced map on $\Lp^2$ is a linear
+  isometry.  Transporting the real trajectory along it preserves every norm,
+  so the exact law, the non-vanishing and the growth bound transfer verbatim;
+  the axially independent extension of a Lipschitz transverse field is
+  Lipschitz for the sup metric of $\T^3$.
+\end{proof}
+
+\begin{lemma}[The real solution on the literal three-torus]
+  \label{lem:main:literal-torus-solution}
+  \uses{lem:main:literal-torus, def:main:growth-rate, lem:dynamics:physical-uniqueness}
+  \lean{FastDynamo.complexifyLiteralR3L2, FastDynamo.toLiteralC3L2_complexifyProductR3L2,
+    FastDynamo.MainLiteralTorusClauses,
+    FastDynamo.mainLiteralTorusClauses_holds}
+  \leanok
+  For every $0<\eps\leq\eps_0$ there are $K\neq0$, $\lambda$ with $\re\lambda\geq\gamma_0$ and
+  $b\neq0$ such that the transported real trajectory $B^\eps$ of
+  Lemma~\ref{lem:main:literal-torus} obeys the norm law, the non-vanishing and the growth
+  bound stated there, and there is a datum $B_{\rm in}^\eps\in\Lp^2_\sigma(\T^3;\CC^3)$, the
+  complexification of $B^\eps(0)$, whose orbit under the induction semigroup
+  $\e^{tL_{\eps,u}}$ on $\Lp^2_\sigma(\T^3;\CC^3)$ (the semigroup of
+  Definition~\ref{def:main:growth-rate}) is the complexification of $B^\eps(t)$ for every
+  $t\geq0$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The triple and the product-model datum are those of the orbit clause
+  \texttt{MainSemigroupOrbitClauses} at the witnesses
+  (\texttt{mainSemigroupOrbitClauses\_holds}, from
+  \texttt{FastDynamo/Dynamics/Assembly/SemigroupOrbit.lean}), where the orbit of $B_{\rm in}^\eps$ under the semigroup on $\Lp^2_\sigma(\T^2\times\T)$ is the
+  complexified real curve.  The semigroup on $\Lp^2_\sigma(\T^3;\CC^3)$ is that semigroup
+  conjugated by the isometric transport, and the transport commutes with complexification
+  (\texttt{toLiteralC3L2\_complexifyProductR3L2}: both are composition with a pointwise map,
+  up to null sets), so the orbit identity transfers.
+\end{proof}
+
+The literal-torus statements have two limitations.  No differential operator is transported, so on the literal
+$\T^3$ divergence-freeness is membership of the datum in the transported subspace
+$\Lp^2_\sigma$, and the uniqueness of the solution with datum $B_{\rm in}^\eps$ is stated in
+the product model only (Lemma~\ref{lem:dynamics:physical-uniqueness}); and the norm statements
+are stated against the trajectory's own value at time zero rather than against a separately
+transported initial field, so that every norm in them is a norm of
+$\Lp^2(\T^3;\R^3)$
+(\texttt{FastDynamo/Analysis/LiteralThreeTorus.lean}).
+
+\begin{theorem}[The strengthened main theorem]
+  \label{thm:main-strengthened}
+  \uses{thm:main-spectral, thm:main-growth-rate, def:main:witnesses,
+    lem:main:normalisation, lem:main:velocity-regularity, lem:main:literal-torus,
+    lem:main:literal-torus-solution,
+    prop:global-spectral-transfer, lem:transfer:all-cells}
+  \lean{FastDynamo.MainTheoremStrengthened,
+    FastDynamo.main_theorem_strengthened,
+    FastDynamo.MainTheoremStrengthened.growthRate,
+    FastDynamo.MainTheoremStrengthened.growthRate_le,
+    FastDynamo.MainEveryAdmissibleCellClauses,
+    FastDynamo.mainEveryAdmissibleCellClauses_holds,
+    FastDynamo.MainSemigroupOrbitClauses,
+    FastDynamo.mainSemigroupOrbitClauses_holds}
+  \leanok
+  At the explicit witnesses $u$, $\eps_0$, $\gamma_0$ of
+  Definition~\ref{def:main:witnesses} the following hold.
+  \begin{enumerate}
+    \item \emph{Explicit constants.}  $u$ is divergence-free and non-zero,
+      $\eps_0=\delta_+k_*^2/K_0^2$ with $k_*=1$, and $\gamma_0>0$ satisfies both
+      $\gamma_0\geq\tfrac34(448-4\pi^2)$, with $N=2\pi$, and the numeral bound
+      $\gamma_0\geq288$.
+    \item \emph{The sixteen physical clauses} $\mathrm{MPC}(u,\eps_0,\gamma_0)$
+      of Definition~\ref{def:main:physical-clauses}.
+    \item \emph{The growth-rate clause} \eqref{eq:main-growth-conclusion}, in
+      the form of Theorem~\ref{thm:main-growth-rate}: for every
+      $0<\eps\leq\eps_0$ the growth rate of the induction semigroup on
+      $\Lp^2_\sigma(\T^3;\CC^3)$ satisfies $\gamma(u,\eps)\geq\gamma_0$, and at
+      every positive diffusivity $\gamma(u,\eps)\leq\norm{\nabla_\perp u}_\infty$.
+    \item \emph{Every admissible cell.}
+      Proposition~\ref{prop:global-spectral-transfer} holds not only at the
+      canonically chosen matching cell but at \emph{every} one: for every
+      $0<\eps\leq\eps_0$ and every cell index $n$ with
+      $\eps/\ell_n^2\in I$, the axial index $K_n$ is non-zero and carries an
+      eigenpair, of the reduced and of the auxiliary operator, with
+      $\re\lambda\geq\gamma_0$; and the Riesz-projection form of the
+      proposition holds at every such cell as well.
+    \item \emph{Normalisation} of the spectral clauses: the sixteen physical clauses hold
+      for the named witness $\widetilde u=u/\max\{1,\norm u\}$, with
+      $\norm{\widetilde u}\leq1$ and thresholds $M^{-1}\eps_0$, $M^{-1}\gamma_0$ (the whole of
+      Remark~1.6 of the paper is Lemma~\ref{lem:main:normalisation}).
+    \item \emph{Velocity regularity}, in the form of
+      Lemma~\ref{lem:main:velocity-regularity}, together with the
+      identification of the torus-side representative with the
+      $\Z^2$-periodisation of the chart representative at every point of the
+      plane.
+    \item \emph{The literal three-torus}, in the form of
+      Lemmas~\ref{lem:main:literal-torus} and~\ref{lem:main:literal-torus-solution}.
+    \item \emph{The semigroup orbit of the real datum.}  For every
+      $0<\eps\leq\eps_0$ the datum $B_{\rm in}^\eps$ lies in $\Lp^2_\sigma$, its orbit
+      under the semigroup of Theorem~\ref{thm:dynamics:solenoidal-semigroup} is the
+      explicit curve $B^\eps$ at every $t\geq0$, and that orbit obeys
+      \eqref{eq:main-thm-growth}; every forward strong solution of the curl-form equation
+      with datum $B_{\rm in}^\eps$ is that orbit, obeys \eqref{eq:main-thm-growth} and is
+      bounded below by $\e^{t\gamma_0}\norm{B_{\rm in}^\eps}_2$; and at the same triple
+      $(K,\lambda,b)$ the sixteen physical clauses of
+      Definition~\ref{def:main:physical-clauses} hold.  This is the definite
+      article of ``\emph{its} solution'' in Theorem~\ref{thm:main}.
+  \end{enumerate}
+\end{theorem}
+
+\begin{proof}
+  \leanok
+  \uses{def:transfer:parameter-choice}
+  Each item is the corresponding statement above, read at the named witnesses
+  instead of at anonymous existentials.  Item (4) is the same closure
+  certificate as in Theorem~\ref{thm:main-spectral}, except that the four
+  defining properties of the parameter chain
+  (Definition~\ref{def:transfer:parameter-choice}) are recorded one by one, so
+  the certificate is available at every admissible diffusivity and every
+  matching cell rather than only at the canonically chosen one.
+\end{proof}
+
+The structure is \texttt{FastDynamo.MainTheoremStrengthened} and the proof is
+\texttt{FastDynamo.main\_theorem\_strengthened}
+(\texttt{FastDynamo/MainTheoremStrengthened.lean}); the witnesses are named in
+\texttt{FastDynamo/Global/MainTheoremWitnesses.lean}; the growth-rate item is
+the pair of fields \texttt{growthRate} and \texttt{growthRate\_le}, and the semigroup-orbit
+item is the field \texttt{semigroupOrbit}.  The
+growth-rate clause, which Theorem~\ref{thm:main-spectral} does not contain, is included here,
+and so is the uniqueness of the solution with datum $B_{\rm in}^\eps$ (item 8).  The dynamical
+statements are Proposition~\ref{prop:main-lagrangian}; they are in a separate structure,
+\texttt{MainTheoremComplete} (Theorem~\ref{thm:main-complete}), because the module that names
+the velocity cannot import the flow without a cycle.
+
+The items are separate fields, and the items stated for every $0<\eps\leq\eps_0$ choose their
+triples $(K,\lambda,b)$ separately: items (2), (5), (7) and (8) each carry their own
+existential over $(K,\lambda,b)$, item (5) for the normalised velocity.  Item (8) contains the sixteen physical clauses at its own triple, so the
+eigenmode, the real datum, the strong solution, the semigroup orbit and the uniqueness clause
+hold at one $(K,\lambda,b)$.  The triple of item (7) is the one of item (8) by the proof of
+\texttt{mainLiteralTorusClauses\_holds}, not by its statement; item (2) is the existential
+\texttt{MainPhysicalClauses} with a separately chosen triple; and item (4) is a statement about
+every admissible cell, not about a chosen triple.

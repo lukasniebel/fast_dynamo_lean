@@ -1,0 +1,14 @@
+# Lean toolchain and build outputs (see scripts/bootstrap-lean.sh).
+.lake
+.toolchains
+
+# Blueprint build outputs (see blueprint/ and .github/workflows/blueprint.yml)
+blueprint/web/
+blueprint/print/
+blueprint/src/*.aux
+blueprint/src/*.log
+blueprint/src/*.out
+blueprint/src/*.fls
+blueprint/src/*.fdb_latexmk
+blueprint/src/*.paux
+docbuild/

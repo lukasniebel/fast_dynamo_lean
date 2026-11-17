@@ -1,0 +1,615 @@
+% Chapter: the approximate inverse for the horizontal problem on T^2 and the unstable
+% eigenvalue.  Section 7 of the paper (sec:parametrix).
+% Owned shared labels: def:transfer:parameter-choice, def:transfer:structural-data.
+% Paper labels: prop:global-spectral-transfer (Proposition 7.1), lem:parametrix-error
+% (Lemma 7.2), lem:global-contour-resolvent (Lemma 7.3), lem:global-riesz-nonzero (Lemma 7.4),
+% rem:flexible-buffer-scales (Remark 7.5, no node; see the end of this chapter's first section).
+
+This chapter transfers the instability from the selected cell to the torus.  The
+parametrix has \emph{two} summands: the background resolvent of the
+previous chapter carries everything away from the selected cell, and the rescaled seed
+resolvent carries the cell itself.  The error is a sum of two diffusion commutators, both
+supported in annuli of width $\asymp R_n$ where the horizontal velocity vanishes, so it is
+$O(\sqrt\eps/R_n+\eps/R_n^2)=O(\sqrt{\ell_n}+\ell_n)$ and is made small by one last
+enlargement of the base index.  The fixed test vector $f_*$ of the seed, rescaled and
+placed, then separates the global Riesz projection from zero.
+
+\section{The ordered choice of parameters}
+
+\begin{definition}[The global parameter chain]
+  \label{def:transfer:parameter-choice}
+  \lean{FastDynamo.GlobalSeedInterface,
+    FastDynamo.GlobalSeedInterface.axialShift,
+    FastDynamo.GlobalSeedInterface.errorConstant,
+    FastDynamo.GlobalSeedInterface.approximateInverseConstant,
+    FastDynamo.GlobalSeedInterface.errorTarget,
+    FastDynamo.GlobalSeedInterface.mul_errorTarget_div_lt_quarter,
+    FastDynamo.GlobalParameterChoice,
+    FastDynamo.GlobalParameterChoice.velocity,
+    FastDynamo.GlobalParameterChoice.jointPlacement,
+    FastDynamo.GlobalParameterChoice.eps0,
+    FastDynamo.GlobalParameterChoice.eps0_formula,
+    FastDynamo.GlobalParameterChoice.matchingCell,
+    FastDynamo.GlobalParameterChoice.axialAmplitude_match,
+    FastDynamo.GlobalParameterChoice.errorSmall_cell,
+    FastDynamo.exists_globalParameterChoice,
+    FastDynamo.nonempty_globalParameterChoice,
+    FastDynamo.LocalSeedC2.toGlobalSeedInterface,
+    FastDynamo.HorizontalMode.globalSeedInterface,
+    FastDynamo.HorizontalMode.mainParameterChoice,
+    FastDynamo.HorizontalMode.mainParameterChoice_eps0_formula,
+    FastDynamo.HorizontalMode.kStar_le_mainParameterChoice_baseIndex}
+  \leanok
+  \uses{def:local:seed, prop:local-seed, def:velocity:scale-family, def:velocity:placement}
+  The parameters are fixed in the order
+  \[
+    (v,I,\Gamma,\cG,g_*,f_*,L_*,q,\vartheta)\ \longrightarrow\ \tau
+    \ \longrightarrow\ K_0 ,
+  \]
+  each stage depending only on the previous ones.  (The paper states this order in prose,
+  in Section~3.1 and in the paragraph after the proof of Proposition~7.1; it does not display
+  it.)  The seed
+  data are Proposition~\ref{prop:local-seed}; the single geometric ratio satisfies
+  $1<q<\sqrt{\delta_+/\delta_-}$ and $\vartheta$ is the fixed axial cut-off; the axial shift
+  is fixed by \eqref{eq:background:axial-separation-choice}; and the base index $K_0$ is
+  enlarged once, to satisfy simultaneously the five conditions: the ratio bound
+  $q+K_0^{-1}<\sqrt{\delta_+/\delta_-}$, the chart packing, the core containment
+  $R_v\ell_n<R_n/10$ (for which the paper gives the sufficient threshold
+  $K_0>(10R_v)^2$), \eqref{eq:background:axial-separation-choice}'s diffusion clause and
+  \eqref{eq:transfer:error-small}.  One final $K_0$ fixes the velocity $u$ and the threshold
+  $\eps_0=\delta_+k_*^2/K_0^2$ ($=\delta_+/K_0^2$ in the paper, where $k_*=1$); only the matching index $n=n(\eps)$ depends on $\eps$
+  afterwards.  The witness-support bound \eqref{eq:transfer:scaled-witness-support} is
+  \emph{not} a sixth threshold: it follows from the core containment because $R_v\geq L_*$
+  (Lemma~\ref{lem:transfer:witness}).
+\end{definition}
+
+In Lean the chain is a record \texttt{GlobalParameterChoice S errorConstant errorTarget}
+over a \texttt{GlobalSeedInterface} $S$, and
+\texttt{exists\_globalParameterChoice} inhabits it for every seed interface $S$, every
+$\texttt{errorConstant}\geq0$ and every $\texttt{errorTarget}>0$: the
+$K_0$-thresholds are collected into a single monotone funnel of the shape ``$\ell_0<t$ or
+$\sqrt{\ell_0}<t$'' and discharged at once.  The record has exactly four fields --
+\texttt{ratios} (the single ratio $q$), \texttt{jointPlacement} (the chart packing and the
+core containment, both read at $R_v=\max(1+h,L_*)$), \texttt{diffusionSmall} and
+\texttt{errorSmall} -- matching the paper's five conditions, since the two placement
+conditions travel together and the integer-ratio bound is a field of the
+\texttt{ScaleFamily} inside the placement.  The axial shift
+$\tau=\texttt{axialShift}$ is a closed term in $\tau$-free and $K_0$-free data, which is
+what makes the order non-circular.  Note that the
+interface record itself stores $L_*$ and $L$ as bare reals and carries no seed facts, so
+\texttt{nonempty\_globalParameterChoice} on its own is a \emph{shape} statement; the
+chain is instantiated only at \texttt{LocalSeedC2.toGlobalSeedInterface}, and every seed
+fact the transfer consumes ($f_*$, its norm, its support, the resolvents, the projection
+bound) is taken from the \texttt{LocalSeedC2} record, not from the interface.  The chosen
+chain is \texttt{HorizontalMode.mainParameterChoice}.
+
+One point about the shape of the dependency graph here.  The record
+\texttt{GlobalParameterChoice S errorConstant errorTarget} takes the Section~6 and
+Section~7 constants
+as \emph{arguments}: $\tau$ is a closed term in the seed data and the ratio, and the
+thresholds \eqref{eq:background:axial-separation-choice} and \eqref{eq:transfer:error-small}
+enter as fields whose numerical content the caller supplies.  That is exactly the paper's
+quantifier order, and it is why this node depends
+only on the seed and on the placement in the graph, while the \emph{instantiation}
+\texttt{mainParameterChoice} additionally feeds it
+\texttt{GlobalSeedInterface.errorConstant} and \texttt{errorTarget}, closed terms built from
+the constants of Proposition~\ref{prop:background-resolvent},
+Corollary~\ref{cor:scaled-local-resolvents} and Lemma~\ref{lem:parametrix-error}.  Drawing
+those two extra edges would make the graph cyclic; the paper avoids the circle in the
+same way, by fixing the constants before the base index.
+
+Remark~7.5 of the paper (\texttt{rem:flexible-buffer-scales}), which observes that the
+arguments of Sections~6 and~7 also work for other non-increasing buffer radii $R_n$ with
+$\sum_nR_n\to0$ and $\sup_n\ell_n/R_n\to0$ as $K_0\to\infty$, has no node and is not
+formalised: the Lean fixes $R_n=\sqrt{\ell_n}$ (\texttt{ScaleFamily.bufferRadius}), the
+paper's own choice.
+
+\section{The two-resolvent approximate inverse}
+
+\begin{definition}[The three cut-offs and the chart transports]
+  \label{def:transfer:structural-data}
+  \lean{FastDynamo.ParametrixCutoffs.backgroundCutoff,
+    FastDynamo.ParametrixExplicitCutoff.inputCutoff,
+    FastDynamo.ParametrixExplicitCutoff.outputCutoff,
+    FastDynamo.ParametrixCutoffs.norm_cutoff_coordinateDerivative_sum_le,
+    FastDynamo.ParametrixCutoffs.norm_cutoff_iteratedFDeriv_two_sum_le,
+    FastDynamo.ParametrixCutoffs.backgroundCutoff_mul_one_sub_inputCutoff,
+    FastDynamo.ParametrixCutoffs.outputCutoff_mul_inputCutoff,
+    FastDynamo.ParametrixCutoffs.cutoff_partition,
+    FastDynamo.ParametrixCutoffs.TransverseVecSecondOrderCutoff,
+    FastDynamo.ParametrixCutoffs.HorizontalParametrixCutoffs,
+    FastDynamo.ParametrixCutoffs.HorizontalParametrixCutoffs.partition,
+    FastDynamo.TorusPlacedCutoffC2.placedCutoffs,
+    FastDynamo.ScaleFamily.TorusCellPlacement.placedParametrixCutoffs,
+    FastDynamo.TorusChartC2Transfer.restrictInputC2,
+    FastDynamo.TorusChartC2Transfer.extendStateC2,
+    FastDynamo.TorusChartC2Transfer.extendDomainC2,
+    FastDynamo.TorusChartC2Transfer.extendStateC2_comp_restrictInputC2}
+  \leanok
+  \uses{def:velocity:placement, def:transfer:parameter-choice}
+  Choose smooth scalar cut-offs with values in $[0,1]$, the \emph{input cut-off} $\phi_n$ and
+  the \emph{output cut-offs} $\psi_n$, $\chi_n$,
+  \[
+    \phi_n=1\text{ on }D(p_n,R_n/5),\quad\supp\phi_n\subset D(p_n,R_n/4),
+    \qquad
+    \psi_n=1\text{ on }D(p_n,R_n/3),\quad\supp\psi_n\subset D(p_n,R_n/2),
+  \]
+  \[
+    \chi_n=0\text{ on }D(p_n,R_n/10),\qquad\chi_n=1\text{ outside }D(p_n,R_n/6),
+  \]
+  obtained by rescaling fixed radial cut-offs, so that
+  \begin{equation}
+    \norm{D^j\psi_n}_\infty+\norm{D^j\chi_n}_\infty\leq CR_n^{-j},
+    \qquad j=1,2,
+    \label{eq:transfer:cutoff-bounds}
+  \end{equation}
+  and
+  \begin{equation}
+    \chi_n(1-\phi_n)=1-\phi_n,\qquad\psi_n\phi_n=\phi_n .
+    \label{eq:transfer:cutoff-identities}
+  \end{equation}
+\end{definition}
+
+Only the input cut-off $\phi_n$ splits the forcing, so only the two output cut-offs need
+derivative bounds; the paper's \texttt{eq:parametrix-cutoff-bounds} accordingly carries no
+summand $\norm{D^j\phi_n}_\infty$.  Lean matches
+this: the consumed interface \texttt{HorizontalParametrixCutoffs} stores, for $\phi_n$, only
+the two sup-norm bounds $\norm{\phi_n}_\infty\leq1$ and $\norm{1-\phi_n}_\infty\leq1$, and
+the four derivative bounds only for $\psi_n$ and $\chi_n$.  The auxiliary lemmas
+\texttt{norm\_cutoff\_coordinateDerivative\_sum\_le} and
+\texttt{norm\_cutoff\_iteratedFDeriv\_two\_sum\_le} do bound all three cut-offs in a single
+three-term sum -- that is how the explicit construction produces them -- but the $\phi_n$
+summand is never read: the placed construction extracts the $\psi_n$ and $\chi_n$ halves,
+which is exactly the paper's display.
+
+In Lean a cut-off is packaged as a \texttt{TransverseVecSecondOrderCutoff}: the
+multiplication operators by the value, by each first derivative and by the Laplacian, with
+their $\Lp^\infty$ bounds and the identity that the value operator maps $\Hs^2$ into
+$\Hs^2$.  \texttt{HorizontalParametrixCutoffs R} bundles the three of them together with
+the operator form $\chi_n(1-\phi_n)+\psi_n\phi_n=\id$ of
+\eqref{eq:transfer:cutoff-identities}.  The concrete placed triple is built on the plane
+and transported to the torus through \texttt{placedCutoffs}, which needs the no-wrap
+statement that the closed ball of radius $R_n/2$ around $p_n$ lies in one fundamental box;
+the chart transports $\texttt{restrictInputC2}$ (torus $\to$ plane, multiply by $\phi_n$,
+extend by zero) and $\texttt{extendStateC2}$ (plane $\to$ torus, multiply by $\psi_n$) are
+the two maps that make the selected summand well defined.
+
+\begin{definition}[The approximate inverse]
+  \label{def:transfer:approximate-inverse}
+  \lean{FastDynamo.TorusTwoSummandParametrix.twoSummandParametrix,
+    FastDynamo.TorusTwoSummandParametrix.twoSummandError,
+    FastDynamo.TorusTwoSummandParametrix.BackgroundParametrixData,
+    FastDynamo.TorusTwoSummandParametrix.BackgroundParametrixData.ofTorusBackgroundResolventData,
+    FastDynamo.TorusTwoSummandParametrix.SelectedLocalResolventData,
+    FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData,
+    FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData.approximateInverse,
+    FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData.continuousOn_approximateInverse,
+    FastDynamo.TorusChartC2Transfer.selectedLocalResolventData,
+    FastDynamo.TorusChartC2Transfer.selectedCellParametrixData,
+    FastDynamo.TorusParametrixError.norm_stateParametrix_apply_le}
+  \leanok
+  \uses{def:transfer:structural-data, prop:background-resolvent,
+    cor:scaled-local-resolvents}
+  With $\cR_{\rm bg}(z)=(z-A^{\rm bg}_{\eps,n})^{-1}$ and
+  $\cR_n(z)=(z-A^{(n)}_{\eps,n})^{-1}$ -- the first an abbreviation the paper introduces in
+  running text just before \texttt{eq:Rapp}, the second the resolvent of Corollary~6.2 of
+  the paper -- put
+  \begin{equation}
+    \cR_{\rm app}(z)=\chi_n\cR_{\rm bg}(z)(1-\phi_n)+\psi_n\cR_n(z)\phi_n,
+    \qquad z\in\Gamma_\tau .
+    \label{eq:transfer:Rapp}
+  \end{equation}
+  For the second summand, $\phi_nf$ is extended by zero from the fixed chart to $\R^2$, the
+  whole-plane resolvent is applied, and the product with $\psi_n$ is restricted to the
+  torus.  Both summands map $\Lp^2(\T^2;\CC^2)$ boundedly into $\Hs^2(\T^2;\CC^2)$, and
+  \eqref{eq:background:bg-resolvent}, \eqref{eq:background:local-gradient} give
+  \begin{equation}
+    \sup_{z\in\Gamma_\tau}\norm{\cR_{\rm app}(z)}_{2\to2}\leq C_{\rm app},
+    \label{eq:transfer:parametrix-uniform-bound}
+  \end{equation}
+  uniformly in $n$, in $\delta_n\in I$ and in the final enlargement of $K_0$.  The
+  $\Lp^2\to\Hs^2$ norm need not be uniform.
+\end{definition}
+
+The Lean \texttt{TwoSummandParametrixData} is an interface: the two resolvent data, the
+cut-off triple, the chart transports and the hypotheses that make the commutator
+computation valid.  Its instance at the selected cell is
+\texttt{selectedCellParametrixData}.  The uniform bound is assembled as
+$C_{\rm app}=C_{\rm bg}+C_{\rm loc}$
+(\texttt{TorusParametrixError.norm\_stateParametrix\_apply\_le}), using the sharp
+$\norm{1-\phi_n}_{\Lp^\infty}\leq1$, which holds because $0\leq\phi_n\leq1$.
+
+\begin{lemma}[The commutator of the operator with a cut-off]
+  \label{lem:transfer:commutator}
+  \lean{FastDynamo.HorizontalCutoffCommutator.commutator,
+    FastDynamo.HorizontalCutoffCommutator.diffusion_commutator_apply,
+    FastDynamo.HorizontalCutoffCommutator.axialTransport_commutes,
+    FastDynamo.HorizontalCutoffCommutator.stretching_commutes,
+    FastDynamo.HorizontalCutoffCommutator.commutator_apply,
+    FastDynamo.HorizontalCutoffCommutator.VelocityVanishesOnGradient,
+    FastDynamo.HorizontalCutoffCommutator.commutator_apply_of_velocityVanishesOnGradient,
+    FastDynamo.HorizontalCutoffCommutator.norm_commutator_apply_le_explicitScale}
+  \leanok
+  \uses{def:operator:horizontal-induction, def:transfer:structural-data}
+  Write $[A_{\eps,K_n},\chi]=A_{\eps,K_n}\chi-\chi A_{\eps,K_n}$.  For a scalar cut-off $\chi$
+  whose gradient is supported where $u_\perp$ vanishes,
+  \[
+    [A_{\eps,K_n},\chi]h
+      =\eps\bigl(2\nabla_\perp\chi\cdot\nabla_\perp h+(\Delta_\perp\chi)h\bigr),
+    \qquad
+    \norm{[A_{\eps,K_n},\chi]h}_2\leq C\Bigl(\frac\eps{R_n}\norm{\nabla_\perp h}_2
+      +\frac\eps{R_n^2}\norm h_2\Bigr).
+  \]
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The axial multiplier and the stretching term are of order zero and commute with
+  multiplication by the scalar $\chi$.  The transport term contributes
+  $(u_\perp\cdot\nabla_\perp\chi)h$, which vanishes because $u_\perp=0$ on the support of
+  $\nabla_\perp\chi$.  The commutator is therefore that of $\eps\Delta_\perp$, which the
+  Leibniz rule turns into the displayed identity, and the bound follows from
+  $\norm{\nabla_\perp\chi}_{\Lp^\infty}\leq C/R_n$ and
+  $\norm{\Delta_\perp\chi}_{\Lp^\infty}\leq C/R_n^2$.
+\end{proof}
+
+The axial multiplier and the stretching term are zeroth order, so they commute with a
+scalar cut-off \emph{exactly}; this is proved in Lean rather than asserted.  The transport
+term is killed by the hypothesis \texttt{VelocityVanishesOnGradient}, which is the only
+geometric input and is discharged for $\chi_n$ (gradient in $R_n/10\leq\abs{y-p_n}\leq
+R_n/6$) and for $\psi_n$ (gradient in $R_n/3\leq\abs{y-p_n}\leq R_n/2$) from the support
+fit $\supp u_n^{\rm loc}\subset D(p_n,R_n/10)$, in one statement covering both.  The paper
+proves this commutator identity and bound inside the proof of Lemma~7.2, for
+$\chi\in\{\chi_n,\psi_n\}$.
+
+\begin{lemma}[Identity and error for the approximate inverse]
+  \label{lem:parametrix-error}
+  \lean{FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData.right_error_identity,
+    FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData.error_eq,
+    FastDynamo.TorusTwoSummandParametrix.TwoSummandParametrixData.transfer_rightError_eq,
+    FastDynamo.TorusParametrixError.scaleErrorMajorant,
+    FastDynamo.TorusParametrixError.commutatorErrorConstant,
+    FastDynamo.TorusParametrixError.parametrixErrorConstant,
+    FastDynamo.TorusParametrixError.norm_error_apply_le,
+    FastDynamo.TorusParametrixError.norm_error_le,
+    FastDynamo.TorusParametrixError.scaleErrorMajorant_scaled_le}
+  \leanok
+  \uses{def:transfer:approximate-inverse, lem:transfer:commutator,
+    prop:background-resolvent, cor:scaled-local-resolvents}
+  For $z\in\Gamma_\tau$,
+  \begin{equation}
+    (z-A_{\eps,K_n})\cR_{\rm app}(z)=\id+E_n(z),
+    \qquad
+    E_n(z)=-[A_{\eps,K_n},\chi_n]\cR_{\rm bg}(z)(1-\phi_n)
+      -[A_{\eps,K_n},\psi_n]\cR_n(z)\phi_n,
+    \label{eq:transfer:parametrix}
+  \end{equation}
+  and
+  \begin{equation}
+    \norm{E_n(z)}_{2\to2}\leq C\Bigl(\frac{\sqrt\eps}{R_n}+\frac\eps{R_n^2}\Bigr)
+      \leq C(\sqrt{\ell_n}+\ell_n),
+    \label{eq:transfer:explicit-error}
+  \end{equation}
+  with $C$ independent of $n$, of $\delta_n\in I$, of $z$ and of the final enlargement of
+  $K_0$.
+\end{lemma}
+
+The paper gives the formula for $E_n(z)$ in the proof; the statement above includes it.
+The Lean constant is explicit: $C=(2\sqrt2C_1+2C_2)(C_{\rm bg}+C_{\rm loc})$, with $C_1$,
+$C_2$ the first- and second-derivative constants of the rescaled cut-offs, and the scaling
+identity $\eps=\delta\ell^2$, $R=\sqrt\ell$ turns $C(\sqrt\eps/R+\eps/R^2)$ into
+$C(1+\delta_+)(\sqrt\ell+\ell)$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:transfer:commutator, def:transfer:approximate-inverse}
+  The full and background coefficients agree wherever $\chi_n\neq0$, because
+  $\supp u_n^{\rm loc}\subset D(p_n,R_n/10)$; the full and selected whole-plane
+  coefficients agree on $\supp\psi_n$, because the added axial velocity is constant on
+  $D(p_n,3R_n/4)$ and all other cells are disjoint from the buffer disc.  So
+  \eqref{eq:transfer:cutoff-identities} gives
+  $(z-A_{\eps,K_n})\chi_n\cR_{\rm bg}(1-\phi_n)
+  =1-\phi_n-[A_{\eps,K_n},\chi_n]\cR_{\rm bg}(1-\phi_n)$ and
+  $(z-A_{\eps,K_n})\psi_n\cR_n\phi_n=\phi_n-[A_{\eps,K_n},\psi_n]\cR_n\phi_n$; adding gives
+  \eqref{eq:transfer:parametrix}.  Lemma~\ref{lem:transfer:commutator} bounds each
+  commutator by $C(\eps/R_n)\norm{\nabla_\perp h}_2+C(\eps/R_n^2)\norm h_2$, and the two
+  resolvent estimates \eqref{eq:background:bg-resolvent},
+  \eqref{eq:background:local-gradient} convert
+  $\eps\norm{\nabla_\perp h}_2\leq\sqrt\eps\cdot C\norm f_2$ and
+  $\norm h_2\leq C\norm f_2$.
+\end{proof}
+
+\section{The global resolvent on the contour}
+
+\begin{lemma}[The resolvent of the horizontal operator on $\T^2$ along the shifted contour]
+  \label{lem:global-contour-resolvent}
+  \lean{FastDynamo.TorusParametrixError.error_norm_lt_one_of_majorant,
+    FastDynamo.TorusParametrixError.exists_scale_threshold,
+    FastDynamo.TorusParametrixError.globalContourResolvent,
+    FastDynamo.TorusParametrixError.globalContourResolvent_inv,
+    FastDynamo.TorusChartC2Transfer.selectedCellGlobalContourResolvent,
+    FastDynamo.TorusGlobalRieszNonzero.cellContourResolvent,
+    FastDynamo.HorizontalMode.mainSelectedCellResolvent,
+    FastDynamo.GlobalParameterChoice.scaleErrorMajorant_lt_errorTarget}
+  \leanok
+  \uses{lem:parametrix-error, lem:torus-sector-basic, def:transfer:parameter-choice}
+  For all sufficiently large $K_0$, uniformly in $n\geq0$ and in
+  $\eps=\delta_n\ell_n^2$ with $\delta_n\in I$, one has
+  $\Gamma_\tau\subset\rho(A_{\eps,K_n})$ and
+  \begin{equation}
+    (z-A_{\eps,K_n})^{-1}=\cR_{\rm app}(z)\bigl(\id+E_n(z)\bigr)^{-1},
+    \qquad z\in\Gamma_\tau .
+    \label{eq:transfer:global-resolvent}
+  \end{equation}
+  The threshold is: choose $0<\eta_*<1/2$ with
+  $\tfrac{\operatorname{length}(\Gamma)}{2\pi}C_{\rm app}\tfrac{\eta_*}{1-\eta_*}<\tfrac14$
+  and enlarge $K_0$ until
+  \begin{equation}
+    \sup_{n\geq0}\sup_{\delta\in I}\sup_{z\in\Gamma_\tau}\norm{E_{n,\delta}(z)}_{2\to2}
+      <\eta_* .
+    \label{eq:transfer:error-small}
+  \end{equation}
+\end{lemma}
+
+The paper chooses $\eta_*$ and states \texttt{eq:error-small} in the proof of Lemma~7.3; the
+statement above includes them.  The strict inequality of \eqref{eq:transfer:error-small}
+is the strict inequality in Lean as well.  The Lean threshold is
+$\eta_*=\min\bigl(\tfrac12,(100(1+K))^{-1}\bigr)$ with $K=(1+r_\Gamma)(1+C_{\rm app})$
+(\texttt{GlobalSeedInterface.errorTarget}), which gives $A\eta_*/(1-\eta_*)<\tfrac14$ for
+every prefactor $0\leq A\leq10K$ (\texttt{mul\_errorTarget\_div\_lt\_quarter}), in
+particular for $A=r_\Gamma C_{\rm app}$; the prefactor
+$\operatorname{length}(\Gamma)/2\pi$ is exactly the radius $r_\Gamma$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:parametrix-error, lem:torus-sector-basic}
+  Since $\ell_n\leq\ell_0=k_*/K_0$ ($=1/K_0$ in the paper, where $k_*=1$),
+  \eqref{eq:transfer:explicit-error} tends to zero
+  uniformly as $K_0\to\infty$, so \eqref{eq:transfer:error-small} can be arranged; the
+  Neumann series then inverts $\id+E_n(z)$ and \eqref{eq:transfer:parametrix} exhibits
+  $\cR_{\rm app}(\id+E_n)^{-1}$ as a right inverse with values in $\Hs^2$.  By
+  Lemma~\ref{lem:torus-sector-basic} the pencil $z-A_{\eps,K_n}\colon\Hs^2\to\Lp^2$ is
+  Fredholm of index zero, so surjectivity forces injectivity and the right inverse is the
+  resolvent; continuity in $z$ is inherited from the two resolvent families and the
+  Neumann series.
+\end{proof}
+
+\section{The Riesz projection of the horizontal operator on $\T^2$ is non-zero}
+
+\begin{lemma}[The placed witness]
+  \label{lem:transfer:witness}
+  \lean{FastDynamo.TorusSelectedWitness.VanishesOutsideDisk,
+    FastDynamo.TorusSelectedWitness.scaledWitness,
+    FastDynamo.TorusSelectedWitness.placedWitness,
+    FastDynamo.TorusSelectedWitness.norm_placedWitness,
+    FastDynamo.TorusSelectedWitness.inputMul_stateMul_placedWitness,
+    FastDynamo.TorusSelectedWitness.outputMul_stateMul_placedWitness,
+    FastDynamo.TorusSelectedWitness.restrictInputC2_placedWitness,
+    FastDynamo.TorusSelectedWitness.vanishesOutsideDisk_scaledWitness,
+    FastDynamo.GlobalParameterChoice.witnessSupport}
+  \leanok
+  \uses{prop:local-seed, def:transfer:structural-data, def:transfer:parameter-choice}
+  Since $L_*\leq R_v$, the core containment $R_v\ell_n<R_n/10$ of
+  Definition~\ref{def:velocity:placement} gives
+  \begin{equation}
+    L_*\ell_n<R_n/5\qquad\text{for every }n\geq0 .
+    \label{eq:transfer:scaled-witness-support}
+  \end{equation}
+  Read $f_n=U_nf_*$ as a torus field by restriction to the fixed chart and extension by
+  zero.  Then $\norm{f_n}_2=1$ and $\phi_nf_n=\psi_nf_n=f_n$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  The placement radius satisfies $R_v\geq L_*$ by construction
+  (\texttt{GlobalSeedInterface.witnessSupportRadius\_le\_placementRadius}), so
+  $L_*\ell_n\leq R_v\ell_n<R_n/10<R_n/5$; the support of $f_*$ lies in $D(0,L_*)$, so the
+  support of the rescaled and placed $f_n$ lies in $D(p_n,L_*\ell_n)\subset D(p_n,R_n/5)$,
+  where both $\phi_n$ and $\psi_n$ equal one, and unitarity of $U_n$ gives $\norm{f_n}_2=1$.
+\end{proof}
+
+The radius $R_n/5$ in \eqref{eq:transfer:scaled-witness-support} is exactly the plateau
+radius of the input cut-off, so the constant is not slack.  The paper requires
+$R_v\geq L_*$ when $R_v$ is chosen (Section~3.3, just before \texttt{eq:local-support-in-buffer})
+and derives the bound, its \texttt{eq:scaled-witness-support}, from the core containment
+at the start of the proof of Lemma~7.4 rather than from a further enlargement of $K_0$,
+which keeps the list of $K_0$-thresholds at five.
+Lean does the same: the placement is chosen once, at support radius
+$R_v=\max(1+h,L_*)$, and \texttt{GlobalParameterChoice.witnessSupport} is proved
+from the placement's support fit together with $R_n/10<R_n/5$.
+
+\begin{lemma}[The contour identity at the witness]
+  \label{lem:transfer:contour-identity}
+  \lean{FastDynamo.TorusSelectedContourIdentity.SelectedCellData,
+    FastDynamo.TorusSelectedContourIdentity.SelectedCellData.parametrix,
+    FastDynamo.TorusSelectedContourIdentity.circleIntegral_translate,
+    FastDynamo.TorusSelectedContourIdentity.inner_stateParametrix_eq_of_witness,
+    FastDynamo.TorusSelectedContourIdentity.inner_stateParametrix_placedWitness,
+    FastDynamo.TorusSelectedContourIdentity.inner_contourOperator_placedWitness,
+    FastDynamo.TorusGlobalRieszNonzero.re_inner_contourOperator_placedWitness_gt_half}
+  \leanok
+  \uses{lem:transfer:witness, def:transfer:approximate-inverse, lem:exact-renormalization,
+    prop:local-seed}
+  For $z\in\Gamma_\tau$,
+  $\inner{\cR_{\rm app}(z)f_n}{f_n}=\inner{(z+i\tau-\cL_{\delta_n})^{-1}f_*}{f_*}$, and
+  therefore
+  \begin{equation}
+    \frac1{2\pi i}\int_{\Gamma_\tau}\inner{\cR_{\rm app}(z)f_n}{f_n}\dd z
+      =\inner{P_{\delta_n}f_*}{f_*} .
+    \label{eq:transfer:selected-contour-identity}
+  \end{equation}
+  In particular $\re$ of the left-hand side exceeds $\tfrac12$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:transfer:witness, lem:exact-renormalization, prop:local-seed}
+  The input of the background summand is $(1-\phi_n)f_n=0$, and the output cut-off of the
+  selected summand equals one on $\supp f_n$, so only the selected summand survives; the
+  scaling identity \eqref{eq:operator:exact-scaling} and the unitarity of $U_n$ turn it into
+  the seed resolvent at $z+i\tau$.  Integrating and translating the circle by $+i\tau$ --
+  the parametrisation and its derivative are unchanged, so the translation is exact and
+  orientation preserving -- gives the seed's Riesz projection, and
+  \eqref{eq:local:spectral-witness} gives the bound.
+\end{proof}
+
+\begin{lemma}[The Riesz projection of the horizontal operator on $\T^2$ is non-zero]
+  \label{lem:global-riesz-nonzero}
+  \lean{FastDynamo.TorusGlobalRieszNonzero.norm_stateResolvent_sub_stateParametrix_le_of_inv,
+    FastDynamo.TorusGlobalRieszNonzero.norm_rieszProjection_sub_contourOperator_le_cell,
+    FastDynamo.TorusGlobalRieszNonzero.re_inner_rieszProjection_placedWitness_gt_quarter,
+    FastDynamo.TorusGlobalRieszNonzero.rieszProjection_ne_zero_cell,
+    FastDynamo.LocalSeedC2.projectionError_matchingCellData_lt_quarter}
+  \leanok
+  \uses{lem:transfer:contour-identity, lem:global-contour-resolvent,
+    lem:parametrix-error}
+  The projection
+  $Q_{\eps,n}=(2\pi i)^{-1}\int_{\Gamma_\tau}(z-A_{\eps,K_n})^{-1}\dd z$ satisfies
+  \begin{equation}
+    \Bigl|\inner{Q_{\eps,n}f_n}{f_n}-\inner{P_{\delta_n}f_*}{f_*}\Bigr|
+      \leq\frac{\operatorname{length}(\Gamma)}{2\pi}C_{\rm app}
+        \frac{\eta_*}{1-\eta_*}<\frac14,
+    \label{eq:transfer:global-projection-error}
+  \end{equation}
+  hence $\re\inner{Q_{\eps,n}f_n}{f_n}>\tfrac14$ and $Q_{\eps,n}\neq0$, for every $n\geq0$
+  and every $\eps=\delta_n\ell_n^2$ with $\delta_n\in I$.
+\end{lemma}
+
+The paper's statement of Lemma~7.4 asserts only $Q_{\eps,n}\neq0$; the bound
+\eqref{eq:transfer:global-projection-error} (the paper's \texttt{eq:global-projection-error})
+and $\re\inner{Q_{\eps,n}f_n}{f_n}>\tfrac14$ are established in its proof, together with
+the content of Lemmas~\ref{lem:transfer:witness} and~\ref{lem:transfer:contour-identity}.
+In Lean the error is bounded in operator norm,
+$\norm{Q_{\eps,n}-(2\pi i)^{-1}\int_{\Gamma_\tau}\cR_{\rm app}(z)\dd z}
+\leq r_\Gamma C_{\rm app}e/(1-e)$ with $e<1$ the explicit majorant of
+$\sup_{z}\norm{E_n(z)}$ (\texttt{norm\_rieszProjection\_sub\_contourOperator\_le\_cell}),
+then $e<\eta_*$ is used and the result is paired with the unit vector $f_n$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:global-contour-resolvent, lem:transfer:contour-identity}
+  From \eqref{eq:transfer:global-resolvent},
+  $(z-A_{\eps,K_n})^{-1}-\cR_{\rm app}(z)=-\cR_{\rm app}(z)(\id+E_n(z))^{-1}E_n(z)$, whose
+  norm is at most $C_{\rm app}\eta_*/(1-\eta_*)$ by
+  \eqref{eq:transfer:parametrix-uniform-bound} and
+  \eqref{eq:transfer:error-small}; integrating over a circle of radius $r_\Gamma$ and
+  pairing with the unit vector $f_n$ gives
+  \eqref{eq:transfer:global-projection-error}.  Subtracting from
+  Lemma~\ref{lem:transfer:contour-identity} leaves
+  $\re\inner{Q_{\eps,n}f_n}{f_n}>\tfrac12-\tfrac14$.
+\end{proof}
+
+\section{The spectral transfer}
+
+\begin{lemma}[Extraction of an eigenpair from a non-zero Riesz projection]
+  \label{lem:transfer:eigenpair-extraction}
+  \lean{FastDynamo.HorizontalSpectralExtraction.isCompactOperator_rieszProjection_horizontalInduction,
+    FastDynamo.HorizontalSpectralExtraction.finiteDimensional_rieszProjection_range_horizontalInduction,
+    FastDynamo.HorizontalSpectralExtraction.exists_horizontalInduction_eigenpair_mem_closedRegion_of_rieszProjection_ne_zero,
+    FastDynamo.HorizontalSpectralExtraction.exists_growthFloor_horizontalInduction_eigenpair_of_rieszProjection_ne_zero,
+    FastDynamo.ParametrixNeumannCorrection.ne_zero_of_inner_contour_test}
+  \leanok
+  \uses{lem:torus-sector-basic, lem:global-riesz-nonzero,
+    lem:operator:shifted-contour}
+  If $A_{\eps,K}$ has a resolvent on a spectral circle and the associated Riesz projection
+  is non-zero, then $A_{\eps,K}$ has an eigenvalue $\lambda$ in the closed interior of that
+  circle, with an eigenfunction in $\Hs^2(\T^2;\CC^2)$; in particular
+  $\re\lambda\geq$ the circle's growth floor.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{lem:torus-sector-basic}
+  The state resolvent is compact at every resolvent point
+  (Lemma~\ref{lem:torus-sector-basic}), so $Q$ is a compact idempotent and has
+  finite-dimensional range; a non-zero finite-rank idempotent built from a contour integral
+  forces a spectral point inside, and index zero turns that spectral point into an
+  eigenvalue with an $\Hs^2$ eigenfunction.  The real-part bound is the definition of the
+  growth floor, which is invariant under the translation by $-i\tau$.
+\end{proof}
+
+\begin{proposition}[Existence of an unstable eigenvalue of the horizontal operator on $\T^2$]
+  \label{prop:global-spectral-transfer}
+  \lean{FastDynamo.TorusGlobalSpectralTransfer.exists_growing_horizontalInduction_eigenpair_cell,
+    FastDynamo.TorusGlobalSpectralTransfer.exists_growing_reducedInduction_eigenpair_cell,
+    FastDynamo.LocalSeedC2.matchingCellData,
+    FastDynamo.LocalSeedC2.exists_growing_reducedInduction_eigenpair_matchingCell,
+    FastDynamo.HorizontalMode.exists_growing_reducedInduction_eigenpair_matchingCell,
+    FastDynamo.mainReducedClauses_holds}
+  \leanok
+  \uses{def:transfer:parameter-choice, lem:global-contour-resolvent,
+    lem:global-riesz-nonzero, lem:transfer:eigenpair-extraction, lem:axial-recovery}
+  Fix $v,I,\Gamma,\cG,g_*,f_*,L_*$, and choose $q$, the axial cut-off $\vartheta$ and
+  $\tau$ in the order of Definition~\ref{def:transfer:parameter-choice}.
+  Then $K_0$ can be chosen so that for
+  every $0<\eps\leq\eps_0$ and every $n$ with $\delta_n=\eps/\ell_n^2\in I$,
+  \[
+    \Gamma_\tau\subset\rho(A_{\eps,K_n}),\qquad
+    Q_{\eps,n}=\frac1{2\pi i}\int_{\Gamma_\tau}(z-A_{\eps,K_n})^{-1}\dd z\neq0 .
+  \]
+  In particular $A_{\eps,K_n}$ has an eigenvalue inside $\Gamma_\tau$ with real part at least
+  $g_*$:
+  \[
+    \lambda^\eps=\alpha_\eps+i\omega_\eps,\qquad\alpha_\eps\geq g_* .
+  \]
+\end{proposition}
+
+The paper's statement is existential (``has an eigenvalue inside $\Gamma_\tau$ with real
+part at least $g_*$''), and so is the Lean,
+\texttt{exists\_growthFloor\_horizontalInduction\_eigenpair\_of\_rieszProjection\_ne\_zero};
+the paper does not name the eigenvalue, and the display above only names it for later use.
+The paper's proof also notes the universal form, ``every eigenvalue in this region has real
+part at least $g_*$, as translation by $-i\tau$ preserves real parts''.  In Lean that is
+one application of \texttt{SpectralCircle.growthFloor\_le\_re\_of\_mem\_ball} -- the very
+lemma the existential proof applies -- and nothing downstream needs it, so it is not stated
+separately.
+
+In Lean the proposition is used in its \emph{eigenpair} form and immediately composed with
+the axial recovery, so the two published endpoints are
+\texttt{TorusGlobalSpectralTransfer.exists\_growing\_reducedInduction\_eigenpair\_cell}
+(one selected cell, three components) and, at the chosen chain,
+\texttt{HorizontalMode.exists\_growing\_reducedInduction\_eigenpair\_matchingCell}, whose
+packaging over all $0<\eps\leq\eps_0$ is \texttt{mainReducedClauses\_holds}.  The last of
+these is the exact content of this node at the constructed velocity; it is the theorem the
+whole development exists to prove.
+
+\begin{proof}
+  \leanok
+  \uses{lem:global-contour-resolvent, lem:global-riesz-nonzero,
+    lem:transfer:eigenpair-extraction, lem:torus-sector-basic}
+  Lemma~\ref{lem:global-contour-resolvent} gives the contour resolvent and
+  Lemma~\ref{lem:global-riesz-nonzero} the non-zero projection, at every admissible cell
+  and every admissible diffusivity.  By Lemma~\ref{lem:torus-sector-basic} the resolvent is
+  compact, so the spectrum inside $\Gamma_\tau$ consists of isolated eigenvalues of finite
+  algebraic multiplicity, and the non-zero projection shows that it is non-empty;
+  Lemma~\ref{lem:transfer:eigenpair-extraction} extracts the eigenpair.  Every eigenvalue in
+  the region has $\re\lambda\geq g_*$ because translation by $-i\tau$ preserves real
+  parts.
+\end{proof}
+
+\begin{lemma}[Every admissible cell]
+  \label{lem:transfer:all-cells}
+  \lean{FastDynamo.exists_growing_eigenpair_of_matchingCell,
+    FastDynamo.exists_growing_eigenpair_of_admissible_index,
+    FastDynamo.MainEveryAdmissibleCellClauses,
+    FastDynamo.mainEveryAdmissibleCellClauses_holds}
+  \leanok
+  \uses{prop:global-spectral-transfer, def:transfer:parameter-choice}
+  Proposition~\ref{prop:global-spectral-transfer} holds not only at a canonically chosen
+  matching cell but at every cell index $n$ with $\eps/\ell_n^2\in I$: the axial index
+  $K_n$ is non-zero and carries an eigenpair of $A_{\eps,K_n}$, hence of the
+  three-component operator, with $\re\lambda\geq\gamma_0$.
+\end{lemma}
+
+This is stronger than Theorem~\ref{thm:main} requires and is recorded as item (4) of
+Theorem~\ref{thm:main-strengthened}.  The Lean predicate quantifies over
+$0<\eps\leq\eps_0$, although the paper's proof needs no upper bound on $\eps$ once an
+admissible index is given; the threshold enters only through the \emph{existence} of such
+an index.
+
+\begin{proof}
+  \leanok
+  \uses{prop:global-spectral-transfer}
+  Every step of the chain is stated at an arbitrary admissible index, so nothing has to be
+  redone; only the choice of the index is dropped.
+\end{proof}

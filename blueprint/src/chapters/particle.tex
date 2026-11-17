@@ -1,0 +1,1028 @@
+This chapter follows Section~4 of the paper, \emph{Particle dynamics and absence of
+exponential stretching} (\texttt{sec:particle}).  It has two halves: the
+particle flow of the global velocity, written down in closed form, with its linear Lipschitz
+bound and its zero topological entropy (Proposition~\ref{prop:particle-flow}); and the ideal
+induction group built from the Cauchy formula, with its two-sided polynomial bounds and its
+vanishing exponential growth rate (Corollary~\ref{cor:ideal-growth}).  Together they give
+the two dynamical clauses of Theorem~\ref{thm:main}, and rather more
+(Proposition~\ref{prop:main-lagrangian}).
+
+The predicates are stated in
+\texttt{FastDynamo/Dynamics/ParticleFlow.lean}; the flow is constructed in closed form, cell
+by cell, in \texttt{FastDynamo/Dynamics/Flow/*}; the ideal group is constructed from the
+Cauchy formula in \texttt{FastDynamo/Dynamics/Ideal/*}; and
+\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean} assembles them at the constructed
+velocity (\texttt{mainTheoremLagrangian\_holds}), which discharges the hypothesis of
+\texttt{mainTheoremComplete\_of\_lagrangian} and of \texttt{ideal\_resistive\_gap}.  Almost
+no ODE theory is used: Picard--Lindel\"of, integral curves and Rademacher are avoided
+altogether by writing the flow down.  The steps of the paper's \emph{proof} of Corollary~4.2
+(\texttt{cor:ideal-growth}) are formalised: the variational equation
+\texttt{eq:flow-variational-equation} (Lemma~\ref{lem:dynamics:variational-equation}), the
+weak form of the ideal equation and the fact that the Cauchy formula solves it
+(Definition~\ref{def:dynamics:ideal-weak-form}, Lemma~\ref{lem:dynamics:ideal-weak-existence}),
+and the uniqueness of weak solutions in $\C([-T,T];\Lp^2)$, which makes $\mathcal T_0$
+\emph{the} solution group (Lemma~\ref{lem:dynamics:ideal-weak-uniqueness}).  The last section
+is Remark~1.7 of the paper, the convergence of the resistive evolution to the ideal one as
+$\eps\downarrow0$ (Theorem~\ref{thm:vanishing-diffusivity}).
+
+\section{The particle flow and its entropy}
+
+\begin{definition}[Particle flow and Lipschitz constants]
+  \label{def:dynamics:particle-flow}
+  \lean{FastDynamo.literalTorusPoint, FastDynamo.IsLiteralTorusLift,
+    FastDynamo.IsParticleFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlowLift,
+    FastDynamo.mainLiteralFlow,
+    FastDynamo.IsParticleFlow.unique,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlow_unique,
+    FastDynamo.mainLiteralFlow_unique,
+    FastDynamo.existsUnique_isParticleFlow_mainLiteralVelocity}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:global-velocity}
+  The \emph{particle flow} of the global velocity $u $ is the family
+  $\Phi_t:\T^3\to\T^3 $ solving
+  \[
+    \frac{\dd}{\dd t}\Phi_t(x)=u(\Phi_t(x)),
+    \qquad
+    \Phi_0(x)=x.
+  \]
+  Existence and uniqueness for every $t\in\R $ follow from the global Lipschitz regularity
+  of $u $ (Lemma~\ref{lem:global-velocity}), and $\Phi_t^{-1}=\Phi_{-t} $.  For a
+  Lipschitz map $F $, $\operatorname{Lip}(F) $ denotes its optimal Lipschitz constant.
+\end{definition}
+
+There is both a Lean statement and a Lean flow.  \texttt{IsParticleFlow v} $\Phi$ says
+that for every $x$ there is a single curve $\gamma\colon\R\to\R^3$ with
+$\Phi_t(x)=\pi(\gamma(t))$ and $\gamma'(t)=v(\Phi_t(x))$, together with $\Phi_0=\id$; the
+inverse law $\Phi_{-t}\circ\Phi_t=\id$ (used in the proof of Proposition~4.1 of the paper
+as $\Phi_t^{-1}=\Phi_{-t}$) is a separate conjunct of
+\texttt{MainLagrangianClauses}, and the full group law $\Phi_s\circ\Phi_t=\Phi_{s+t}$ is proved
+for the periodised data from which the flow is built
+(\texttt{PeriodizedPlaneFlowData.literalFlow\_comp}) but is not part of any clause.  The paper's own
+device of working with periodic lifts is
+\texttt{IsLiteralTorusLift}.  The flow itself is
+\texttt{ScaleFamily.TorusCellPlacement.literalFlow}
+(\texttt{FastDynamo/Dynamics/Flow/TorusFlow.lean}), with periodic lift
+\texttt{literalFlowLift}, and \texttt{mainLiteralFlow} is its instance at the constructed
+velocity.  Its \emph{existence} is built \emph{in closed form}, not by an existence theorem:
+the library never invokes Picard--Lindel\"of or integral curves, where the paper obtains
+existence and uniqueness of the flow from the global Lipschitz bound of
+Lemma~3.1 of the paper (opening paragraph of Section~4) and then derives the closed formula
+\texttt{eq:explicit-particle-flow} for that flow.  The closed formula itself is the
+paper's -- the transverse rotation of
+\texttt{Global/PairChartRotation.lean}, the radial angular and axial profiles of
+\texttt{Dynamics/Flow/CellProfiles.lean}, the single-cell map of
+\texttt{Dynamics/Flow/CellFlowMap.lean}, the sum over the accumulating cells and its
+$\Z^2$-periodisation in \texttt{Dynamics/Flow/PlaneFlow\{,Regularity\}.lean}, and the
+descent through the chart in \texttt{Dynamics/Flow/TorusFlow.lean}.  That the closed
+formula solves the ODE is Proposition~\ref{prop:particle-flow}.
+
+\emph{Uniqueness} is proved, by Gronwall's inequality.  The paper's
+``the unique particle flow'' (opening paragraph of Section~4) is
+\texttt{IsParticleFlow.unique}
+(\texttt{FastDynamo/Dynamics/Flow/ParticleFlowUniqueness.lean}): for a Lipschitz $v$ there is at
+most one $\Phi$ with $\texttt{IsParticleFlow}\ v\ \Phi$.  The argument runs on the universal
+cover, in the spirit of the paper's periodic lifts.  Two flows
+give, through a fixed point $x$, two lifted trajectories $\gamma,\gamma'$ solving the same
+\emph{autonomous} ODE $\dot r=\tilde v(r)$ with $\tilde v=v\circ\pi$, which is Lipschitz with
+the same constant because $\pi$ is $1$-Lipschitz
+(\texttt{lipschitzWith\_literalTorusPoint}).  Their starting points agree modulo $\Z^3$, so the
+translate $\gamma'+(\gamma(0)-\gamma'(0))$ solves the same equation with the same initial value,
+and Mathlib's \texttt{dist\_le\_of\_trajectories\_ODE} (Gronwall with $\delta=0$), applied
+forwards and to the time-reversed system, identifies the two curves; projecting back gives
+$\Phi=\Phi'$.  Hence \texttt{literalFlow} is \emph{the} flow at every admissible parameter
+tuple (\texttt{literalFlow\_unique}), and \texttt{mainLiteralFlow} is the paper's
+$\Phi_t$ at the constructed velocity (\texttt{mainLiteralFlow\_unique},
+\texttt{existsUnique\_isParticleFlow\_mainLiteralVelocity}).  Nothing downstream needs it:
+$\Phi_{-t}\circ\Phi_t=\id$ is a clause of \texttt{MainLagrangianClauses} in its own right, not a
+consequence of uniqueness.
+
+One deviation, forced by the geometry: the chart-side plane flow is \emph{not}
+$\Z^2$-equivariant (its displacement is supported in the placement chart, which is
+disjoint from its nontrivial integer translates), exactly as the velocity is not, so the
+object that descends to the torus is the periodisation
+\texttt{planePeriodizedTransverseFlow} built with the same
+\texttt{UnitBoxPeriodization.periodization} the velocity already uses.  On the placement
+chart the two agree, so no constant is lost.
+
+\begin{definition}[Topological entropy]
+  \label{def:dynamics:topological-entropy}
+  \lean{FastDynamo.HasZeroTopologicalEntropy,
+    FastDynamo.coverEntropy_eq_zero_of_lipschitz_iterate}
+  \leanok
+  Let $F $ be a continuous self-map of a compact metric space $(X,d) $, and write
+  $h_{\mathrm{top}}(F) $ for its topological entropy.  The paper fixes no display for
+  it: it refers to [Hasselblatt--Katok, \emph{Principal structures}, Section~2.5e]
+  (Section~1.2 of the paper, before Theorem~1.2).  That section introduces $h_{\mathrm{top}} $ through the dynamical metrics
+  $d_m(x,y)=\max_{0\leq j<m}d(F^j(x),F^j(y)) $ and the exponential growth rate in $m $ of
+  the minimal cardinality of an $(m,\rho) $-cover, equivalently of the maximal cardinality
+  of an $(m,\rho) $-separated set; on a compact metric space the cover, spanning and
+  separated forms are one and the same invariant.
+\end{definition}
+
+\textbf{Which invariant.}  The Lean predicate \texttt{HasZeroTopologicalEntropy F} is
+$\texttt{Dynamics.coverEntropy}\ F\ \texttt{univ}=0$, Mathlib's \emph{cover} entropy.  On
+the compact metric space $\T^3$ the proof reduces it through
+\texttt{Metric.uniformity\_basis\_dist} (inside
+\texttt{coverEntropy\_eq\_zero\_of\_lipschitz\_iterate}) to the growth rate of the minimal
+$(m,\rho)$-cover, so the quantity proved to vanish is the Bowen--Dinaburg invariant of the
+cited section, not a weaker substitute.  Mathlib's own equivalence with the separated (net)
+form, \texttt{Dynamics.coverEntropy\_eq\_iSup\_netEntropyEntourage}, exists in the
+pinned Mathlib but is not imported here, because no clause needs it
+(\texttt{Mathlib/Dynamics/TopologicalEntropy/NetEntropy.lean} is not built in this tree).
+
+\textbf{The proof route differs.}  The paper (last paragraph of the proof of
+Proposition~4.1) combines two facts quoted
+from Hasselblatt--Katok: the power rule $h_{\mathrm{top}}(F^m)=m\,h_{\mathrm{top}}(F)$
+(Section~2.5f(3)) and the Lipschitz bound
+$h_{\mathrm{top}}(F)\leq3\log\operatorname{Lip}(F)$ (Proposition~2.5.5), applied to
+$F=\Phi_s$, $F^m=\Phi_{ms}$ and $\operatorname{Lip}(\Phi_{ms})\leq C_{\rm L}(1+m\abs s)$.
+Mathlib has neither fact -- there is no entropy power rule in
+\texttt{Mathlib/Dynamics/TopologicalEntropy/} and no entropy bound for a Lipschitz self-map
+-- so the development proves the \emph{combination} directly instead of its two factors.
+\texttt{coverEntropy\_eq\_zero\_of\_lipschitz\_iterate}
+(\texttt{FastDynamo/Analysis/EntropyCriterion.lean}) says that if every iterate $F^{[m]}$ is
+$C(1+m)$-Lipschitz on $\T^3$ then $\texttt{coverEntropy}\,F\,\texttt{univ}=0$, and
+\texttt{lipschitzWith\_literalFlow\_iterate} supplies that hypothesis from the group law
+$\Phi_s^{[m]}=\Phi_{ms}$ and the Lipschitz bound of
+Proposition~\ref{prop:particle-flow}.  Its proof is the classical Bowen--Dinaburg covering
+argument that underlies the Lipschitz bound of Hasselblatt--Katok:
+the $N^3$-point grid of \texttt{Analysis/TorusNet.lean} is a $1/(2N)$-net of $\T^3$, so it
+is a dynamical $(m,\rho)$-cover for $N=\lceil C(1+m)/\rho\rceil+1$, the covering number
+grows polynomially in $m$, and the exponential growth rate of a polynomial is zero.  The
+input is the paper's (the linear Lipschitz bound and the group law); only the two quoted
+theorems are bypassed, because formalising either of them would be strictly more work than
+the combination.
+
+\begin{proposition}[Explicitly solvable particle dynamics and zero entropy]
+  \label{prop:particle-flow}
+  \lean{FastDynamo.IsParticleFlow, FastDynamo.HasZeroTopologicalEntropy,
+    FastDynamo.MainLagrangianClauses,
+    FastDynamo.ScaleFamily.TorusCellPlacement.isParticleFlow_literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.forall_literalFlow_neg_literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.lipschitzWith_literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.exists_lipschitzWith_literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.coverEntropy_literalFlow_eq_zero,
+    FastDynamo.ScaleFamily.TorusCellPlacement.forall_hasZeroTopologicalEntropy_literalFlow,
+    FastDynamo.lipConst,
+    FastDynamo.ScaleFamily.TorusCellPlacement.lipConst_literalFlow_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.inv_flowLipschitzBound_le_lipConst_literalFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.tendsto_abs_inv_mul_log_lipConst_literalFlow,
+    FastDynamo.tendsto_abs_inv_mul_log_lipConst_mainLiteralFlow,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlow_eq_cell_of_mem_bufferDisk,
+    FastDynamo.mainLiteralFlow_eq_cell_of_mem_bufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlow_eq_self_of_forall_not_mem_bufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalFlow_eq_self_of_accumulationPoint,
+    FastDynamo.mainLiteralFlow_eq_self_of_accumulationPoint,
+    FastDynamo.ScaleFamily.TorusCellPlacement.cellAngularSpeed_cellCenter,
+    FastDynamo.ScaleFamily.TorusCellPlacement.cellAxialSpeed_cellCenter}
+  \leanok
+  \uses{def:dynamics:particle-flow, def:dynamics:topological-entropy, def:velocity:global-velocity, def:velocity:scale-family, def:velocity:placement}
+  Let $u $ be the global velocity field.  There is a constant $C_{\rm L}\geq1 $ with
+  \[
+    \operatorname{Lip}(\Phi_t)+\operatorname{Lip}(\Phi_t^{-1})
+    \leq C_{\rm L}(1+\abs t)
+    \qquad(t\in\R).
+  \]
+  In particular $\lim_{\abs t\to\infty}\abs t^{-1}\log\operatorname{Lip}(\Phi_t)=0 $, and
+  every time map has zero topological entropy:
+  \[
+    h_{\mathrm{top}}(\Phi_t)=0
+    \qquad(t\in\R).
+  \]
+
+  The flow is moreover explicit.  With $\mathsf R_\alpha $ the rotation by the angle
+  $\alpha $ in the horizontal plane and, for the $n $-th cell,
+  \[
+    \omega_n(r)=\Omega\chi_h\!\left(\frac r{\ell_n}\right),
+    \qquad
+    g_n(r)=\ell_nU\chi_h\!\left(\frac r{\ell_n}\right)
+    +a_n\vartheta\!\left(\frac r{R_n}\right),
+  \]
+  one has, for $y\in D(p_n,R_n) $, $r=\abs{y-p_n} $ and $x_3\in\T $,
+  \begin{equation}
+    \Phi_t(y,x_3)
+    =\left(p_n+\mathsf R_{t\omega_n(r)}(y-p_n),\ x_3+tg_n(r)\right),
+    \label{eq:dynamics:explicit-flow}
+  \end{equation}
+  the second component modulo $1 $.  At $y=p_n $ the horizontal component is $p_n $ while
+  the axial component translates at the speed $g_n(0)=\ell_nU+a_n $.  Every point outside
+  the cells, on their boundaries, and of the accumulation circle
+  $\{p_\infty\}\times\T $ is fixed.
+\end{proposition}
+
+Proved, in every assertion.  The ODE clause is
+\texttt{isParticleFlow\_literalFlow}, the inverse clause
+$\Phi_{-t}\circ\Phi_t=\id$ is \texttt{forall\_literalFlow\_neg\_literalFlow}, the Lipschitz
+bound is \texttt{exists\_lipschitzWith\_literalFlow} with the explicit constant
+$C_{\rm L}=\texttt{flowCL}=4(1+s)$, $s=\texttt{flowLipschitzSlope}$, the log-Lipschitz limit
+is \texttt{tendsto\_abs\_inv\_mul\_log\_lipConst\_literalFlow}, and the entropy clause is
+\texttt{coverEntropy\_literalFlow\_eq\_zero}.  All of them except the log-Lipschitz limit are
+conjuncts of the Lean predicate \texttt{MainLagrangianClauses}, and
+Proposition~\ref{prop:main-lagrangian} is that predicate at the constructed velocity; the
+log-Lipschitz limit is a theorem beside it
+(\texttt{tendsto\_abs\_inv\_mul\_log\_lipConst\_mainLiteralFlow}), because no clause of
+Theorem~\ref{thm:main} consumes it.
+
+Four statements are rendered differently from the paper.  First,
+$\operatorname{Lip}$ is \texttt{FastDynamo.lipConst}, the infimum of the set of admissible
+Lipschitz constants.  That this infimum is itself admissible is \emph{not} proved, and is not
+needed: the upper bound is an \texttt{sInf} below an admissible constant and the lower bound
+holds for every admissible one, so the squeeze goes through without it.  The bundle's own
+Lipschitz clause quantifies existentially over admissible constants instead, which is the
+same statement, the optimal constant being the least admissible one.  Second, $\abs t\to\infty$
+is read as \texttt{Filter.cocompact}~$\R$, the standard Mathlib reading of that limit.
+Third, \eqref{eq:dynamics:explicit-flow} is realised twice: as the \emph{definition} of
+\texttt{literalFlow} -- the horizontal component is \texttt{planeRotate} at the angle
+$t\,\omega_n(r)$ about the cell centre and the axial component the shift by $t\,g_n(r)$,
+with the radius a constant of the motion
+(\texttt{cellTransverseFlow\_mem\_bufferDisk}), so that the closed form is what the ODE
+verification consumes -- and, as a theorem about the torus flow,
+\texttt{literalFlow\_eq\_cell\_of\_mem\_bufferDisk}, whose hypotheses pin $y$ as a
+fundamental-box representative of the horizontal block of $x$; that is what makes the
+chart-side cell formula visible through the $\Z^2$-periodisation.  Fourth, the fixed-point
+clause is stated translate-wise --
+\texttt{literalFlow\_eq\_self\_of\_forall\_not\_mem\_bufferDisk} assumes that no integer
+translate of the representative lies in a buffer disc -- because the torus flow is the
+$\Z^2$-periodisation of the plane flow and the naive form would not suffice; points on the
+boundaries are covered because \texttt{bufferDisk} is open, and the accumulation circle is
+\texttt{literalFlow\_eq\_self\_of\_accumulationPoint}, no translate of
+$p_\infty=(0,\tfrac12)$ lying in a buffer disc.  The two centre speeds are
+\texttt{cellAngularSpeed\_cellCenter} ($\omega_n(0)=\Omega$) and
+\texttt{cellAxialSpeed\_cellCenter} ($g_n(0)=\ell_nU+a_n$).
+
+The uniform bound across the accumulating cells is carried out in
+\texttt{Dynamics/Flow/PlaneFlowLipschitz.lean}, where a sum over cells is replaced by a
+supremum: the buffer discs are disjoint and the flow is the identity off their union.  This
+is not a deviation: the paper argues the same way in the proof of Proposition~4.1: the
+natural lift of $\Phi_t$ is globally Lipschitz by
+Lemma~\ref{lem:global-velocity}, its derivative is the cell formula on each disc and the
+identity almost everywhere outside their union.
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:particle-flow, def:dynamics:topological-entropy, def:velocity:global-velocity, lem:global-velocity}
+  On the $n $-th disc the velocity is
+  $u(y,x_3)=(\omega_n(r)(y-p_n)^\perp,g_n(r)) $ with $r=\abs{y-p_n} $, so
+  $\frac{\dd}{\dd t}\abs{y-p_n}^2=2\omega_n(r)(y-p_n)\cdot(y-p_n)^\perp=0 $: the radius is
+  a constant of the motion, and the angular and axial coordinates move at the constant
+  speeds $\omega_n(r) $ and $g_n(r) $.  This gives the closed formula, shows that no
+  trajectory crosses a cell boundary, and matches the identity smoothly near
+  $\partial D(p_n,R_n) $.  Differentiating the formula and using the two uniform shear
+  bounds $\sup_n r\abs{\omega_n'(r)}\leq\abs\Omega\sup_s s\abs{\chi_h'(s)} $ and
+  $\sup_n\abs{g_n'(r)}\leq\abs U\norm{\chi_h'}_\infty+\eta_{\rm ax} $ gives
+  $\norm{D\Phi_t}\leq C(1+\abs t) $ on each cell with $C $ independent of $n $.  That the
+  accumulation of the cells costs nothing is Lemma~\ref{lem:global-velocity}: the periodic
+  lift of $\Phi_t $ is globally Lipschitz, its derivative is given by the cell formula on
+  each disc and equals the identity almost everywhere outside their union, so the uniform
+  cell bound is a bound on $\operatorname{Lip}(\Phi_t) $.  Applying the same estimate at
+  $-t $ and using $\Phi_t^{-1}=\Phi_{-t} $ gives the two-sided bound after increasing the
+  constant, and dividing its logarithm by $\abs t $ gives the vanishing log-Lipschitz rate.
+  For the entropy, fix $s\in\R $ and an integer $m\geq1 $; the entropy formula for iterates
+  and the Lipschitz entropy bound
+  [Hasselblatt--Katok, Section~2.5f(3) and Proposition~2.5.5] give
+  \[
+    m\,h_{\mathrm{top}}(\Phi_s)
+    =h_{\mathrm{top}}(\Phi_{ms})
+    \leq3\log\bigl(C_{\rm L}(1+m\abs s)\bigr),
+  \]
+  and dividing by $m $ and letting $m\to\infty $ gives $h_{\mathrm{top}}(\Phi_s)=0 $.
+\end{proof}
+
+\section{The ideal induction group and the growth gap}
+
+\begin{definition}[Ideal induction group]
+  \label{def:dynamics:ideal-induction-group}
+  \lean{FastDynamo.IsIdealInductionGroup, FastDynamo.HasVanishingIdealGrowthRate,
+    FastDynamo.HasVanishingIdealOperatorGrowthRate,
+    FastDynamo.ScaleFamily.TorusCellPlacement.idealTransport,
+    FastDynamo.ScaleFamily.TorusCellPlacement.idealGroup,
+    FastDynamo.mainIdealGroup}
+  \leanok
+  \uses{def:dynamics:particle-flow, def:velocity:global-velocity}
+  The \emph{ideal induction equation} for the global velocity $u $ is
+  \[
+    \partial_tB+(u\cdot\nabla)B-(B\cdot\nabla)u=0,
+    \qquad\Div B=0,
+  \]
+  that is, the induction equation of the introduction at $\eps=0 $.  Its solution group
+  $\mathcal T_0(t) $ on $\Lp^2_\sigma(\T^3) $ is defined by the Cauchy formula
+  \begin{equation}
+    \bigl(\mathcal T_0(t)B_{\rm in}\bigr)(\Phi_t(a))
+    =D\Phi_t(a)B_{\rm in}(a)
+    \qquad\text{for a.e. }a,
+    \label{eq:dynamics:ideal-cauchy}
+  \end{equation}
+  the magnetic field being transported and deformed by the particle flow.  Its
+  exponential growth rate in operator norm is
+  \begin{equation}
+    \gamma_{\rm id}(u)
+    :=\lim_{t\to\infty}\frac1t
+    \log\norm{\mathcal T_0(t)}_{\Lp^2_\sigma\to\Lp^2_\sigma}.
+    \label{eq:dynamics:ideal-rate}
+  \end{equation}
+\end{definition}
+
+In the paper, $\mathcal T_0(t) $ is introduced in Section~1.2 as ``the solution group on
+$\Lp^2_\sigma(\T^3) $ of the ideal induction equation''; the Cauchy formula is
+\texttt{eq:ideal-cauchy-formula} of the \emph{proof} of Corollary~4.2, where it is derived from
+the Lipschitz flow and shown to give that group, and $\gamma_{\rm id} $ is defined in
+\texttt{eq:zero-ideal-growth} of the statement of Corollary~4.2.  The definition above takes
+the Cauchy formula as the definition, which is the Lean model.
+
+Stated \emph{and} constructed.  \texttt{IsIdealInductionGroup v} $\Phi$ $D\Phi$ $T$ bundles the
+$\C_0$-group $T$ with the Cauchy representation \eqref{eq:dynamics:ideal-cauchy}, the
+almost-everywhere Fr\'echet differentiability of a periodic lift of $\Phi_t$ (Rademacher),
+the measure preservation of $\Phi_t$, and the two fields \texttt{solutionGroup} and
+\texttt{unique}: $T$ is a solution group of the ideal equation of $v$ in the weak sense of
+Definition~\ref{def:dynamics:ideal-weak-form}, and every solution group of that equation is
+$T$.  Measure preservation replaces Liouville's formula, whose statement would need
+$\det D\Phi_t$; with \texttt{unique} the group is determined by $v$ alone, which is the
+paper's ``\emph{the} solution group'' of §1.2.
+
+The group itself is built in two steps.  \texttt{idealTransport}
+(\texttt{FastDynamo/Dynamics/Ideal/CauchyOperator.lean}) is
+\eqref{eq:dynamics:ideal-cauchy} read as an operator on all of $\Lp^2(\T^3;\C^3)$, solved for
+$\mathcal T_0(t)B$: the substitution $B\mapsto B\circ\Phi_{-t}$, which is a linear isometry of
+$\Lp^2$ because $\Phi_{-t}$ preserves the volume, followed by pointwise multiplication by the
+$\Lp^\infty$ matrix symbol $D\Phi_t(\Phi_{-t}\,\cdot)$ (the complexification
+\texttt{flowFDerivC}, of norm at most $24(1+\abs t\,s)$ almost everywhere).  Then
+\texttt{idealGroup} (\texttt{FastDynamo/Dynamics/Ideal/SolenoidalInvariance.lean})
+corestricts it to $\Lp^2_\sigma$, which is the substantial step: see
+Corollary~\ref{cor:ideal-growth}.  \texttt{mainIdealGroup} is the instance at the constructed
+velocity.
+
+The state space $\Lp^2_\sigma(\T^3) $ is \texttt{literalSolenoidalSubspace}
+(\texttt{FastDynamo/Dynamics/Assembly/MainGrowthRate.lean}), which is \emph{defined} as the
+image, under the isometric transport \texttt{toLiteralC3L2}, of the Fourier-defined solenoidal
+subspace \texttt{productSolenoidalSubspace} of the spectral half.  Its identification with an
+intrinsically defined subspace $\{B\in\Lp^2(\T^3;\C^3):\Div B=0\} $ of the literal torus
+model is not formalised, no differential operator being transported to the literal torus.
+
+The weak form of the ideal equation and the variational equation
+\eqref{eq:dynamics:variational} (the paper's \texttt{eq:flow-variational-equation}), which the
+paper uses in the proof of Corollary~4.2, are the nodes that follow.  Both need $\nabla u$ on
+the literal torus, which is the derivative of the periodic lift of $u$ at every point
+(Lemma~\ref{lem:dynamics:velocity-gradient}).  Remark~1.7 of the paper, the
+vanishing-diffusivity limit, is Theorem~\ref{thm:vanishing-diffusivity} at the end of this
+chapter.
+
+\begin{definition}[The weak form of the ideal induction equation]
+  \label{def:dynamics:ideal-weak-form}
+  \lean{FastDynamo.literalFDeriv, FastDynamo.literalAdvection, FastDynamo.literalStretch,
+    FastDynamo.literalFDeriv_literalTorusPoint, FastDynamo.literalAdvection_literalTorusPoint,
+    FastDynamo.IsIdealTestField, FastDynamo.IsIdealWeakSolution,
+    FastDynamo.IsIdealSolutionGroup, FastDynamo.IdealWeakIdentity}
+  \leanok
+  \uses{def:dynamics:ideal-induction-group}
+  For a velocity $v$ on $\T^3$ whose periodic lift is differentiable, write $\nabla v$ for the
+  derivative of the lift, $(v\cdot\nabla)\varphi$ and $(B\cdot\nabla)v=\nabla v\,B$.  A curve
+  $W\in\C([-T,T];\Lp^2(\T^3;\CC^3))$ is a \emph{weak solution} of the ideal induction
+  equation $\partial_tB+(v\cdot\nabla)B-(B\cdot\nabla)v=0$ on $[-T,T]$ if for every smooth
+  periodic test field $\varphi$ and all $s,t\in[-T,T]$
+  \[
+    \inner{W(t)}{\varphi}-\inner{W(s)}{\varphi}
+    =\int_s^t\Bigl(\inner{(W(\tau)\cdot\nabla)v}{\varphi}
+      +\inner{W(\tau)}{(v\cdot\nabla)\varphi}\Bigr)\dd\tau .
+  \]
+  A \emph{solution group} is a one-parameter group $G(t)$ of bounded operators on
+  $\Lp^2_\sigma(\T^3)$ all of whose orbits $t\mapsto G(t)B$ are weak solutions on every
+  $[-T,T]$.
+\end{definition}
+
+The paper (proof of Corollary~4.2) understands solutions in the distributional sense in
+$\C([-T,T];\Lp^2)$ and writes the weak form as
+$\frac{\dd}{\dd t}\inner{B}{\varphi}=\inner{(B\cdot\nabla)u}{\varphi}+\inner{B}{(u\cdot\nabla)\varphi}$
+for almost every $t$.  The Lean notion (\texttt{FastDynamo/Dynamics/IdealWeakForm.lean})
+differs in these respects: the identity is tested against smooth spatial fields and integrated
+in time (the equivalence with space--time test functions is not formalised); $\Div B=0$ is
+not part of the notion of solution, only of the state space of a solution group; $\nabla v$
+is the pointwise derivative of the lift; the integrals are Bochner integrals; and pairings are
+$\int\langle\varphi,B\rangle$, conjugate-linear in the test field.  A solution group is
+required to satisfy the group law, which the paper's ``solution group'' includes.
+
+\begin{lemma}[The gradient of the constructed velocity]
+  \label{lem:dynamics:velocity-gradient}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.fderiv_parameterizedFullGlobalPeriodizedRealSource_apply_pairBasis,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.transverseW1InfDeriv_parameterizedFullGlobalW1Inf_ae_eq_fderiv,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.fderiv_parameterizedFullGlobalPeriodizedRealSource_transverseDivergence,
+    FastDynamo.ScaleFamily.TorusCellPlacement.hasFDerivAt_literalVelocity_lift,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_literalFDeriv_literalVelocity_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.sum_literalFDeriv_literalVelocity_diag,
+    FastDynamo.ScaleFamily.TorusCellPlacement.continuous_literalFDeriv_literalVelocity_literalFlow,
+    FastDynamo.literalStretchL2,
+    FastDynamo.ScaleFamily.TorusCellPlacement.literalStretchL2_coe_ae,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_literalStretchL2_le}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:global-velocity, lem:main:velocity-regularity,
+    def:dynamics:ideal-weak-form}
+  The periodic lift of the global velocity $u$ is differentiable at every point of $\R^3$,
+  with derivative bounded uniformly and divergence $\sum_i\partial_iu_i=0$ at every point; its
+  transverse derivatives are, almost everywhere, the weak derivatives of $u$ as an element of
+  $\W^{1,\infty}$; $t\mapsto\nabla u(\Phi_t(x))$ is continuous for every $x$; and
+  $B\mapsto(B\cdot\nabla)u$ is a bounded operator on $\Lp^2(\T^3;\CC^3)$.
+\end{lemma}
+
+The paper's $\nabla u$ is the weak gradient of a $\W^{1,\infty}$ field and $\Div u=0$ holds
+almost everywhere (Lemma~3.1 of the paper); here both hold at every point of the plane for the
+closed-form lift, and the identification with the weak derivatives of the Fourier-graph field
+\texttt{TransverseRealW1Inf} is the second item.  Modules
+\texttt{FastDynamo/Global/TorusGlobalVelocityDerivativeBridge.lean} and
+\texttt{FastDynamo/Dynamics/Ideal/VelocityGradient.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:global-velocity, lem:main:velocity-regularity}
+  Reduce a point to its representative in the unit box.  In a buffer disc the periodised field
+  coincides near the point with the field of that cell, whose derivative is the derivative of
+  the rescaled seed copy plus the axial offset; outside every buffer the derivative vanishes.
+  The divergence vanishes cell by cell, for the helical part and for the axial offset.  The
+  bound is the explicit derivative bound of the global velocity, and the almost-everywhere
+  identification follows from the representative of the weak derivatives through the
+  measure-preserving quotient map.
+\end{proof}
+
+\begin{lemma}[The variational equation]
+  \label{lem:dynamics:variational-equation}
+  \lean{FastDynamo.flowDeriv_apply_eq_add_integral,
+    FastDynamo.ScaleFamily.TorusCellPlacement.flowFDeriv_eq_one_add_integral,
+    FastDynamo.ScaleFamily.TorusCellPlacement.hasDerivAt_flowFDeriv,
+    FastDynamo.ScaleFamily.TorusCellPlacement.flowFDeriv_apply_literalVelocity}
+  \leanok
+  \uses{def:dynamics:particle-flow, prop:particle-flow, lem:dynamics:velocity-gradient}
+  For the particle flow $\Phi_t$ of the global velocity and its derivative $D\Phi_t$,
+  \[
+    D\Phi_t(a)=\id+\int_0^t(\nabla u)(\Phi_s(a))D\Phi_s(a)\dd s
+  \]
+  for every $a$ and every $t\in\R$; in particular $t\mapsto D\Phi_t(a)$ is differentiable with
+  derivative $(\nabla u)(\Phi_t(a))D\Phi_t(a)$, and $D\Phi_t(a)u(a)=u(\Phi_t(a))$.
+\end{lemma}
+
+This is the paper's \texttt{eq:flow-variational-equation}, stronger: it holds at every point
+and every time, where the paper has almost every $a$.  The route differs: the paper obtains it
+from Cauchy--Lipschitz, Rademacher and the chain rule [Ambrosio--Crippa, Section~2]; here the
+integral form of the flow equation is differentiated in the initial point under the integral
+sign (dominated convergence and mean-value bounds), using the everywhere Fr\'echet derivative
+of the closed-form lift.  The last identity, which the paper does not state, comes from
+differentiating the group law of the lift.  Module
+\texttt{FastDynamo/Dynamics/Flow/VariationalEquation.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{prop:particle-flow, lem:dynamics:velocity-gradient}
+  Write $\Phi_t(a)=a+\int_0^tu(\Phi_s(a))\dd s$ on the lift.  The integrand is differentiable
+  in $a$ with derivative $(\nabla u)(\Phi_s(a))D\Phi_s(a)$, bounded uniformly for $s$ in a
+  compact interval, so differentiation under the integral sign gives the identity at every
+  point.  The integrand is continuous in time
+  (Lemma~\ref{lem:dynamics:velocity-gradient}), so the fundamental theorem of calculus gives
+  the derivative.
+\end{proof}
+
+\begin{lemma}[The Cauchy formula solves the ideal equation]
+  \label{lem:dynamics:ideal-weak-existence}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.hasDerivAt_inner_literalFlow_flowFDerivC,
+    FastDynamo.ScaleFamily.TorusCellPlacement.hasDerivAt_integral_inner_idealTransport,
+    FastDynamo.ScaleFamily.TorusCellPlacement.isIdealWeakSolution_idealTransport,
+    FastDynamo.ScaleFamily.TorusCellPlacement.isIdealSolutionGroup_idealGroup,
+    FastDynamo.isIdealSolutionGroup_mainIdealGroup}
+  \leanok
+  \uses{def:dynamics:ideal-weak-form, def:dynamics:ideal-induction-group,
+    lem:dynamics:variational-equation, lem:dynamics:velocity-gradient}
+  For every $B\in\Lp^2(\T^3;\CC^3)$ and every $T$, the curve $t\mapsto\mathcal T_0(t)B$ given
+  by the Cauchy formula \eqref{eq:dynamics:ideal-cauchy} is a weak solution of the ideal
+  induction equation on $[-T,T]$, and
+  \[
+    \frac{\dd}{\dd t}\inner{\mathcal T_0(t)B}{\varphi}
+    =\inner{(\mathcal T_0(t)B\cdot\nabla)u}{\varphi}
+    +\inner{\mathcal T_0(t)B}{(u\cdot\nabla)\varphi}
+  \]
+  at every $t$.  Hence $\mathcal T_0$ is a solution group.
+\end{lemma}
+
+This is the paragraph ``Formula \texttt{eq:ideal-cauchy-formula} solves the ideal induction
+equation'' of the paper's proof of Corollary~4.2, stronger: for every $B\in\Lp^2$ (not only
+$\Lp^2_\sigma$), every $T$, and with the derivative at every time where the paper has almost
+every $t$.  The route is the paper's: change of variables $x=\Phi_t(a)$, differentiation under
+the integral, and the variational equation.  Module
+\texttt{FastDynamo/Dynamics/Ideal/WeakSolution.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:variational-equation, lem:dynamics:velocity-gradient}
+  By measure preservation and the Cauchy formula,
+  $\inner{\mathcal T_0(t)B}{\varphi}=\int\langle\varphi(\Phi_t(a)),D\Phi_t(a)B(a)\rangle\dd a$.
+  The integrand is differentiable in $t$ at every point, by the chain rule on the smooth lift
+  of $\varphi$ and Lemma~\ref{lem:dynamics:variational-equation}, with a derivative bounded by
+  $C\abs{B(a)}$ near each $t_0$; differentiation under the integral and the change of
+  variables back give the displayed derivative, which is continuous in $t$.  The fundamental
+  theorem of calculus gives the integrated identity.
+\end{proof}
+
+\begin{lemma}[Lipschitz test fields]
+  \label{lem:dynamics:lipschitz-test-fields}
+  \lean{FastDynamo.dense_idealTestFieldL2,
+    FastDynamo.ScaleFamily.TorusCellPlacement.idealWeakIdentity_of_isIdealTestField,
+    FastDynamo.IdealWeakIdentity.of_tendsto,
+    FastDynamo.ScaleFamily.TorusCellPlacement.IsIdealWeakSolution.weakIdentity_of_lipschitz}
+  \leanok
+  \uses{def:dynamics:ideal-weak-form, lem:dynamics:velocity-gradient}
+  The smooth periodic test fields are dense in $\Lp^2(\T^3;\CC^3)$.  If $W$ is a weak
+  solution of the ideal equation of the global velocity on $[-T,T]$, the weak identity holds
+  also for every test field $\varphi$ whose periodic lift is Lipschitz and differentiable at
+  every point, with $\varphi,(u\cdot\nabla)\varphi\in\Lp^2$.
+\end{lemma}
+
+The paper extends identities from smooth to $\Hs^1$ test functions ``by density''.  Here the
+extension is to Lipschitz, everywhere differentiable lifts, through Fourier partial sums:
+integration by parts against the characters, Parseval convergence of the partial sums of
+$\varphi$ and of $\partial_j\varphi$, and multiplication by the bounded components of $u$; no
+mollifier is used.  The fields needed are $\psi\circ\Phi_{-\sigma}$ with $\psi$ smooth, which
+are of this kind.  Module \texttt{FastDynamo/Dynamics/Ideal/LipschitzTestFields.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:velocity-gradient}
+  Trigonometric polynomials are smooth and dense.  For a Lipschitz field with everywhere
+  differentiable lift, the Fourier coefficients of $\partial_j\varphi$ are $2\pi im_j$ times
+  those of $\varphi$ (integration by parts against characters), so the Fourier partial sums
+  $\varphi_N$ converge to $\varphi$ and $(u\cdot\nabla)\varphi_N$ to $(u\cdot\nabla)\varphi$
+  in $\Lp^2$.  The weak identity is linear and continuous in the test pair
+  $(\varphi,(u\cdot\nabla)\varphi)$, so it passes to the limit.
+\end{proof}
+
+\begin{lemma}[Uniqueness of weak solutions; the solution group]
+  \label{lem:dynamics:ideal-weak-uniqueness}
+  \lean{FastDynamo.eq_zero_of_le_mul_abs_intervalIntegral,
+    FastDynamo.ScaleFamily.TorusCellPlacement.inner_flowCompL2_eq_intervalIntegral,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_le_mul_abs_intervalIntegral,
+    FastDynamo.ScaleFamily.TorusCellPlacement.IsIdealWeakSolution.eq_zero,
+    FastDynamo.ScaleFamily.TorusCellPlacement.IsIdealSolutionGroup.eq_idealGroup,
+    FastDynamo.ScaleFamily.TorusCellPlacement.existsUnique_isIdealSolutionGroup,
+    FastDynamo.existsUnique_isIdealSolutionGroup_mainLiteralVelocity}
+  \leanok
+  \uses{def:dynamics:ideal-weak-form, lem:dynamics:ideal-weak-existence,
+    lem:dynamics:lipschitz-test-fields, prop:particle-flow}
+  If $W\in\C([-T,T];\Lp^2)$ is a weak solution of the ideal induction equation of the global
+  velocity with $W(0)=0$, then $W=0$ on $[-T,T]$.  Consequently every solution group of that
+  equation on $\Lp^2_\sigma(\T^3)$ is $\mathcal T_0$, and $\mathcal T_0$ is the unique solution
+  group.
+\end{lemma}
+
+The first sentence is the paragraph ``Uniqueness follows from the same characteristic
+argument'' of the paper's proof of Corollary~4.2.  The route differs: the paper obtains
+$W(t,\Phi_t(a))=\int_0^t(\nabla u)(\Phi_s(a))W(s,\Phi_s(a))\dd s$ almost everywhere from
+[Ambrosio--Crippa, Proposition~2.3] and applies Gronwall's inequality; here that identity is
+proved in tested form,
+$\inner{W(t)\circ\Phi_t}{\psi}=\int_0^t\inner{(W(\tau)\cdot\nabla)u}{\psi\circ\Phi_{-\tau}}\dd\tau$
+for smooth $\psi$, directly from the weak form with the Lipschitz test fields
+$\psi\circ\Phi_{-\sigma}$ (Lemma~\ref{lem:dynamics:lipschitz-test-fields}); density of the test
+fields and the isometry $B\mapsto B\circ\Phi_t$ give
+$\norm{W(t)}_2\leq\norm{S_u}\,\abs{\int_0^t\norm{W(\tau)}_2\dd\tau}$, with $S_u$ the bounded
+operator $B\mapsto(B\cdot\nabla)u$ on $\Lp^2$, and Gronwall's inequality,
+forward and backward in time, gives $W=0$.  Modules
+\texttt{FastDynamo/Dynamics/Ideal/WeakSolutionUniqueness.lean} and
+\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:lipschitz-test-fields, lem:dynamics:ideal-weak-existence}
+  Test the weak identity of $W$ at $\psi\circ\Phi_{-\sigma}$ and differentiate the diagonal
+  $\sigma\mapsto\inner{W(\sigma)}{\psi\circ\Phi_{-\sigma}}$; the transport terms cancel because
+  $\frac{\dd}{\dd\sigma}\psi\circ\Phi_{-\sigma}=-(u\cdot\nabla)\psi\circ\Phi_{-\sigma}$, and what
+  remains is the stretching term.  Integrating gives the tested characteristic identity; taking
+  the supremum over unit $\psi$ gives the norm bound, and Gronwall's inequality gives $W=0$.
+  For two solution groups $G$ and $\mathcal T_0$, the difference of their orbits from the same
+  $B$ is a weak solution vanishing at $0$, so $G=\mathcal T_0$; existence is
+  Lemma~\ref{lem:dynamics:ideal-weak-existence}.
+\end{proof}
+
+\begin{corollary}[No exponential growth for ideal induction]
+  \label{cor:ideal-growth}
+  \lean{FastDynamo.IsIdealInductionGroup, FastDynamo.MainLagrangianClauses,
+    FastDynamo.HasVanishingIdealGrowthRate,
+    FastDynamo.HasVanishingIdealOperatorGrowthRate,
+    FastDynamo.MainLagrangianClauses.hasVanishingIdealGrowthRate,
+    FastDynamo.MainLagrangianClauses.hasVanishingIdealOperatorGrowthRate,
+    FastDynamo.inner_gradient_eq_zero_of_mem_literalSolenoidalSubspace,
+    FastDynamo.ScaleFamily.TorusCellPlacement.isIdealInductionGroup_idealGroup,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_idealGroup_bounds,
+    FastDynamo.ScaleFamily.TorusCellPlacement.tendsto_inv_mul_log_norm_idealGroup,
+    FastDynamo.ScaleFamily.TorusCellPlacement.existsIdealGroupClauses,
+    FastDynamo.exists_ne_zero_mainIdealGroup_rate,
+    FastDynamo.existsUnique_isIdealSolutionGroup_mainLiteralVelocity}
+  \leanok
+  \uses{def:dynamics:ideal-induction-group, def:dynamics:particle-flow, def:velocity:global-velocity,
+    def:dynamics:ideal-weak-form}
+  Let $\mathcal T_0(t) $ be the solution group on $\Lp^2_\sigma(\T^3) $ of the ideal
+  induction equation for the global velocity $u $ (a strongly continuous group of bounded
+  operators, given by the Cauchy formula of
+  Definition~\ref{def:dynamics:ideal-induction-group}).  Then, with $C_{\rm L} $ the
+  constant of Proposition~\ref{prop:particle-flow},
+  \[
+    \frac1{C_{\rm L}(1+\abs t)}
+    \leq\norm{\mathcal T_0(t)}_{\Lp^2_\sigma\to\Lp^2_\sigma}
+    \leq C_{\rm L}(1+\abs t)
+    \qquad(t\in\R).
+  \]
+  Consequently $\gamma_{\rm id}(u)=0 $.  Moreover, for every
+  $B_{\rm in}\in\Lp^2_\sigma(\T^3) $ and $t\in\R $,
+  \[
+    \frac{\norm{B_{\rm in}}_2}{C_{\rm L}(1+\abs t)}
+    \leq\norm{\mathcal T_0(t)B_{\rm in}}_2
+    \leq C_{\rm L}(1+\abs t)\norm{B_{\rm in}}_2 ;
+  \]
+  in particular every non-zero ideal solution has exponential growth rate zero.
+\end{corollary}
+
+Every bound and rate of the statement is proved, for $\mathcal T_0$ the unique solution group
+of the ideal equation in the weak sense of Definition~\ref{def:dynamics:ideal-weak-form}: it is
+the group built from the Cauchy formula, it solves the equation
+(Lemma~\ref{lem:dynamics:ideal-weak-existence}), and every solution group equals it
+(Lemma~\ref{lem:dynamics:ideal-weak-uniqueness}); the fields \texttt{solutionGroup} and
+\texttt{unique} of \texttt{IsIdealInductionGroup} record both, and
+\texttt{existsUnique\_isIdealSolutionGroup\_mainLiteralVelocity} states them as one existence
+and uniqueness statement.  The two-sided bounds are proved in the
+\emph{per-datum} form, the display after \texttt{eq:zero-ideal-growth} in the statement,
+$\norm B/(C_{\rm L}(1+\abs t))\leq\norm{T_tB}\leq C_{\rm L}(1+\abs t)\norm B$
+-- \texttt{norm\_idealGroup\_bounds}, a conjunct of \texttt{MainLagrangianClauses} -- from
+which the operator-norm form \texttt{eq:ideal-group-growth} follows by taking the supremum
+over unit data, which is how the paper's proof obtains it too.  Both vanishing rates follow
+-- the \emph{per-datum} one
+$t^{-1}\log(\norm{T_tB}_2/\norm B_2)\to0$ for every $B\neq0$
+(\texttt{tendsto\_inv\_mul\_log\_norm\_idealGroup}, packaged as
+\texttt{HasVanishingIdealGrowthRate}, the last sentence of the statement)
+and the \emph{operator-norm} one $t^{-1}\log\norm{\mathcal T_0(t)}\to0$
+(\texttt{HasVanishingIdealOperatorGrowthRate}, which is both \texttt{eq:zero-ideal-growth}
+here and the second dynamical clause of Theorem~1.2 of the paper (\texttt{thm:main}),
+obtained from the bounds by
+\texttt{MainLagrangianClauses.hasVanishingIdealOperatorGrowthRate}, which is the paper's
+own argument: taking the supremum over unit initial data gives two-sided polynomial bounds
+on the ideal operator norm, and the rate is squeezed between the logarithms of two linear
+functions -- the squeeze itself is the reusable
+\texttt{tendsto\_inv\_mul\_log\_opNorm\_of\_two\_sided\_bounds}).
+\texttt{existsIdealGroupClauses} is the whole last conjunct of
+\texttt{MainLagrangianClauses} in one statement, at the single constant
+$C_{\rm L}=\texttt{dynamicalCL}=24(1+s)$.
+
+None of these clauses is vacuous.  Every one of them -- the Cauchy formula, the group laws,
+the strong continuity, the two-sided bounds and the per-datum rate -- is quantified over
+$B\in\Lp^2_\sigma(\T^3) $, and would hold word for word if that space were $0 $; it is not,
+by \texttt{exists\_ne\_zero\_literalSolenoidalSubspace}
+(Theorem~\ref{thm:dynamics:solenoidal-semigroup}), whose witness is the spectral half's own
+unstable eigenfunction.  \texttt{exists\_ne\_zero\_mainIdealGroup\_rate}
+(\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean}) records the conclusion next to the
+closing statements: there is a $B\neq0 $ in the state space at which
+$t^{-1}\log(\norm{\mathcal T_0(t)B}/\norm B)\to0 $.
+
+\textbf{Deviation: the solution notion.}  The paper's proof of Corollary~4.2 shows that the
+Cauchy formula solves the ideal equation in weak form and that a distributional solution
+$W\in\C([-T,T];\Lp^2)$ with $W(0)=0$ vanishes, so that $\mathcal T_0$ is the solution group.
+Lean proves the same two facts for the weak notion of
+Definition~\ref{def:dynamics:ideal-weak-form}, whose differences from the paper's
+distributional notion (spatial smooth test fields and time-integrated identity, Bochner
+integrals, pointwise $\nabla u$) are recorded there; the uniqueness argument differs from the
+paper's (Lemma~\ref{lem:dynamics:ideal-weak-uniqueness}).
+
+The substantial step of the construction is the one the paper's proof settles in one display
+(testing against $\nabla\psi$, moving $\Phi_t$ onto the test function, and extending to
+$\psi\circ\Phi_t\in\Hs^1$ by density): that $\Lp^2_\sigma$ is \emph{invariant}.  Read on the
+literal torus it is the orthogonality
+$\int_{\T^3}\overline{\nabla w}\cdot B=0$ for every solenoidal $B$ and every $C^1$ periodic
+test function $w$ (\texttt{inner\_gradient\_eq\_zero\_of\_mem\_literalSolenoidalSubspace},
+\texttt{FastDynamo/Dynamics/Ideal/GradientOrthogonality.lean}), proved by integration by parts
+against the characters $e_m$ and Parseval.  Applying it at $w=e_m\circ\Phi_t$ needs a $C^1$
+lift of $\Phi_t$, which the accumulation circle forbids, so the invariance is proved first for
+the \emph{truncated} flows $\Phi^{(N)}$ -- finitely many cells, hence a $C^\infty$ lift --
+and then transferred by $\Lp^2$-convergence
+$\mathcal T_0^{(N)}(t)B\to\mathcal T_0(t)B$ and closedness of $\Lp^2_\sigma$
+(\texttt{FastDynamo/Dynamics/Ideal/Truncated*.lean}).
+
+\begin{proof}
+  \leanok
+  \uses{prop:particle-flow, def:dynamics:ideal-induction-group, def:dynamics:particle-flow,
+    lem:dynamics:variational-equation, lem:dynamics:ideal-weak-existence,
+    lem:dynamics:ideal-weak-uniqueness}
+  Work with the periodic lift of $u$ and the corresponding lift of $\Phi_t$.  Cauchy--Lipschitz, Rademacher's theorem and the chain rule
+  give the variational equation
+  \begin{equation}
+    D\Phi_t(a)=\id+\int_0^t(\nabla u)(\Phi_s(a))D\Phi_s(a)\dd s
+    \qquad\text{for almost every }a
+    \label{eq:dynamics:variational}
+  \end{equation}
+  [Ambrosio--Crippa, Section 2]; Liouville's formula and $\Div u=0 $ give
+  $\det D\Phi_t=1 $, so the bi-Lipschitz map $\Phi_t $ preserves Lebesgue measure by the
+  area formula.  Measure preservation turns the Cauchy formula into a bounded operator
+  with $\norm{\mathcal T_0(t)B_{\rm in}}_2\leq\operatorname{Lip}(\Phi_t)\norm{B_{\rm in}}_2 $;
+  testing against $\nabla\psi $ and moving $\Phi_t $ onto the test function shows the
+  divergence constraint is preserved; differentiating
+  $\inner{\mathcal T_0(t)B_{\rm in}}{\varphi} $ and using the variational equation gives
+  the weak form of the ideal equation.  Uniqueness follows from the same characteristic
+  representation plus Gronwall's inequality forward and backward in time, and the chain
+  rule $D\Phi_{t+s}(a)=D\Phi_t(\Phi_s(a))D\Phi_s(a) $ gives the group law
+  $\mathcal T_0(t+s)=\mathcal T_0(t)\mathcal T_0(s) $, $\mathcal T_0(-t)=\mathcal T_0(t)^{-1} $.
+  Strong continuity follows from $\norm{\Phi_t-\id}_\infty\leq\norm u_\infty\abs t $ and
+  $\norm{D\Phi_t-\id}_\infty\leq\e^{\norm{\nabla u}_\infty\abs t}-1 $ on a dense set of
+  smooth fields, together with the local operator bound.  The Cauchy formula and
+  Proposition~\ref{prop:particle-flow} give the per-datum upper bound
+  $\norm{\mathcal T_0(t)B_{\rm in}}_2\leq C_{\rm L}(1+\abs t)\norm{B_{\rm in}}_2 $, and
+  $\mathcal T_0(-t)\mathcal T_0(t)=\id $ gives the matching per-datum lower bound
+  $\norm{B_{\rm in}}_2\leq C_{\rm L}(1+\abs t)\norm{\mathcal T_0(t)B_{\rm in}}_2 $.  Taking
+  the supremum over unit initial data turns them into the displayed operator bounds, and
+  taking logarithms and dividing by $t $ gives $\gamma_{\rm id}(u)=0 $ and the per-datum
+  rate.
+\end{proof}
+
+\textbf{How the Lean proof differs from this one.}  Several steps are replaced by cheaper ones
+that the closed form makes available.  Cauchy--Lipschitz is not used at all (the flow is
+written down); Rademacher is not used (the lift is differentiable at every point, so the
+almost-everywhere clause is discharged by \texttt{Filter.Eventually.of\_forall}), and the
+variational equation is proved at every point by differentiating the integral form of the flow
+equation (Lemma~\ref{lem:dynamics:variational-equation}); and Liouville's formula is replaced
+by a pointwise Jacobian computation on the plane, $\det D\Phi_t=1$ at every point from the
+closed formula, followed by the change of variables and a skew-product argument for the axial
+shear.  The group law comes from the group law of the flow, and strong continuity is proved at
+$t=0$ and moved along the group, by density of \emph{continuous} data and dominated convergence
+for the symbol $D\Phi_t(a) $ at fixed $a $
+(\texttt{FastDynamo/Dynamics/Ideal/StrongContinuity.lean}), instead of the paper's smooth data
+and the bounds $\norm{\Phi_t-\id}_\infty\leq\norm u_\infty\abs t $,
+$\norm{D\Phi_t-\id}_{\Lp^\infty}\leq\e^{L\abs t}-1 $.  The weak form is derived as in the paper
+(Lemma~\ref{lem:dynamics:ideal-weak-existence}); uniqueness is proved from the weak form in
+tested form rather than through [Ambrosio--Crippa, Proposition~2.3]
+(Lemma~\ref{lem:dynamics:ideal-weak-uniqueness}).  The upper bound uses the bound on the
+symbol $D\Phi_t $ rather than $\operatorname{Lip}(\Phi_t) $, and the lower bound is
+$1\leq\norm{\mathcal T_0(-t)}\norm{\mathcal T_0(t)}$ exactly as here.  The last step is the
+paper's: the per-datum bounds come first, and the operator norm follows by the supremum over
+unit data.
+
+\begin{proposition}[Particle flow and ideal induction]
+  \label{prop:main-lagrangian}
+  \lean{FastDynamo.MainLagrangianClauses, FastDynamo.mainLiteralVelocity,
+    FastDynamo.MainTheoremLagrangian,
+    FastDynamo.ScaleFamily.TorusCellPlacement.mainLagrangianClauses_literalVelocity,
+    FastDynamo.mainTheoremLagrangian_holds}
+  \leanok
+  \uses{thm:main, def:velocity:global-velocity, def:dynamics:particle-flow, def:dynamics:topological-entropy, def:dynamics:ideal-induction-group}
+  The velocity field $u $ of Theorem~\ref{thm:main} can be chosen so that there is
+  $C_{\rm L}\geq1 $ with
+  \[
+    \operatorname{Lip}(\Phi_t)+\operatorname{Lip}(\Phi_t^{-1})
+    \leq C_{\rm L}(1+\abs t),
+    \qquad
+    h_{\mathrm{top}}(\Phi_t)=0
+    \qquad(t\in\R),
+  \]
+  and so that the ideal induction equation defines a strongly continuous solution group
+  $\mathcal T_0(t) $ on $\Lp^2_\sigma(\T^3) $ with
+  \[
+    \lim_{t\to\infty}\frac1t
+    \log\norm{\mathcal T_0(t)}_{\Lp^2_\sigma\to\Lp^2_\sigma}=0.
+  \]
+\end{proposition}
+
+Proved.  The paper has no proposition of this shape: what it has is
+Proposition~\ref{prop:particle-flow}, Corollary~\ref{cor:ideal-growth}, and the last
+sentence of Theorem~1.2 of the paper, which quotes them.  The node exists because it is the
+packaging of those statements \emph{at the velocity that
+Theorem~\ref{thm:main} produces}, not at an arbitrary one, and because that packaging is
+exactly the Lean predicate
+\texttt{MainTheoremLagrangian}~$:=$~\texttt{MainLagrangianClauses mainLiteralVelocity}.
+
+The paper makes the difference between this bundle and the theorem's own dynamical half
+visible, and the Lean statement layer mirrors it.
+\texttt{MainTheoremDynamicalClauses}~$v$ is exactly the two dynamical clauses of
+Theorem~1.2 of the paper: an
+ideal induction group for $v$ together with $h_{\mathrm{top}}(\Phi_t)=0$ at every $t\in\R$
+and $t^{-1}\log\norm{\mathcal T_0(t)}\to0$, the entropy clause carrying the continuity of
+every $\Phi_t$ with it because the paper defines $h_{\mathrm{top}}$ for a continuous self-map
+of a compact metric space (Section~1.2 of the paper); \texttt{MainTheoremDynamical} is that
+predicate
+at \texttt{mainLiteralVelocity}, discharged by
+\texttt{mainTheoremDynamical\_holds}.  It is a projection of this node --
+\texttt{MainLagrangianClauses.toMainTheoremDynamicalClauses} -- and the bundle keeps what
+the theorem drops: the inverse law $\Phi_{-t}\circ\Phi_t=\id$, the linear Lipschitz
+bound of Proposition~\ref{prop:particle-flow}, and the two-sided per-datum bounds of
+Corollary~\ref{cor:ideal-growth}.  \texttt{MainTheoremComplete} therefore carries both, as
+the fields \texttt{dynamical} and \texttt{lagrangian}.
+
+\texttt{mainLagrangianClauses\_literalVelocity}
+(\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean}) proves the predicate at the general
+parameters $(h,P,\Omega,U,\tau)$ with $\tau\geq0$, and \texttt{mainTheoremLagrangian\_holds}
+instantiates it at the main parameter choice, where $\tau\geq0$ is
+\texttt{mainParameterChoice.tau\_nonneg}.  The single constant shared by the Lipschitz
+clause and the ideal bounds is
+$C_{\rm L}=\texttt{dynamicalCL}=6\,\texttt{flowCL}=24(1+s)$ with
+$s=\texttt{flowLipschitzSlope}$, the sum of the horizontal and axial shear bounds of the cell
+profiles; the factor $6$ is what the passage from the sup metric of $\T^3$ to the Euclidean
+metric of $\R^3$ and the complexification of $D\Phi_t$ cost.  The normalisation remark of the
+paper (the unlabelled Remark~1.6) notes that the conclusion is invariant under $u\mapsto u/M $,
+since the flow and the ideal group of the rescaled field are those of $u $ evaluated at time
+$t/M $; that is Lemma~\ref{lem:main:normalisation}, where the bundle is proved for $u/M$ with
+the constant $(1+M^{-1})C_{\rm L}$.
+
+\begin{proof}
+  \leanok
+  \uses{prop:particle-flow, cor:ideal-growth, def:velocity:global-velocity,
+    lem:global-velocity}
+  The velocity field constructed for Theorem~\ref{thm:main} is the global velocity of
+  Lemma~\ref{lem:global-velocity}, so Proposition~\ref{prop:particle-flow} gives the
+  Lipschitz bound and the vanishing of the topological entropy of every time map, and
+  Corollary~\ref{cor:ideal-growth} gives the solution group and its zero exponential growth
+  rate.
+\end{proof}
+
+\begin{theorem}[Theorem~\ref{thm:main} in full]
+  \label{thm:main-complete}
+  \lean{FastDynamo.MainTheoremLagrangian, FastDynamo.MainTheoremDynamical,
+    FastDynamo.MainTheoremComplete,
+    FastDynamo.mainTheoremComplete_of_lagrangian,
+    FastDynamo.mainTheoremComplete_holds}
+  \leanok
+  \uses{thm:main-strengthened, prop:main-lagrangian, thm:main}
+  The conjunction of the strengthened spectral statement
+  (Theorem~\ref{thm:main-strengthened}) with the dynamical clauses
+  (Proposition~\ref{prop:main-lagrangian}) is Theorem~\ref{thm:main} in full, and more.
+  In Lean it is the structure \texttt{MainTheoremComplete}, inhabited by
+  \texttt{mainTheoremComplete\_holds}.
+\end{theorem}
+
+The spectral half is
+\texttt{main\_theorem\_strengthened} and the dynamical half
+\texttt{mainTheoremLagrangian\_holds}, and
+\texttt{mainTheoremComplete\_of\_lagrangian} is the implication that combines them.  The
+structure has three fields, not two: \texttt{strengthened}, then
+\texttt{dynamical}~$:$~\texttt{MainTheoremDynamical}, the theorem's own two clauses,
+and \texttt{lagrangian}~$:$~\texttt{MainTheoremLagrangian}, the larger bundle from which the
+first is projected.  The implication form exists because the
+module that defines \texttt{mainLiteralVelocity} cannot import the flow without a cycle;
+\texttt{FastDynamo/Dynamics/MainLagrangianClauses.lean} supplies the closed term.
+\texttt{Dynamics/ParticleFlow.lean} is not a leaf of the development: the whole of
+\texttt{Dynamics/Flow/*} and \texttt{Dynamics/Ideal/*} depends on it.
+
+\begin{proof}
+  \leanok
+  \uses{thm:main-strengthened, prop:main-lagrangian}
+  Immediate: the two halves are proved separately and the structure is their conjunction.
+\end{proof}
+
+
+\section{Vanishing diffusivity}
+
+Remark~1.7 of the paper (unlabelled, the last remark of §1.2) relates the two halves of
+Theorem~\ref{thm:main}: the resistive evolution converges to the ideal one as
+$\eps\downarrow0$.  The paper derives it from the Trotter--Kato approximation theorem
+[Engel--Nagel, Theorem~III.4.8] and the Friedrichs commutator lemma [DiPerna--Lions,
+Lemma~II.1].  The formalisation proves it by a direct energy estimate against a mollified ideal
+orbit; the first three nodes are its ingredients, none of which the paper states.
+
+\begin{lemma}[The mollifier on the torus]
+  \label{lem:vanishing:mollifier}
+  \lean{FastDynamo.literalTranslate, FastDynamo.continuous_literalTranslate_apply,
+    FastDynamo.mollifierKernel, FastDynamo.integral_mollifierKernel,
+    FastDynamo.literalMollify, FastDynamo.literalMollifyDeriv, FastDynamo.mollifierSymbol,
+    FastDynamo.inner_flatTorus3FourierBasis_literalMollify,
+    FastDynamo.inner_flatTorus3FourierBasis_literalMollifyDeriv,
+    FastDynamo.norm_literalMollify_le, FastDynamo.tendsto_literalMollify,
+    FastDynamo.exists_bound_sq_mul_mollifierSymbol}
+  \leanok
+  Let $\rho_\delta(z)=\delta^{-3}\rho(z/\delta)$ with $\rho\geq0$ a smooth bump on $\R^3$
+  supported in the unit ball, of integral one, and let $J_\delta f=\int\rho_\delta(z)f(\cdot-z)\dd z$
+  on $\Lp^2(\T^3;\CC^3)$, and $\partial_jJ_\delta$ the same with $\partial_j\rho_\delta$.  Then
+  $\norm{J_\delta}\leq1$, $J_\delta f\to f$ as $\delta\downarrow0$, $J_\delta$ and
+  $\partial_jJ_\delta$ are Fourier multipliers, and for each $\delta$ the symbol of $J_\delta$
+  decays like $\abs m^{-2}$.
+\end{lemma}
+
+The operators are Bochner integrals of translations of $\Lp^2$
+(\texttt{FastDynamo/Analysis/LiteralTorusMollifier.lean}).  The decay of the symbol is what makes
+$J_\delta$ map $\Lp^2$ into $\Hs^2$.
+
+\begin{proof}
+  \leanok
+  Translations are isometries and strongly continuous, so the integral has norm at most
+  $\int\rho_\delta=1$ and converges to $f$ as the kernel concentrates.  The Fourier coefficient
+  of a translate is the coefficient times a phase, which gives the multipliers; integrating by
+  parts twice in $z$ gives the decay of the symbol.
+\end{proof}
+
+\begin{lemma}[The Friedrichs commutator lemma on the torus]
+  \label{lem:vanishing:friedrichs}
+  \lean{FastDynamo.literalComponentMul, FastDynamo.friedrichsCommutator,
+    FastDynamo.friedrichsCommutator_apply, FastDynamo.exists_norm_friedrichsCommutator_le,
+    FastDynamo.sum_integral_fderiv_mollifierKernel_mul_eq_zero,
+    FastDynamo.tendsto_friedrichsCommutator}
+  \leanok
+  \uses{lem:vanishing:mollifier}
+  Let $v$ be an $L$-Lipschitz velocity on $\T^3$ and
+  $K_\delta f=\sum_j\bigl(\partial_jJ_\delta(v_jf)-v_j\partial_jJ_\delta f\bigr)$.  Then
+  $\norm{K_\delta}_{\Lp^2\to\Lp^2}\leq C$ uniformly in $\delta\in(0,1]$.  If moreover the
+  periodic lift of $v$ is differentiable at every point with $\Div v=0$ at every point, then
+  $K_\delta f\to0$ in $\Lp^2$ as $\delta\downarrow0$, uniformly for $f$ in a compact subset of
+  $\Lp^2$.
+\end{lemma}
+
+DiPerna and Lions state the lemma on $\R^d$, for Sobolev velocities and $\Lp^p$ fields, with
+convergence in $\Lp^1_{\rm loc}$; here it is proved on the torus for Lipschitz $v$ with
+everywhere differentiable lift, in $\Lp^2$, uniformly on compact sets, which is the case the
+energy estimate needs; the constructed velocity satisfies the hypotheses
+(Lemma~\ref{lem:dynamics:velocity-gradient}).  Module
+\texttt{FastDynamo/Analysis/LiteralFriedrichsCommutator.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:vanishing:mollifier}
+  $K_\delta f=\sum_j\int\partial_j\rho_\delta(z)(\tau_zv_j-v_j\tau_z)f\dd z$ and
+  $\norm{\tau_zv_j-v_j\tau_z}\leq L\abs z$, so
+  $\norm{K_\delta}\leq3L\int\abs z\abs{\nabla\rho_\delta(z)}\dd z$, which does not depend on
+  $\delta$.  For a continuous field $g$, the divergence term
+  $\sum_j\int\partial_j\rho_\delta(z)(v_j(x-z)-v_j(x))\dd z=\int\rho_\delta(z)(\Div v)(x-z)\dd z$
+  vanishes, which leaves
+  $K_\delta g(x)=\sum_j\int\partial_j\rho_\delta(z)(v_j(x-z)-v_j(x))(g(x-z)-g(x))\dd z$, of size
+  $O(L\sup_{\abs z\leq\delta}\norm{g(\cdot-z)-g}_\infty)$.  Continuous fields are dense, and
+  the uniform bound extends the convergence to all of $\Lp^2$, uniformly on compact sets.
+\end{proof}
+
+\begin{lemma}[The resistive operator on mollified fields]
+  \label{lem:vanishing:bridge}
+  \lean{FastDynamo.productMollifyH2, FastDynamo.productH2Embedding_productMollifyH2,
+    FastDynamo.toLiteralC3L2_productInductionAction_productMollifyH2,
+    FastDynamo.ScaleFamily.TorusCellPlacement.hasDerivAt_literalMollify_idealGroup,
+    FastDynamo.hasDerivAt_literalMollify_mainIdealGroup,
+    FastDynamo.literalInductionSemigroup_apply_coe}
+  \leanok
+  \uses{lem:vanishing:mollifier, def:main:induction-operator,
+    lem:dynamics:ideal-weak-existence, lem:dynamics:velocity-gradient,
+    thm:dynamics:solenoidal-semigroup}
+  For every $\delta$, $J_\delta$ maps $\Lp^2(\T^3;\CC^3)$ continuously into $\Hs^2$, and on
+  $J_\delta f$ the auxiliary induction operator of the constructed velocity
+  (Definition~\ref{def:main:induction-operator}) reads
+  \[
+    \mathcal A_\eps J_\delta f=\eps\Delta J_\delta f-\sum_ju_j\,\partial_jJ_\delta f
+    +(J_\delta f\cdot\nabla)u .
+  \]
+  For every $B\in\Lp^2_\sigma$ the curve $t\mapsto J_\delta\mathcal T_0(t)B$ is differentiable
+  at every $t$, with derivative
+  $J_\delta\bigl((\mathcal T_0(t)B\cdot\nabla)u\bigr)-\sum_j\partial_jJ_\delta\bigl(u_j\,\mathcal T_0(t)B\bigr)$.
+\end{lemma}
+
+The first display is stated for the auxiliary action $\mathcal A_\eps$ on the product model and
+transported to the literal torus; the derivative of the mollified ideal orbit comes from the
+weak form tested against the characters.  Module
+\texttt{FastDynamo/Dynamics/VanishingDiffusivity/ProductBridge.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:vanishing:mollifier, lem:dynamics:ideal-weak-existence}
+  The Fourier certificate of $J_\delta f$ in $\Hs^2$ is $(1+4\pi^2\abs m^2)\sigma_\delta(m)\hat
+  f(m)$, square summable by the decay of the symbol; the derivative identities hold coefficient
+  by coefficient, the transport term is computed on the continuous representative of $u$, and the
+  stretching term on its pointwise derivative.  For the ideal orbit, the weak form at the
+  characters $e_m$, placed in each vector coordinate, gives
+  $J_\delta\mathcal T_0(s)B=J_\delta B+\int_0^sF$ with $F$ continuous, and the fundamental
+  theorem of calculus gives the derivative.
+\end{proof}
+
+\begin{theorem}[Vanishing diffusivity; Remark~1.7 of the paper]
+  \label{thm:vanishing-diffusivity}
+  \lean{FastDynamo.resistiveEvolution,
+    FastDynamo.norm_productInductionSemigroup_sub_literalMollify_le,
+    FastDynamo.norm_mainIdealGroup_sub_resistiveEvolution_le,
+    FastDynamo.tendstoUniformlyOn_resistiveEvolution_mainIdealGroup}
+  \leanok
+  \uses{thm:main, def:dynamics:ideal-induction-group, def:main:growth-rate}
+  For each fixed $B_{\rm in}\in\Lp^2_\sigma$, $\e^{tL_{\eps,u}}B_{\rm in}$ converges strongly in
+  $\Lp^2$ to $\mathcal T_0(t)B_{\rm in}$ as $\eps\downarrow0$, uniformly on bounded time
+  intervals in $[0,\infty)$.
+\end{theorem}
+
+The statement is the paper's, for the velocity $u$ of Theorem~\ref{thm:main}: in Lean,
+$u$ is \texttt{mainVelocity}, read on the literal torus as \texttt{mainLiteralVelocity},
+$\mathcal T_0$ is \texttt{mainIdealGroup}, and the uniformity is on $[0,T]$ for every $T$.  The
+resistive evolution \texttt{resistiveEvolution} $\eps\,t\,B$ is
+\texttt{literalInductionSemigroup} at $\eps>0$, the semigroup generated by $L_{\eps,u}$ on
+$\Lp^2_\sigma$ (Theorem~\ref{thm:dynamics:solenoidal-generator}); it is extended by $0$ to
+$\eps\leq0$ and clamps negative times to $0$, conventions that the limit along
+$\eps\downarrow0$ on $[0,T]$ does not see.  The paper's remark follows Theorem~1.2 and
+concerns its velocity and its group $\mathcal T_0$; the Lean statement is for that velocity
+only, not for a general divergence-free Lipschitz velocity.  The route differs: not
+Trotter--Kato, but the energy estimate below.  Module
+\texttt{FastDynamo/Dynamics/VanishingDiffusivity/Limit.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:vanishing:friedrichs, lem:vanishing:bridge, lem:vanishing:mollifier,
+    lem:dynamics:product-dissipative, thm:dynamics:product-semigroup}
+  Fix a mollification scale $\delta$ and start the resistive semigroup at $J_\delta B$; let $w$
+  be its $\Hs^2$ orbit and $e(t)=w(t)-J_\delta\mathcal T_0(t)B$, so $e(0)=0$.  By
+  Lemma~\ref{lem:vanishing:bridge}, $e$ solves the resistive equation up to the residual
+  $\eps\Delta J_\delta\mathcal T_0(t)B+K_\delta\mathcal T_0(t)B
+  +(S_uJ_\delta-J_\delta S_u)\mathcal T_0(t)B$, with $S_uB=(B\cdot\nabla)u$,
+  and the dissipativity $\re\inner{e}{\mathcal A_\eps e}\leq M_u\norm e^2$ with Gronwall's
+  inequality bounds $\norm{e(t)}$ by the residual times $\e^{(2M_u+1)T}$.  On the compact orbit
+  $\{\mathcal T_0(t)B:t\in[0,T]\}$ the commutator $K_\delta$ and the mollification errors are
+  small uniformly for small $\delta$ (Lemmas~\ref{lem:vanishing:friedrichs}
+  and~\ref{lem:vanishing:mollifier}); for fixed $\delta$ the diffusion term is $O(\eps)$; and
+  the initial error $\norm{J_\delta B-B}$ is propagated by
+  $\norm{\e^{tL_{\eps,u}}}\leq\e^{M_ut}$, with $M_u$ independent of $\eps$.  Choose $\delta$
+  first and then $\eps$.
+\end{proof}

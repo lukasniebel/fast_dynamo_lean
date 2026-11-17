@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this formalisation, please cite it using the metadata below, together with the paper it formalises."
+type: software
+title: "FastDynamo: a Lean 4 formalisation of 'A fast dynamo with zero topological entropy'"
+abstract: >-
+  A machine-checked Lean 4 / Mathlib formalisation of the construction of an
+  autonomous Lipschitz fast dynamo on the flat three-torus whose particle flow
+  has zero topological entropy.
+authors:
+  - family-names: Niebel
+    given-names: Lukas
+    affiliation: "ETH Zürich, Department of Mathematics"
+repository-code: "https://github.com/lukasniebel/fast_dynamo_lean"
+license: Apache-2.0
+keywords:
+  - Lean 4
+  - Mathlib
+  - formalisation
+  - fast dynamo
+  - kinematic induction equation
+  - topological entropy
+references:
+  - type: article
+    title: "A fast dynamo with zero topological entropy"
+    authors:
+      - family-names: Niebel
+        given-names: Lukas
+    year: 2026
+    identifiers:
+      - type: other
+        value: "arXiv:2608.02586v3"
+        description: "arXiv preprint"
+    url: "https://arxiv.org/abs/2608.02586v3"

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A fast dynamo with zero topological entropy: Lean formalisation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: Georgia, serif; max-width: 42em; margin: 3em auto; padding: 0 1em; line-height: 1.5; color: #222; }
+h1 { font-size: 1.6em; }
+a { color: #1a4d8f; }
+li { margin: 0.4em 0; }
+</style>
+</head>
+<body>
+<h1>A fast dynamo with zero topological entropy</h1>
+<p>Lean 4 formalisation of the paper
+<a href="https://arxiv.org/abs/2608.02586v3">arXiv:2608.02586v3</a> (Lukas Niebel).  Theorem 1.2 is
+proved in Lean in full, up to the recorded deviations from the paper: its spectral half (the unstable eigenmode and the exact norm law), its
+growth-rate clause, and its dynamical half (the particle flow, zero topological entropy, the ideal
+induction group).  The blueprint shows, statement by statement, which Lean declarations formalise
+the paper and how the formal statements and proofs differ from the paper's.</p>
+<ul>
+  <li><a href="blueprint/">Blueprint</a> (web version with the dependency graph)</li>
+  <li><a href="blueprint.pdf">Blueprint</a> (pdf)</li>
+  <li><a href="docs/">API documentation</a> of the Lean development</li>
+  <li><a href="https://github.com/lukasniebel/fast_dynamo_lean">Source repository</a></li>
+</ul>
+<p>The source repository also carries the paper-to-Lean correspondence
+(<code>CORRESPONDENCE.md</code>), the list of deviations from the paper
+(<code>DEVIATIONS.md</code>) and the module map (<code>docs/MODULE_MAP.md</code>).</p>
+</body>
+</html>

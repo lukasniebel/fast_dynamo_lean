@@ -1,0 +1,741 @@
+The previous chapters produce, for every small diffusivity $\eps$, an eigenpair
+$(\lambda^\eps,h^\eps)$ of the \emph{horizontal} operator $A_{\eps,K}$ on
+$\Lp^2(\T^2;\CC^2)$, with $\re\lambda^\eps\geq g_*>0$.  Two components are not a magnetic
+field.  This chapter recovers the third one: the divergence constraint determines it
+algebraically, $b_3=-\Div_\perp h/(2\pi iK)$, and its own equation supplies the regularity
+needed for membership in the operator domain (Lemma~\ref{lem:axial-recovery}).  The
+resulting $V^\eps=\e^{2\pi iK_\eps x_3}b^\eps$ is divergence-free \emph{by construction},
+which is why the paper's proof never needs a separate solenoidality lemma.  The remaining
+two sections are independent of that: the non-zero axial Fourier index lets one
+pass to real parts without losing any norm, at any temporal phase, so that the real datum
+$B_{\rm in}^\eps=\re V^\eps$ is non-zero and its evolution obeys the exact exponential law;
+and a last section records the bounds behind the two-sided $\sqrt\eps$ magnetic scale.
+
+\textbf{Standing conventions of the formalisation.}  Three global conventions apply to every node
+of this chapter and are not repeated in each one.  (i) The three-torus is modelled as the product
+$\T^2\times\T^1$ (\texttt{ProductTorus3}) with the product measure; a measure-preserving
+equivalence with the literal $\T^3=(\R/\Z)^3$ and the induced isometric $\Lp^2$ transport do exist
+(\texttt{FastDynamo.productToLiteral}, \texttt{FastDynamo.toLiteralR3L2} in
+\texttt{FastDynamo/Analysis/LiteralThreeTorus.lean}), and the real magnetic trajectory and its norm
+law are transported along them, but no differential operator is transported, so all operator
+statements below live on the product model.  (ii) The velocity is an element of
+\texttt{TransverseRealW1Inf}, the Fourier-graph realisation of $\W^{1,\infty}(\T^2;\R^3)$; such a
+field is independent of $x_3$ but has a non-trivial third component.  This is exactly the class of
+the velocity constructed in the previous chapters, and it is what makes the axial reduction exact.
+Axial independence is \emph{not} a narrowing: the only lemma of this section that hypothesises a
+velocity at all, Lemma~\ref{lem:axial-recovery}, asks for a divergence-free
+$u\in\W^{1,\infty}(\T^3;\R^3)$ \emph{independent of $x_3$} (as in the paper's statement of
+Lemma~8.1), which is exactly this class; Lemma~\ref{lem:real-axial-mode} has no velocity, and
+Corollary~\ref{cor:magnetic-scale} is about the theorem's own $u$.  What does remain
+unformalised is the identification of the Fourier-graph model \texttt{TransverseRealW1Inf} with
+the Lipschitz / $\W^{1,\infty}(\T^3)$ class itself (see the scope notes in
+\texttt{README.md}).  Divergence-freeness of $u$
+is \texttt{IsTransverseDivergenceFree}, the identity $\partial_1u_1+\partial_2u_2=0$ in
+$\Lp^\infty$.  (iii) $\Hs^2$ and $\Hs^1$ domains are Fourier graph spaces, and all weak
+derivatives, divergences and curls are their Fourier realisations.
+
+\section{Recovery of the axial magnetic component}
+
+\begin{lemma}[Recovery of the axial magnetic component]
+  \label{lem:axial-recovery}
+  \lean{FastDynamo.axialRecoveredComponent,
+    FastDynamo.horizontalEmbedH2, FastDynamo.transverseSnocH2,
+    FastDynamo.transverseCoordL2_reducedInductionAction,
+    FastDynamo.fixedSectorDivergenceCoeff_reducedInductionAction,
+    FastDynamo.axialRecoveredSymbol,
+    FastDynamo.transverseH2Weight_le_axialRecoveredSymbol,
+    FastDynamo.axialRecoveredCertificateMap,
+    FastDynamo.axialRecoveredComponent_coeff_equation,
+    FastDynamo.axialRecoveredCertificate_eq,
+    FastDynamo.exists_reducedInductionEigenpair_of_horizontalEigenpair}
+  \leanok
+  \uses{def:operator:horizontal-induction, def:main:induction-operator}
+  Let $\eps>0$, $K\in\Z\setminus\{0\}$, $\lambda\in\CC$, and let
+  $u\in\W^{1,\infty}(\T^3;\R^3)$ be divergence-free and independent of $x_3$.  Suppose
+  $0\neq h\in\Hs^2(\T^2;\CC^2)$ satisfies $A_{\eps,K}h=\lambda h$.  Put
+  \[
+    b_3=-\frac{\Div_\perp h}{2\pi iK},\qquad b=(h,b_3),
+    \qquad V(y,x_3)=\e^{2\pi iKx_3}b(y).
+  \]
+  Then $b\in\Hs^2(\T^2;\CC^3)$ and
+  \[
+    0\neq V\in\Hs^2(\T^3;\CC^3)\cap\Lp^2_\sigma(\T^3),\qquad L_{\eps,u}V=\lambda V .
+  \]
+\end{lemma}
+
+Three points of the Lean form.  (a) The conclusion is packaged as an eigenpair of the
+\emph{three}-component reduced operator $A^{(3)}_{\eps,K}$ of
+Definition~\ref{def:main:induction-operator} together with
+$\pi_\perp b=h$, the formula for the third coordinate, and \emph{both} divergence clauses
+$\Div_\perp h+2\pi iKb_3=0$ and $\Div V=0$; the passage to the physical curl form is then
+Lemma~\ref{lem:finish:physical-compatibility}.  (b) The identity
+\eqref{eq:finish:transport-stretching-divergence} is not re-proved in two dimensions: the
+product-torus identity
+$\Div[-(w\cdot\nabla)F+(F\cdot\nabla)w]=-w\cdot\nabla\Div F$ is transported into the sector
+$K$ along the axial lift, which avoids a second derivative of $w$.  The paper does not
+use that identity (see the deviation below).  (c) The elliptic upgrade $b_3\in\Hs^1\Rightarrow b_3\in\Hs^2$ is
+\emph{free} at every frequency, with no elliptic-regularity theorem: the multiplier
+$(1+4\pi^2\abs n^2)/\bigl(\eps(4\pi^2\abs n^2+(2\pi K)^2)\bigr)$ has modulus at most
+$1/\eps$ as soon as $(2\pi K)^2\geq1$, which holds for every $K\neq0$, so the $\Hs^2$
+certificate is a bounded Fourier multiplier.
+
+\textbf{Deviation: the scalar route to $b_3$, not the three-component distributional
+route.}  The statement above is the paper's (Lemma~8.1, \texttt{lem:axial-recovery}), word for
+word.  The proof below is not.  The paper proves the lemma without writing an equation for
+$b_3$: for the $\Hs^1$ field $V$, which is divergence-free by construction, it forms
+$F=\lambda V-\eps\Delta V-\curl(u\times V)\in\Hs^{-1}(\T^3;\CC^3)$, uses the identity
+$\curl(u\times V)=(V\cdot\nabla)u-(u\cdot\nabla)V$ in distributions, observes that $F_\perp=0$ is
+the horizontal eigenvalue equation and that $\Div F=0$, so that, every term having axial
+Fourier index $K$, $0=\Div F=\partial_{x_3}F_3=2\pi iKF_3$ in distributions forces $F=0$; only
+then does it upgrade $V$ to $\Hs^2$ by elliptic regularity from
+$\eps\Delta V=\lambda V-\curl(u\times V)\in\Lp^2$.  Lean takes a scalar route instead: the
+transport--stretching divergence identity
+$\Div[-(w\cdot\nabla)F+(F\cdot\nabla)w]=-w\cdot\nabla\Div F$, transported into the sector
+$K$ along the axial lift, turns $A_{\eps,K}h=\lambda h$ into the scalar equation
+$(\lambda-S)b_3=(h\cdot\nabla_\perp)u_3$, whose right-hand side is an $\Lp^2$ field;
+the $\Hs^2$ certificate for $b_3$ is then a bounded Fourier multiple of it, with no
+elliptic-regularity theorem.  The paper's route is not available as stated because Lean's
+curl form is realised in $\Hs^{-2}$ against $\Hs^2$ test fields, not in $\Hs^{-1}$ against
+$\Hs^1$: forming $F$ at the regularity the paper uses would require a further antidual layer
+and the distributional identity $\curl(u\times V)=(V\cdot\nabla)u-(u\cdot\nabla)V$ one
+derivative lower.  The two cheap steps of the paper's route -- $\Div F=0\Rightarrow
+2\pi iKF_3=0\Rightarrow F=0$ in a single non-zero axial mode, and $\eps\Delta V\in\Lp^2
+\Rightarrow V\in\Hs^2$ -- are free in the Fourier model, and are how point (c) above is
+proved.  The statement proved is the paper's, including both divergence clauses; only the
+route differs.  The paper has no counterpart of the two displays
+\eqref{eq:finish:transport-stretching-divergence} and
+\eqref{eq:finish:recovered-axial-equation}; their labels are blueprint-local.
+
+\begin{proof}
+  \leanok
+  \uses{def:operator:horizontal-induction, def:main:induction-operator}
+  This is the argument Lean states, not the paper's; see the deviation
+  above.  Write $d=\Div_\perp h$ and
+  $S=\eps\bigl(\Delta_\perp-(2\pi K)^2\bigr)-u_\perp\cdot\nabla_\perp-2\pi iKu_3$.  For a divergence-free
+  $w\in\W^{1,\infty}$ and $F\in\Hs^2$,
+  \begin{equation}
+    \Div\bigl[-(w\cdot\nabla)F+(F\cdot\nabla)w\bigr]=-w\cdot\nabla\Div F
+    \label{eq:finish:transport-stretching-divergence}
+  \end{equation}
+  in distributions, because the bracket is $\curl(w\times F)-w\Div F$; this needs no second
+  derivative of $w$.  Applying it to the horizontal fields and using
+  $\Div_\perp(u_3h)=u_3d+h\cdot\nabla_\perp u_3$ turns $A_{\eps,K}h=\lambda h$ into
+  $(\lambda-S)d=-2\pi iK(h\cdot\nabla_\perp)u_3$ in $\Hs^{-1}(\T^2)$, that is
+  \begin{equation}
+    (\lambda-S)b_3=(h\cdot\nabla_\perp)u_3 .
+    \label{eq:finish:recovered-axial-equation}
+  \end{equation}
+  Initially $b_3\in\Hs^1$; rearranging \eqref{eq:finish:recovered-axial-equation} gives
+  $\eps\Delta_\perp b_3\in\Lp^2$ and hence $b_3\in\Hs^2$.  The horizontal equation together
+  with \eqref{eq:finish:recovered-axial-equation} is exactly
+  $\eps\Delta V-(u\cdot\nabla)V+(V\cdot\nabla)u=\lambda V$, and
+  $\Div V=\e^{2\pi iKx_3}(d+2\pi iKb_3)=0$, so the left-hand side is $L_{\eps,u}V$.  Finally $h\neq0$
+  gives $V\neq0$.
+\end{proof}
+
+\section{The eigenfunction is divergence-free}
+
+For the recovered mode, $\Div V=0$ holds by construction (Lemma~\ref{lem:axial-recovery}).
+The lemma of this section proves it for every eigenfunction of the auxiliary operator
+$\mathcal{A}_\eps$ with $\re\lambda>0$; the Lean proof of
+Proposition~\ref{prop:finish:real-strong-mode} takes the solenoidality of the lifted mode
+from it, and the dynamics chapter uses its resolvent form
+(Lemma~\ref{lem:dynamics:solenoidal-subspace}).  The passage from $\mathcal{A}_\eps$ to the
+physical curl form (Lemma~\ref{lem:finish:physical-compatibility}) is used by the axial
+recovery and by the dynamics chapter.
+
+\begin{definition}[The physical curl-form operator]
+  \label{def:finish:physical-operator}
+  \lean{FastDynamo.productL2ToHMinus2, FastDynamo.productWeakCurl,
+  FastDynamo.productCrossWithVelocity, FastDynamo.productPhysicalInductionAction,
+  FastDynamo.productPhysicalInductionOperator}
+  \leanok
+  \uses{def:main:induction-operator}
+  For $u\in\W^{1,\infty}$ and $\eps\in\R$ the \emph{physical} induction operator is the curl form
+  \[
+    L_{\eps,u}B=\eps\Delta B+\curl(u\times B),
+  \]
+  realised as a bounded map from the Fourier graph $\Hs^2(\T^2\times\T^1;\CC^3)$ into a Fourier
+  model of $\Hs^{-2}$, in which an $\Lp^2$ coefficient $\hat f(n,k)$ is represented by
+  $\hat f(n,k)/(1+\abs\xi^2)$.  In that model the distributional curl of an arbitrary $\Lp^2$
+  field is bounded, and $\Div\circ\curl=0$ is an exact identity frequency by frequency.
+\end{definition}
+
+In Lean this is \texttt{productPhysicalInductionAction} and the bundled domain operator
+\texttt{productPhysicalInductionOperator}, whose ambient space is $\Hs^{-2}$ and whose embedding
+is $\Hs^2\hookrightarrow\Lp^2\hookrightarrow\Hs^{-2}$ (module
+\texttt{FastDynamo/Operator/Compatibility.lean}).  The paper never names a functional-analytic
+realisation of $L_{\eps,u}$; the weak $\Hs^{-2}$ realisation is the formalisation's choice, and
+it is weaker than an $\Lp^2$ realisation on solenoidal fields, which does not exist in the
+development ($\Lp^2_\sigma$ is a predicate, not a subspace).
+
+\begin{lemma}[Compatibility of the two actions]
+  \label{lem:finish:physical-compatibility}
+  \lean{FastDynamo.productInductionAction_toHMinus2_eq_physical,
+  FastDynamo.productInductionEigenpair_to_physical}
+  \leanok
+  \uses{def:main:induction-operator, def:finish:physical-operator}
+  Let $u$ be divergence-free and let $V\in\Hs^2$ satisfy $\Div V=0$.  Then
+  \[
+    \curl(u\times V)=-(u\cdot\nabla)V+(V\cdot\nabla)u,
+  \]
+  so $\mathcal{A}_\eps V$ and $L_{\eps,u}V$ agree in $\Hs^{-2}$.  Consequently an eigenpair of
+  $\mathcal{A}_\eps$ whose eigenfunction is divergence-free is an eigenpair of $L_{\eps,u}$.
+\end{lemma}
+
+Faithful, modulo the standing conventions.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  The general vector identity for divergence-free $u$ reads
+  $-(u\cdot\nabla)V+(V\cdot\nabla)u=\curl(u\times V)-u\,\Div V$, and $\Div V=0$ kills the last
+  term.  In Lean the identity is proved coefficientwise from weak Leibniz certificates
+  (\texttt{productInductionLowerField\_add\_velocityDiv\_eq\_weakCurl}), and the eigenpair transfer
+  is then immediate because the embedding $\Lp^2\to\Hs^{-2}$ is injective.
+\end{proof}
+
+\begin{lemma}[The divergence equation and its energy]
+  \label{lem:finish:divergence-energy}
+  \lean{FastDynamo.productInductionLowerField_add_velocityDiv_eq_weakCurl,
+  FastDynamo.productWeakDivergence_productInductionAction,
+  FastDynamo.productWeakDivergence_velocityTimesScalar_pair_re_eq_zero,
+  FastDynamo.productScalarWeakLaplacian_pair_self_re_nonpos,
+  FastDynamo.productScalarWeakEigenfunction_eq_zero}
+  \leanok
+  \uses{def:main:induction-operator}
+  Let $u\in\W^{1,\infty}$ be divergence-free, let $V\in\Hs^2$ and put $d=\Div V\in\Hs^1$.  Then, in
+  the sense of distributions,
+  \[
+    -(u\cdot\nabla)V+(V\cdot\nabla)u+u\,d=\curl(u\times V),
+    \qquad
+    \Div\left[\mathcal{A}_\eps V\right]=\eps\Delta d-\Div(u\,d).
+  \]
+  Moreover the transport term is skew and the Laplacian is dissipative,
+  \[
+    \re\inner{\Div(u\,d)}{d}=0,
+    \qquad
+    \re\inner{\Delta d}{d}=-\norm{\nabla d}_2^2\leq0,
+  \]
+  so that a scalar $d\in\Hs^1$ obeying $\lambda d=-\Div(u\,d)+\eps\Delta d$ weakly, with
+  $\eps\geq0$ and $\re\lambda>0$, vanishes.
+\end{lemma}
+
+In Lean the two pairings are the $\Hs^{-1}$--$\Hs^1$ duality, $\Div$ of an $\Lp^2$ field is
+\texttt{productWeakDivergence} valued in $\Hs^{-1}$, and the final implication is the
+velocity-free algebraic endpoint \texttt{productScalarWeakEigenfunction\_eq\_zero} (module
+\texttt{FastDynamo/Analysis/ProductScalarEnergy.lean}); the vector identity and the divergence of
+the induction action are in \texttt{FastDynamo/Analysis/InductionDivergence.lean}, the skewness in
+\texttt{FastDynamo/Analysis/ProductTransportEnergy.lean}.
+
+\begin{proof}
+  \leanok
+  The vector identity is checked on each of the three coordinates from the weak Leibniz rule for an
+  $\Lp^\infty$ factor with an $\Lp^2$ factor; taking weak divergences and using
+  $\Div\circ\curl=0$ gives the second display, since the diffusion term contributes
+  $\eps\Delta d$.  Testing the scalar equation with $\bar d$, using periodicity and $\Div u=0$ for
+  the transport term, and taking real parts yields
+  $(\re\lambda)\norm d_2^2=-\eps\norm{\nabla d}_2^2\leq0$, whence $d=0$.
+\end{proof}
+
+\begin{lemma}[Eigenfunctions with $\re\lambda>0$ are divergence-free]
+  \label{lem:positive-eigenfunction-solenoidal}
+  \lean{FastDynamo.productInductionEigenpair_divergence_eq_zero,
+  FastDynamo.productInductionEigenpair_solenoidal,
+  FastDynamo.axiallyIndependent_positive_eigenfunction_solenoidal,
+  FastDynamo.axiallyIndependent_eigenpair_solenoidal}
+  \leanok
+  \uses{def:main:induction-operator, def:finish:physical-operator}
+  Let $u\in\W^{1,\infty}(\T^3;\R^3)$ be divergence-free and let $\eps\geq0$.  If
+  $0\neq V\in\Hs^2(\T^3;\CC^3)$ satisfies
+  \[
+    \mathcal{A}_\eps V=\lambda V,
+    \qquad\re\lambda>0,
+  \]
+  then $\Div V=0$.  Consequently $L_{\eps,u}V=\lambda V$.
+\end{lemma}
+
+The paper states no such lemma, because its recovered mode is solenoidal by construction
+(the definition of $b_3$ in Lemma~8.1 of the paper); this is a result of the
+formalisation.  The sign hypothesis on $\eps$ cannot be dropped: the statement is false for
+$\eps<0$ (Lemma \ref{lem:finish:negative-diffusivity}).  The Lean statement therefore assumes
+$0\leq\eps$, which is weaker than the paper's standing $\eps>0$ and hence covers it; the
+positive-diffusivity wrapper is
+\texttt{axiallyIndependent\_positive\_eigenfunction\_solenoidal}, and
+\texttt{axiallyIndependent\_eigenpair\_solenoidal} also returns the physical eigenpair.  As explained in the
+chapter preamble, the Lean velocity is $x_3$-independent; the general $\T^3$-velocity form of the
+lemma is not formalised.  The conclusion comes in two equivalent shapes, $\Div V=0$ as an
+$\Lp^2$ field and \texttt{IsProductSolenoidal} coefficientwise.
+
+\begin{proof}
+  \leanok
+  \uses{lem:finish:divergence-energy, lem:finish:physical-compatibility}
+  Set $d=\Div V$.  Taking the weak divergence of the eigenvalue equation and using the two displays
+  of Lemma \ref{lem:finish:divergence-energy} gives the scalar advection-diffusion equation
+  $\lambda d=-\Div(u\,d)+\eps\Delta d$ in $\Hs^{-1}$; since $d\in\Hs^1$ it is an admissible test
+  function, and the energy endpoint of the same lemma gives $d=0$.  The last sentence is Lemma
+  \ref{lem:finish:physical-compatibility}.  The argument starts from the auxiliary operator, not
+  from the curl form whose agreement is only known after solenoidality, so the chain is not
+  circular.
+\end{proof}
+
+\begin{lemma}[The sign hypothesis is necessary]
+  \label{lem:finish:negative-diffusivity}
+  \lean{FastDynamo.negativeDiffusivityEigenvalue,
+  FastDynamo.negativeDiffusivity_auxiliary_eigenpair,
+  FastDynamo.negativeDiffusivityEigenvalue_pos,
+  FastDynamo.negativeDiffusivity_mode_not_productSolenoidal,
+  FastDynamo.exists_positive_nonsolenoidal_eigenpair_of_negative_diffusivity}
+  \leanok
+  \uses{def:main:induction-operator}
+  For every $\eps<0$ the zero velocity admits an eigenpair of $\mathcal{A}_\eps$ with positive real
+  part and non-solenoidal eigenfunction: with $V(y,x_3)=\e^{2\pi ix_3}e_3$ one has
+  \[
+    \mathcal{A}_\eps V=\lambda V,
+    \qquad\lambda=-\eps(2\pi)^2>0,
+    \qquad\Div V\neq0 .
+  \]
+  Hence the hypothesis $\eps\geq0$ cannot be dropped from Lemma
+  \ref{lem:positive-eigenfunction-solenoidal}.
+\end{lemma}
+
+This node is not in the paper; it is a remark-level Lean result recording that the sign
+hypothesis of Lemma~\ref{lem:positive-eigenfunction-solenoidal} is sharp (module \texttt{FastDynamo/Finish/NegativeDiffusivity.lean}).  The main theorem is
+unaffected, since it assumes $0<\eps$ throughout.
+
+\begin{proof}
+  \leanok
+  With $u=0$ the transport and stretching terms vanish, and on the axial sector $K=1$ the constant
+  vertical amplitude is annihilated by the transverse Laplacian, so only the axial diffusion symbol
+  $-\eps(2\pi)^2$ survives.  Its divergence has the non-zero Fourier coefficient
+  $2\pi i\cdot1$ at the zero transverse frequency.
+\end{proof}
+
+\section{Passage to a real-valued solution}
+
+\begin{lemma}[Real part of a non-zero $x_3$-Fourier mode]
+  \label{lem:real-axial-mode}
+  \lean{FastDynamo.realPart_axialLiftPointwise_norm_sq,
+  FastDynamo.phaseAxialFieldL2_norm_sq,
+  FastDynamo.phaseAxialFieldL2_norm_sq_eq,
+  FastDynamo.phaseAxialFieldL2_ne_zero}
+  \leanok
+  Let $K\in\Z\setminus\{0\}$, $b\in\Lp^2(\T^2;\CC^3)$ and $\varphi\in\R$.  Then, for almost every
+  $y$,
+  \[
+    \int_0^1\abs{\re\bigl(\e^{i\varphi}\e^{2\pi iKx_3}b(y)\bigr)}^2\dd x_3
+    =\frac12\abs{b(y)}_{\CC^3}^2 .
+  \]
+  In particular $\norm{\re(\e^{i\varphi}\e^{2\pi iKx_3}b)}_2^2=\frac12\norm b_2^2$ for every phase,
+  this quantity does not depend on $\varphi$, and if $b\neq0$ the real part of the corresponding
+  $x_3$-Fourier mode is non-zero for every phase.
+\end{lemma}
+
+Faithful.  The Lean statement comes in two layers: the fibrewise identity
+\texttt{realPart\_axialLiftPointwise\_norm\_sq} is the displayed equation verbatim, for a
+pointwise representative and the Haar measure of the axial circle; the global form
+\texttt{phaseAxialFieldL2\_norm\_sq} is stated for the $\Lp^2$-class field
+\texttt{phaseAxialFieldL2}~$K\,\varphi\,b=\re(\e^{i\varphi}\e^{2\pi iKx_3}b)$, which lives in the
+real space $\Lp^2(\T^2\times\T^1;\R^3)$.  Module
+\texttt{FastDynamo/Fourier/AxialL2.lean}.
+
+\begin{proof}
+  \leanok
+  Write $b=a+ic$ with $a,c\in\R^3$.  Componentwise the integrand is the square of
+  $a\cos(2\pi Kx_3+\varphi)-c\sin(2\pi Kx_3+\varphi)$.  Because $K$ is a non-zero integer, the
+  squared sine and cosine have average $1/2$ on $[0,1]$ while their product has average zero;
+  summing over the components gives the identity.  Integrating in $y$ by Fubini gives the global
+  form.
+\end{proof}
+
+\begin{definition}[The real datum, the real solution and the strong-mode certificate]
+  \label{def:finish:real-solution}
+  \lean{FastDynamo.realAxialInitialField, FastDynamo.realAxialTrajectory,
+  FastDynamo.productConjH2, FastDynamo.productRealPartH2,
+  FastDynamo.complexifyProductR3L2, FastDynamo.realifiedEigenTrajectoryH2,
+  FastDynamo.DomainOperator.IsStrongSolution,
+  FastDynamo.ConditionalModeCertificate, FastDynamo.RealStrongModeCertificate}
+  \leanok
+  \uses{def:main:induction-operator, def:finish:physical-operator}
+  Let $K\in\Z\setminus\{0\}$, $\lambda\in\CC$ and let $b$ be a transverse amplitude, and write
+  $V=\e^{2\pi iKx_3}b$, $\alpha=\re\lambda$, $\omega=\im\lambda$.  Define
+  \[
+    B_{\rm in}=\re V,
+    \qquad
+    B(t)=\e^{\alpha t}\,\re\bigl(\e^{i\omega t}V\bigr)
+    =\re\bigl(\e^{t\lambda}V\bigr)
+    \qquad(t\in\R),
+  \]
+  both elements of the real space $\Lp^2(\T^2\times\T^1;\R^3)$
+  (\texttt{realAxialInitialField}, \texttt{realAxialTrajectory}).  Inside the complex $\Hs^2$ graph
+  the same field is represented by $W(t)=\frac12(\id+\mathrm{conj})(\e^{t\lambda}V)$
+  (\texttt{realifiedEigenTrajectoryH2}, built from \texttt{productConjH2} and
+  \texttt{productRealPartH2}), a fixed point of conjugation whose complexification is $B(t)$.  A
+  curve $t\mapsto W(t)$ in the domain of a bundled operator $A$ is a \emph{strong solution} when
+  $s\mapsto A.\text{embedding}(W(s))$ is differentiable in the ambient space with derivative
+  $A.\text{op}(W(t))$ at every $t$ (\texttt{DomainOperator.IsStrongSolution}).  Finally
+  \texttt{RealStrongModeCertificate}~$u\,\eps\,K\,\lambda\,b\,g$ bundles all the conclusions of
+  this chapter for one mode: the lifted auxiliary eigenpair and its solenoidality, the physical
+  eigenpair, $B_{\rm in}\neq0$, $B(t)\neq0$ for all $t$, the exact norm law, the lower bound with
+  rate $g$, the conjugation-fixedness and solenoidality of $W(t)$, the identification of $W(t)$
+  with $B(t)$, and the strong-solution equation for $W$.  (\texttt{ConditionalModeCertificate} is
+  the sub-bundle not mentioning the real evolution equation.)
+\end{definition}
+
+The paper speaks of \emph{the} solution with datum $B_{\rm in}^\eps$, and its proof of
+Theorem~1.2 writes that solution down.  This chapter exhibits the explicit strong solution in
+$\Hs^2$ of the induction equation in the $\Hs^{-2}$ realisation of
+Definition~\ref{def:finish:physical-operator}, with $W(0)=B_{\rm in}$; that it is the only one,
+and that it is the orbit of $B_{\rm in}$ under the semigroup $\e^{tL_{\eps,u}}$ on
+$\Lp^2_\sigma(\T^3)$, is Lemma~\ref{lem:dynamics:physical-uniqueness} in the appendix chapter.
+Modules \texttt{FastDynamo/Finish/RealSolution.lean}, \texttt{FastDynamo/Operator/Evolution.lean},
+\texttt{FastDynamo/Analysis/Realification.lean}.
+
+\begin{lemma}[Exact norm law for the real mode]
+  \label{lem:finish:norm-law}
+  \lean{FastDynamo.realAxialTrajectory_eq_realPart_complexExp,
+  FastDynamo.realAxialInitialField_ne_zero,
+  FastDynamo.realAxialTrajectory_ne_zero,
+  FastDynamo.norm_realAxialTrajectory,
+  FastDynamo.realAxialTrajectory_norm_lower_bound}
+  \leanok
+  \uses{def:finish:real-solution}
+  Let $K\neq0$ and $b\neq0$.  Then $B_{\rm in}\neq0$, $B(t)\neq0$ for every $t\in\R$, and
+  \[
+    \norm{\re\bigl(\e^{i\omega t}V\bigr)}_2^2=\frac12\norm b_2^2=\norm{\re V}_2^2,
+    \qquad\text{hence}\qquad
+    \norm{B(t)}_2=\e^{\alpha t}\norm{B_{\rm in}}_2 .
+  \]
+  If moreover $g\leq\alpha$, then $\e^{gt}\norm{B_{\rm in}}_2\leq\norm{B(t)}_2$ for $t\geq0$.
+\end{lemma}
+
+Faithful, and slightly broader than the paper in two respects: the norm identity is proved for
+\emph{every} real time, not only $t\geq0$, and the same law is available after transport to the
+literal three-torus (\texttt{norm\_literalRealTrajectory\_eq\_exp\_mul\_norm\_zero} in
+\texttt{FastDynamo/Analysis/LiteralThreeTorus.lean}).  The auxiliary
+\texttt{realAxialTrajectory\_eq\_realPart\_complexExp} identifies the definition of $B(t)$ with
+$\re(\e^{t\lambda}V)$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:real-axial-mode}
+  The non-zero axial Fourier index removes the oscillatory cross term when one integrates in
+  $x_3$, so no temporal phase can make the real part small.  Apply Lemma
+  \ref{lem:real-axial-mode} first with $\varphi=\omega t$ and then with $\varphi=0$: both sides
+  equal $\frac12\norm b_2^2$, so the phase factor is norm-preserving and only the real
+  exponential $\e^{\alpha t}$ survives.  Non-vanishing at every time follows from the same
+  identity.
+\end{proof}
+
+\begin{lemma}[The realified mode is a strong solution]
+  \label{lem:finish:strong-solution}
+  \lean{FastDynamo.DomainOperator.isStrongSolution_eigenTrajectory,
+  FastDynamo.productRealPartH2_preserves_divergenceFree,
+  FastDynamo.productConjH2_realifiedEigenTrajectoryH2,
+  FastDynamo.realifiedEigenTrajectoryH2_divergence_eq_zero,
+  FastDynamo.complexify_realAxialTrajectory_eq_realified_embedding,
+  FastDynamo.realifiedEigenTrajectoryH2_isPhysicalStrongSolution}
+  \leanok
+  \uses{def:finish:real-solution, def:finish:physical-operator}
+  Let $u$ be divergence-free, let $\eps\in\R$, and let $V\in\Hs^2$ be divergence-free with
+  $\mathcal{A}_\eps V=\lambda V$.  Then $W(t)=\re(\e^{t\lambda}V)$ is real (fixed by conjugation)
+  and divergence-free at every time, it is the $\Hs^2$ representative of $B(t)$ whenever $V$ is the
+  axial lift $\e^{2\pi iKx_3}b$, and it is a strong solution of the physical induction equation
+  \[
+    \partial_tB=L_{\eps,u}B,\qquad B(0)=B_{\rm in} .
+  \]
+\end{lemma}
+
+This stands in for the paper's one-line justification in the proof of Theorem~1.2 (``since
+the coefficients of the induction equation are real-valued, its solution is
+$B^\eps(t)=\e^{\alpha_\eps t}\re(\e^{i\omega_\eps t}V^\eps)$''), which in the paper refers to
+the solution given by the semigroup.  Here the complex solution $\e^{t\lambda}V$ is produced directly by scalar
+exponentiation (\texttt{DomainOperator.isStrongSolution\_eigenTrajectory}), and no semigroup is
+used; its identification with the semigroup orbit is
+Lemma~\ref{lem:dynamics:physical-uniqueness}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:finish:physical-compatibility}
+  The curve $t\mapsto\e^{t\lambda}V$ is a strong solution of the auxiliary equation, by
+  differentiating the scalar exponential and using the eigenvalue equation.  Taking real parts is a
+  fixed continuous real-linear map, so it commutes with the time derivative and with the embeddings
+  into $\Lp^2$ and $\Hs^{-2}$; it also preserves the divergence-free constraint.  Finally, for
+  divergence-free velocity and divergence-free field the auxiliary and physical actions agree
+  (Lemma \ref{lem:finish:physical-compatibility}), which converts the auxiliary equation satisfied
+  by the real part into the physical one.
+\end{proof}
+
+\begin{proposition}[One unstable reduced mode gives the real growing solution]
+  \label{prop:finish:real-strong-mode}
+  \lean{FastDynamo.conditionalModeCertificate_of_reducedEigenpair,
+  FastDynamo.realStrongModeCertificate_of_reducedEigenpair}
+  \leanok
+  \uses{def:finish:real-solution, def:main:induction-operator, lem:axial-recovery}
+  Let $u$ be divergence-free, $\eps\geq0$, $K\in\Z\setminus\{0\}$, and let $(\lambda,b)$ be an
+  eigenpair of the reduced operator $A^{(3)}_{\eps,K}$ with $\re\lambda>0$; let
+  $g\leq\re\lambda$.  Then
+  the strong-mode certificate of Definition \ref{def:finish:real-solution} holds.  Explicitly, with
+  $V=\e^{2\pi iKx_3}b$:
+  \begin{itemize}
+    \item $V\in\Hs^2(\T^3;\CC^3)$, $\norm V_{\Lp^2(\T^3)}=\norm b_{\Lp^2(\T^2)}>0$, and
+      $\mathcal{A}_\eps V=\lambda V$;
+    \item $\Div V=0$ and $L_{\eps,u}V=\lambda V$;
+    \item $B_{\rm in}=\re V\neq0$ is divergence-free, and $B(t)$ is a real divergence-free strong
+      solution of the induction equation with $\norm{B(t)}_2=\e^{t\re\lambda}\norm{B_{\rm in}}_2$
+      for all $t\in\R$ and $\e^{gt}\norm{B_{\rm in}}_2\leq\norm{B(t)}_2$ for $t\geq0$.
+  \end{itemize}
+\end{proposition}
+
+This proposition is the Lean form of the paper's proof of Theorem \ref{thm:main}, minus the
+growth-rate clause.  It is the single hinge of the finish layer: the main chapter's
+\texttt{MainPhysicalClauses} is obtained from the reduced clauses by applying it (see
+\texttt{FastDynamo/Main.lean}).  The remaining clause $\gamma(u,\eps)\geq\gamma_0$ of Theorem
+\ref{thm:main} is proved elsewhere and by a different route, from the same reduced eigenpair:
+it is Theorem \ref{thm:main-growth-rate}, which needs the $\C_0$-semigroup theory built in
+\texttt{FastDynamo/Dynamics/HilleYosida/} and \texttt{FastDynamo/Dynamics/Assembly/} rather
+than the analytic-semigroup input of Lemma \ref{lem:semigroup-spectral-growth}.  The norm of the
+complex eigentrajectory, $\norm{\e^{t\lambda}V}=\e^{t\re\lambda}\norm V$, is
+\texttt{norm\_embedding\_eigenTrajectory}
+(\texttt{FastDynamo/Finish/GrowingModeEvolution.lean}).
+
+\begin{proof}
+  \leanok
+  \uses{lem:positive-eigenfunction-solenoidal, lem:finish:physical-compatibility,
+  lem:finish:norm-law, lem:finish:strong-solution, lem:real-axial-mode}
+  Since $K\neq0$ and every eigenvector of $A_{\eps,K}$ lies in its domain, the lift
+  $V=\e^{2\pi iKx_3}b$ is one-periodic and lies in $\Hs^2$, with
+  $\norm V_{\Lp^2(\T^3)}=\norm b_{\Lp^2(\T^2)}$; the axial reduction is an equivalence, so
+  $\mathcal{A}_\eps V=\lambda V$.  Because $\re\lambda>0$, Lemma
+  \ref{lem:positive-eigenfunction-solenoidal} gives $\Div V=0$, and Lemma
+  \ref{lem:finish:physical-compatibility} then gives $L_{\eps,u}V=\lambda V$.  Lemma
+  \ref{lem:finish:norm-law} gives the non-vanishing and the exact norm law for
+  $B_{\rm in}=\re V$ and $B(t)$, and Lemma \ref{lem:finish:strong-solution} gives the evolution
+  equation and the solenoidality of the curve.  Unless $\omega=\im\lambda$ vanishes the datum
+  $B_{\rm in}$ is not itself a magnetic eigenmode: it evolves in the real invariant plane spanned
+  by $\re V$ and $\im V$.
+\end{proof}
+
+\begin{lemma}[Zero mean]
+  \label{lem:finish:zero-mean}
+  \lean{FastDynamo.HasZeroMean, FastDynamo.productCoeffCLM_zero_zero_eq_integral,
+    FastDynamo.hasZeroMean_axialLiftH2, FastDynamo.hasZeroMean_realifiedEigenTrajectoryH2,
+    FastDynamo.hasZeroMean_complexify_realAxialTrajectory,
+    FastDynamo.hasZeroMean_complexify_realAxialInitialField}
+  \leanok
+  \uses{def:finish:real-solution}
+  Let $K\in\Z\setminus\{0\}$.  For every amplitude $b$ and every $\lambda\in\CC$ the mode
+  $V=\e^{2\pi iKx_3}b$, the real datum $B_{\rm in}=\re V$ and the real solution
+  $B(t)=\re(\e^{t\lambda}V)$ at every time have zero spatial mean,
+  $\int_{\T^3}B(t)\dd x=0$.
+\end{lemma}
+
+This is the sentence ``Since $K_\eps\neq0$, every magnetic field constructed here has zero
+spatial mean'' of Remark~1.5 of the paper (\texttt{rem:scope-intro}).  The mean is the integral
+over the product torus with its probability Haar measure, which is Lebesgue measure on $\T^3$,
+and a real field is read in $\CC^3$ through the complexification.  Module
+\texttt{FastDynamo/Finish/ZeroMean.lean}.
+
+\begin{proof}
+  \leanok
+  The mean is the zeroth Fourier coefficient, and the coefficients of $\e^{2\pi iKx_3}b$ are
+  supported on the axial frequency $K\neq0$.  Scalar multiples, conjugates and real parts of a
+  zero-mean field have zero mean.
+\end{proof}
+
+\begin{lemma}[The real part is not an eigenmode]
+  \label{lem:finish:real-part-not-eigenmode}
+  \lean{FastDynamo.productInductionAction_eq_smul_of_physicalEigenpair,
+    FastDynamo.not_isEigenpair_productRealPartH2}
+  \leanok
+  \uses{def:finish:physical-operator, lem:finish:physical-compatibility,
+    def:finish:real-solution}
+  Let $u$ be real and divergence-free and let $V\in\Hs^2$ be a divergence-free eigenmode of
+  $L_{\eps,u}$ with eigenvalue $\lambda$, $\im\lambda\neq0$.  Then $\re V$ is not an
+  eigenfunction of $L_{\eps,u}$, for any eigenvalue.
+\end{lemma}
+
+This is Remark~1.4 of the paper (unlabelled): if $\im\lambda_\eps\neq0$, the real part of the
+complex magnetic eigenmode $V^\eps$ is not itself a magnetic eigenmode, since it is not an
+eigenfunction of $L_{\eps,u}$.  The Lean statement is for every such eigenmode, with
+$L_{\eps,u}$ the curl form of Definition~\ref{def:finish:physical-operator}; the divergence-free
+hypothesis on $V$ is part of the paper's notion of a magnetic eigenmode.  Module
+\texttt{FastDynamo/Finish/RealPartNotEigenmode.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:finish:physical-compatibility}
+  On divergence-free fields $L_{\eps,u}$ is the auxiliary action, which commutes with complex
+  conjugation because $u$ is real.  If $\re V=\frac12(V+\bar V)$ were an eigenfunction with
+  eigenvalue $\mu$, then $\lambda V+\bar\lambda\bar V=\mu(V+\bar V)$; since
+  $\lambda\neq\bar\lambda$, comparing the two relations forces $V=0$, contradicting that $V$
+  is an eigenmode.
+\end{proof}
+
+\section{Axial Fourier index and magnetic length}
+
+\begin{definition}[Magnetic length of an axial mode]
+  \label{def:finish:magnetic-length}
+  \lean{FastDynamo.productGradientFromH2,
+  FastDynamo.norm_sq_productGradientFromH2_axialLiftH2,
+  FastDynamo.complexAxialMagneticLength,
+  FastDynamo.phaseAxialGradientL2,
+  FastDynamo.phaseAxialGradientL2_norm_sq,
+  FastDynamo.complexifyProductR3L2_phaseAxialGradientL2,
+  FastDynamo.realPhaseAxialMagneticLength}
+  \leanok
+  \uses{def:finish:real-solution}
+  For $B\in\Hs^2$ write $\nabla B=(\partial_1B,\partial_2B,\partial_3B)$ for the full weak
+  gradient, an element of $\Lp^2(\T^3;\CC^3)^3$.  On a fixed axial sector $V=\e^{2\pi iKx_3}b$,
+  \[
+    \norm{\nabla V}_2^2
+    =\norm{\partial_1b}_2^2+\norm{\partial_2b}_2^2+(2\pi K)^2\norm b_2^2 .
+  \]
+  The $\Hs^1$-based magnetic length of the mode and of its phase-rotated real part are
+  \[
+    L_B=\frac{\norm V_2}{\norm{\nabla V}_2},
+    \qquad
+    L_B^{\re,\varphi}
+    =\frac{\norm{\re(\e^{i\varphi}V)}_2}{\norm{\re(\e^{i\varphi}\nabla V)}_2},
+  \]
+  the second one taken at $\varphi=0$ for the real datum $B_{\rm in}$.
+\end{definition}
+
+In Lean the real gradient is defined as the vector of the phase-rotated real parts of the three
+complex derivative amplitudes (\texttt{phaseAxialGradientL2}), and
+\texttt{complexifyProductR3L2\_phaseAxialGradientL2} proves that it is the weak gradient of the
+real field: complexified, its components are the weak derivatives of the $\Hs^2$ field
+$\re(\e^{i\varphi}V)$, because the weak derivatives commute with conjugation and hence with
+the real part.  \texttt{phaseAxialGradientL2\_norm\_sq} proves that
+its squared norm is half of the complex one, which is the paper's
+$\norm{\nabla B_{\rm in}}_2^2=\frac12\norm{\nabla V}_2^2$ (proof of Corollary~8.3).  Module
+\texttt{FastDynamo/Finish/MagneticScale.lean}.
+
+\begin{lemma}[Eigenmode energy estimate]
+  \label{lem:finish:magnetic-energy}
+  \lean{FastDynamo.ReducedInductionMagneticScale.epsilon_mul_norm_sq_productGradient_le_stretching,
+  FastDynamo.ReducedInductionMagneticScale.norm_transverseStretchingCoefficient_pos_of_reducedEigenpair,
+  FastDynamo.complexAxialMagneticLength_lower_of_energy,
+  FastDynamo.magneticLength_lower_of_energy}
+  \leanok
+  \uses{def:main:induction-operator, def:finish:magnetic-length}
+  Let $u$ be divergence-free, $\eps\geq0$, and let $(\lambda,b)$ be an eigenpair of
+  $A^{(3)}_{\eps,K}$ with $\re\lambda\geq0$.  Then, with $M_u$ the $\Lp^\infty$ operator norm of the stretching matrix
+  field $b\mapsto(b\cdot\nabla_\perp)u$,
+  \[
+    \eps\norm{\nabla V}_2^2\leq M_u\norm V_2^2,
+    \qquad\text{hence}\qquad
+    \sqrt{\eps/M_u}\leq L_B\quad\text{when }M_u>0 .
+  \]
+  If moreover $\eps>0$, $K\neq0$ and $b\neq0$, then $M_u>0$.
+\end{lemma}
+
+This is the energy argument in the proof of Corollary~8.3 of the paper
+(\texttt{cor:magnetic-scale}), which the paper does not state as a separate lemma.  One
+difference: the paper's constant is
+$M_u=\mathrm{ess\,sup}_x\norm{\nabla u(x)}_{\mathrm{op}}$; the Lean constant is the norm of
+\texttt{transverseStretchingCoefficient}, the $\Lp^\infty$ operator norm of the stretching matrix
+field $x\mapsto Du(x)$, which is what the energy identity uses; by its definition it is the
+paper's $M_u$, an identification that no Lean statement records.
+Like the paper (``In particular, $M_u>0$'', after the same energy estimate), Lean derives
+$M_u>0$ from the existence of the eigenpair, with no property of the constructed velocity.  The hypotheses
+$\eps\geq0$, $\re\lambda\geq0$ are weaker than the paper's $\eps>0$, $\re\lambda_\eps>0$.
+
+\begin{proof}
+  \leanok
+  Take the real part of the eigenvalue identity paired with $V$.  Transverse and axial transport
+  are skew, so they drop out; diffusion contributes $-\eps\norm{\nabla V}_2^2$ with the exact
+  fixed-sector gradient identity of Definition \ref{def:finish:magnetic-length}; stretching is
+  bounded by $M_u\norm V_2^2$.  Since $\re\lambda\geq0$ this gives the energy inequality, and the
+  elementary algebraic step $\eps G^2\leq MF^2\Rightarrow\sqrt{\eps/M}\leq F/G$ gives the lower
+  bound.  If $\eps>0$ and the gradient is non-zero, the left-hand side is positive, so $M_u>0$.
+\end{proof}
+
+\begin{corollary}[Axial Fourier index and $\Hs^1$-based magnetic length of the growing fields]
+  \label{cor:magnetic-scale}
+  \lean{FastDynamo.complexAxialMagneticLength_le,
+  FastDynamo.realPhaseAxialMagneticLength_eq_complex,
+  FastDynamo.realPhaseAxialMagneticLength_le,
+  FastDynamo.ReducedInductionMagneticScale.complexAxialMagneticLength_lower,
+  FastDynamo.ScaleFamily.matching_fourierIndex_sq_bounds,
+  FastDynamo.ScaleFamily.matching_fourierIndex_lower,
+  FastDynamo.ScaleFamily.matching_fourierIndex_upper,
+  FastDynamo.MainPhysicalClausesAt, FastDynamo.mainPhysicalClausesAt_of_reducedEigenpair,
+  FastDynamo.main_theorem_magnetic_scale}
+  \leanok
+  \uses{def:finish:magnetic-length, def:finish:real-solution, def:velocity:scale-family,
+    thm:main-spectral, def:main:witnesses}
+  Define the $\Hs^1$-based magnetic length of the magnetic eigenmode $V^\eps$ of Theorem
+  \ref{thm:main} by $L_B^\eps=\norm{V^\eps}_2/\norm{\nabla V^\eps}_2$.  There are constants
+  $c,C>0$, independent of $\eps$, such that
+  \[
+    c\eps^{-1/2}\leq\abs{K_\eps}\leq C\eps^{-1/2},
+    \qquad
+    c\sqrt\eps\leq L_B^\eps\leq C\sqrt\eps
+    \qquad(0<\eps\leq\eps_0),
+  \]
+  the range in which Theorem~\ref{thm:main} produces $V^\eps$.  The real datum
+  $B_{\rm in}^\eps=\re V^\eps$ has the same magnetic length.
+\end{corollary}
+
+The Lean statement is \texttt{main\_theorem\_magnetic\_scale}
+(\texttt{FastDynamo/Finish/MagneticScaleMain.lean}): there are $c,C>0$ such that for every
+$0<\eps\leq\eps_0$ there is a triple $(K,\lambda,b)$ satisfying the clauses of
+Theorem~\ref{thm:main} at the explicit witnesses (\texttt{MainPhysicalClausesAt}, the body of
+the sixteen clauses of Definition~\ref{def:main:physical-clauses}) together with the two
+two-sided estimates for $\abs K$ and for the magnetic length of the complex mode
+$V=\e^{2\pi iKx_3}b$, and such that the real part of $V$ at every phase, in particular the real
+datum $B_{\rm in}^\eps$, has the same magnetic length.  The triple is the eigenpair in the axial
+sector $K=K_{n(\eps)}$ of the matching cell of the parameter chain.  The general bounds it is
+assembled from are also stated on their own:
+\begin{itemize}
+  \item the index estimate, for every cell $n$ of an arbitrary scale family and every
+    $\eps>0$ with $\eps/\ell_n^2\in I$,
+    $k_*\sqrt{\delta_-/\eps}\leq K_n\leq k_*\sqrt{\delta_+/\eps}$
+    (\texttt{ScaleFamily.matching\_fourierIndex\_lower} and \texttt{\_upper}, with the squared
+    form \texttt{matching\_fourierIndex\_sq\_bounds});
+  \item the upper magnetic-length bound $L_B\leq1/(2\pi\abs K)$ for every $K\neq0$ and every
+    non-zero amplitude, for the complex mode (\texttt{complexAxialMagneticLength\_le}) and at
+    every real phase (\texttt{realPhaseAxialMagneticLength\_le});
+  \item the lower bound $\sqrt{\eps/M_u}\leq L_B$ of the paper's proof, for every non-zero
+    eigenpair of $A^{(3)}_{\eps,K}$ with $\eps>0$, $K\neq0$ and $\re\lambda\geq0$
+    (\texttt{ReducedInductionMagneticScale.complexAxialMagneticLength\_lower},
+    Lemma~\ref{lem:finish:magnetic-energy});
+  \item the identity of magnetic lengths of the real and the complex mode,
+    \texttt{realPhaseAxialMagneticLength\_eq\_complex}, for every $K\neq0$, every non-zero
+    amplitude and every phase.
+\end{itemize}
+Deviations: the norm $\norm{\nabla V}_2$ is that of the weak gradient on the product torus and
+$\norm{V}_2$ the product-measure norm; the lower bound uses
+$M_u=\norm{\texttt{transverseStretchingCoefficient}\ u}$ in place of
+$\mathrm{ess\,sup}\norm{\nabla u}_{\rm op}$ (Lemma~\ref{lem:finish:magnetic-energy}); the
+constants are $c=\min\{\sqrt{\delta_-},M_u^{-1/2}\}$ and
+$C=\max\{\sqrt{\delta_+},(2\pi\sqrt{\delta_-})^{-1}\}$ at $k_*=1$.  The triple $(K,\lambda,b)$
+has its own existential in this statement, as in \texttt{MainPhysicalClauses}: that it is the
+triple of \texttt{MainSemigroupOrbitClauses} is not stated, and the clause ``its solution'' (the
+semigroup orbit and the uniqueness of item (8) of Theorem~\ref{thm:main-strengthened}) is not
+part of it.  The remark after the
+corollary in the paper (Remark~8.4, unlabelled), which only observes that this magnetic length is
+comparable to the classical resistive scale $\sqrt\eps$ of Moffatt and Proctor, has no Lean
+counterpart and is not a node.
+
+\begin{proof}
+  \leanok
+  \uses{lem:real-axial-mode, lem:finish:magnetic-energy, prop:finish:real-strong-mode}
+  For the matching index $n=n(\eps)$ one has $\ell_n=\sqrt{\eps/\delta_n}$, $2\pi K_n\ell_n=N$
+  and $\delta_n\in[\delta_-,\delta_+]$, so $K_\eps=K_n=k_*\sqrt{\delta_n/\eps}$, which is the
+  index estimate.  (The paper writes this arithmetic at $N=2\pi$, where the middle identity
+  is $K_n\ell_n=1$ and the index is $K_\eps=\sqrt{\delta_n/\eps}$; Lean keeps
+  $k_*$ free, so its constants read $k_*\sqrt{\delta_\mp/\eps}$.)  Since
+  $\partial_{x_3}V^\eps=2\pi iK_nV^\eps$, the full gradient dominates
+  $2\pi\abs{K_n}\norm{V^\eps}_2$, whence
+  $L_B^\eps\leq1/(2\pi K_n)=\ell_n/N=\ell_n/(2\pi k_*)$ -- the paper's
+  $L_B^\eps\leq\ell_n/(2\pi)\leq\sqrt\eps/(2\pi\sqrt{\delta_-})$ at $k_*=1$.
+  The converse inequality is the energy estimate of Lemma
+  \ref{lem:finish:magnetic-energy}.  Finally, applying
+  Lemma \ref{lem:real-axial-mode} to $V^\eps$ and to each of its three derivatives gives
+  $\norm{B_{\rm in}^\eps}_2^2=\frac12\norm{V^\eps}_2^2$ and
+  $\norm{\nabla B_{\rm in}^\eps}_2^2=\frac12\norm{\nabla V^\eps}_2^2$, so the real datum has the
+  same magnetic length.  The constants are the minimum and the maximum of the constants of
+  the two steps.
+\end{proof}

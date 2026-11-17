@@ -1,0 +1,382 @@
+% Chapter: the uniform estimate for the background resolvent.  Section 6 of the paper
+% (sec:localization).
+% Paper labels: prop:background-resolvent (Proposition 6.1),
+% cor:scaled-local-resolvents (Corollary 6.2).
+
+This is the analytic heart of the proof.  Remove the \emph{selected} local cell from the
+global velocity and keep
+everything else -- every other helical cell and every added axial velocity.  The claim is
+that the resulting operator has \emph{no} spectrum in the translated region $\cG_\tau$, with
+a resolvent bound uniform in the cell index, in the diffusivity and in the spectral
+parameter.  The whole estimate comes from testing the resolvent equation against the
+weighted field $(1+i\beta_n)h$, where $\beta_n=F(s_n)$ is a rational function of the axial
+velocity profile: the axial shifts $\tau s_n$, which differ from $\tau$ by a definite
+amount on every non-selected core, turn into a positive zeroth-order term there, while
+$\re\zeta\geq g_*$ carries the rest of the torus.
+
+\section{The background velocity and its operator}
+
+\begin{definition}[The background velocity and the background operator]
+  \label{def:background:periodic-background}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.selectedLocalCell,
+    FastDynamo.ScaleFamily.TorusCellPlacement.selectedBackgroundVelocity,
+    FastDynamo.ScaleFamily.TorusCellPlacement.selectedBackgroundVelocity_add_selectedLocalCell,
+    FastDynamo.ScaleFamily.TorusCellPlacement.selectedBackgroundVelocity_isTransverseDivergenceFree,
+    FastDynamo.ScaleFamily.TorusCellPlacement.selectedBackgroundOperator,
+    FastDynamo.ScaleFamily.TorusCellPlacement.selectedBackgroundOperator_eq}
+  \leanok
+  \uses{def:velocity:global-velocity, def:operator:horizontal-induction}
+  Let $\eps>0$ and $n\geq0$ with $\delta_n=\eps/\ell_n^2\in I$.
+  The \emph{background velocity} is
+  \begin{equation}
+    u_n^{\rm bg}=u-u_n^{\rm loc}
+      =\sum_{m\neq n}u_m^{\rm loc}+\sum_{m\geq0}u_m^{\rm ax},
+    \label{eq:background:velocity}
+  \end{equation}
+  and the \emph{background operator} is
+  \begin{equation}
+    A^{\rm bg}_{\eps,n}h=\eps\bigl(\Delta_\perp-(2\pi K_n)^2\bigr)h
+      -(u_n^{\rm bg})_\perp\cdot\nabla_\perp h-2\pi iK_n(u_n^{\rm bg})_3h
+      +(h\cdot\nabla_\perp)(u_n^{\rm bg})_\perp,
+    \qquad D(A^{\rm bg}_{\eps,n})=\Hs^2(\T^2;\CC^2).
+    \label{eq:background:operator}
+  \end{equation}
+  It agrees with $A_{\eps,K_n}$ outside $\supp u_n^{\rm loc}$.
+\end{definition}
+
+In Lean $A^{\rm bg}_{\eps,n}$ is \emph{exactly}
+\texttt{horizontalInductionOperator (selectedBackgroundVelocity n) eps (K n)}, so the whole
+operator theory of Lemma~\ref{lem:torus-sector-basic} applies to it verbatim with no new
+work; the agreement outside the selected support is the subtraction identity
+\texttt{selectedBackgroundVelocity\_add\_selectedLocalCell}.  This is also how the paper
+argues: it states Lemma~5.1 (\texttt{lem:torus-sector-basic}) for an arbitrary
+$w\in\W^{1,\infty}(\T^2;\R^3)$ with $\Div_\perp w_\perp=0$, and the proof of
+Proposition~6.1 of the paper applies it to $u_n^{\rm bg}$, which is real valued, belongs to
+$\W^{1,\infty}$ and is horizontally divergence-free
+(\texttt{selectedBackgroundVelocity\_isTransverseDivergenceFree}).
+
+\begin{definition}[The scalar multiplier $F$, the profile $s_n$ and the weight $\beta_n$]
+  \label{def:background:multiplier}
+  \lean{FastDynamo.backgroundMultiplierF, FastDynamo.backgroundMultiplierDeriv,
+    FastDynamo.abs_backgroundMultiplierF_le_one,
+    FastDynamo.abs_mul_backgroundMultiplierF_le_one,
+    FastDynamo.abs_backgroundMultiplierDeriv_le_three,
+    FastDynamo.backgroundRatioGap, FastDynamo.backgroundRatioGap_le_abs,
+    FastDynamo.ScaleFamily.TorusCellPlacement.backgroundShiftedGlobalTorus,
+    FastDynamo.ScaleFamily.TorusCellPlacement.backgroundMultiplier,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_backgroundMultiplier_value_le_one,
+    FastDynamo.ScaleFamily.TorusCellPlacement.gradSupNormSq_backgroundMultiplier_le,
+    FastDynamo.TransverseScalarW1Inf.gradSupNormSq}
+  \leanok
+  \uses{def:velocity:scale-family, def:velocity:placement, def:background:periodic-background}
+  With $r_m=K_n/K_m=\ell_m/\ell_n$, $c_q=(q-1)/(q+1)$,
+  $M=\max_{\zeta\in\cG}\abs{\im\zeta}$ and $d(K_0)=\sup_m\ell_m/R_m=\sqrt{\ell_0}$, set
+  \begin{equation}
+    s_n(y)=\sum_{m\geq0}r_m\vartheta\Bigl(\frac{\abs{y-p_m}}{R_m}\Bigr),
+    \qquad\beta_n=F(s_n),\qquad F(s)=\frac{s-1}{(1+s)^2}.
+    \label{eq:background:multiplier}
+  \end{equation}
+  Then $r_m\geq q$ for $m<n$ and $r_m\leq q^{-1}$ for $m>n$, and
+  \begin{equation}
+    \abs{\beta_n}\leq1,
+    \qquad\sqrt\eps\,\norm{\nabla_\perp\beta_n}_\infty\leq C\sqrt{\delta_+}\,d(K_0).
+    \label{eq:background:multiplier-bounds}
+  \end{equation}
+\end{definition}
+
+Two encoding points.  The summands of $s_n$ have pairwise disjoint supports, but the series
+$\sum_mr_m\vartheta_m$ has \emph{unbounded} coefficients, so Lean sums the shifted series
+$\beta_n+1=\sum_m\Psi_{r_m}(\vartheta_m)$ with $\Psi_\rho(t)=F(\rho t)+1$ and
+$\Psi_\rho(0)=0$, which is summable in $\Lp^\infty$, and defines $\beta_n$ as that sum minus
+one.  And $\norm{\nabla_\perp\beta_n}_\infty$ is realised as
+$\texttt{gradSupNormSq}=\sum_j\norm{\partial_j\beta}_\infty^2$, which dominates
+$\norm{\abs{\nabla\beta}}_\infty^2$ and so appears only on the larger side of every
+estimate; the proved bound is
+$\texttt{gradSupNormSq}\,\beta_n\leq2(3\norm{\vartheta'}_\infty R_0/\ell_n)^2$, giving
+\eqref{eq:background:multiplier-bounds} with $C=3\sqrt2\norm{\vartheta'}_\infty$.  (The paper
+introduces $r_m,c_q,M,d(K_0),s_n,\beta_n$ at the start of the proof of Proposition~6.1 and
+derives \eqref{eq:background:multiplier-bounds}, its \texttt{eq:background-multiplier-bounds},
+at the start of the estimate of the diffusion term $I_1$.)
+
+\begin{lemma}[The phase inequality]
+  \label{lem:background:phase}
+  \lean{FastDynamo.backgroundMultiplierF_phase_lower_bound_sharp,
+    FastDynamo.backgroundMultiplierF_phase_lower_bound_ratioGap,
+    FastDynamo.backgroundMultiplierF_phase_lower_bound,
+    FastDynamo.backgroundTauThreshold, FastDynamo.exists_backgroundTau,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.phase_bound}
+  \leanok
+  \uses{def:background:multiplier}
+  Write $\mathcal C_n=\bigcup_{m\neq n}\supp u_m^{\rm loc}$.  For $\abs t\leq M$ and
+  $s\geq0$,
+  \begin{equation}
+    F(s)\bigl(t+\tau(s-1)\bigr)
+      \geq\frac\tau2\Bigl(\frac{s-1}{s+1}\Bigr)^2-\frac{M^2}{2\tau(1+s)^2},
+    \label{eq:background:phase-positive}
+  \end{equation}
+  and on $\mathcal C_n$ one has $\abs{(s_n-1)/(s_n+1)}\geq c_q$, so that
+  $\beta_n(\im\zeta+\tau(s_n-1))\geq\tfrac{\tau c_q^2}2\one_{\mathcal C_n}-\tfrac{M^2}{2\tau}$
+  throughout $\T^2$.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:background:multiplier}
+  The difference of the two sides of \eqref{eq:background:phase-positive} is
+  $\bigl[(\tau(s-1)+t)^2-t^2+M^2\bigr]/(2\tau(1+s)^2)$, which is non-negative when
+  $\abs t\leq M$.  On the core of cell $m$ the plateau gives $s_n=r_m$, and
+  $r\mapsto(r-1)/(1+r)$ is increasing, so $r_m\geq q$ gives $\geq c_q$ and
+  $r_m\leq q^{-1}$ gives $\leq-c_q$.  Relaxing $(1+s)^2\geq1$ gives the second display.
+\end{proof}
+
+\section{The weighted energy estimate}
+
+\begin{lemma}[The weighted test field]
+  \label{lem:background:weighted-test}
+  \lean{FastDynamo.weightedTransverseState,
+    FastDynamo.transverseGradientEnergy,
+    FastDynamo.transverseWeightedGradientDefect,
+    FastDynamo.re_inner_weightedTransverseState_neg_laplacian_ge,
+    FastDynamo.transverseWeightedGradientDefect_young_scaled,
+    FastDynamo.re_inner_weightedTransverseState_neg_laplacian_ge_young,
+    FastDynamo.re_inner_weightedTransverseState_smul,
+    FastDynamo.re_inner_weightedTransverseState_axialMultiplier,
+    FastDynamo.re_inner_weightedTransverseState_transport_eq,
+    FastDynamo.norm_weightedTransverseState_le,
+    FastDynamo.norm_le_norm_weightedTransverseState}
+  \leanok
+  \uses{def:background:multiplier}
+  Let $\beta\in\W^{1,\infty}(\T^2)$ and $a\in\Lp^\infty(\T^2)$ be real,
+  $w\in\W^{1,\infty}(\T^2;\R^2)$, $k\in\R$, $\eps\geq0$, $z\in\CC$ and $h\in\Hs^2(\T^2;\CC^2)$.  Then
+  \[
+    \re\inner{\nabla_\perp h}{\nabla_\perp((1+i\beta)h)}
+      \geq\norm{\nabla_\perp h}_2^2-\mathcal E(\beta,h),
+  \]
+  the zeroth-order term contributes
+  $\re\bigl[(z+\eps k^2)\inner h{(1+i\beta)h}\bigr]
+   =\int\bigl[\re z+\eps k^2+\beta\im z\bigr]\abs h^2$, the axial multiplier contributes
+  $k\int\beta a\abs h^2$, the unweighted transport term has zero real part when
+  $\Div_\perp w=0$, and $\norm h_2\leq\norm{(1+i\beta)h}_2\leq\sqrt2\norm h_2$.
+\end{lemma}
+
+\textbf{Deviation: the rendering of $\int\abs{\nabla_\perp\beta}\abs h\abs{\nabla_\perp h}$.}
+In its estimate of the diffusion term $I_1$ of \texttt{eq:background-testing}, the paper
+majorises the exact defect $\sum_j\im\inner{(\partial_j\beta)h}{\partial_jh}$ by the
+integral $\int\abs{\nabla_\perp\beta_n}\abs h\abs{\nabla_\perp h}$ (pointwise
+Cauchy--Schwarz in $j$, then integration).  Lean majorises it instead by
+$\mathcal E(\beta,h)=\sum_j\norm{(\partial_j\beta)h}_2\norm{\partial_jh}_2$
+(Cauchy--Schwarz in $\Lp^2$, one $j$ at a time).  \emph{The two majorants are
+incomparable}; neither dominates the other.  Nothing depends on the choice, because the
+only use of either is the same Young absorption
+$\eps\mathcal E\leq\tfrac\eps4\norm{\nabla_\perp h}_2^2+C\delta_+d(K_0)^2\norm h_2^2$, which
+is proved directly for the Lean defect.  A second orientation point: the Lean library
+carries the axial-multiplier identity in \emph{both} signs, and the proof of
+Proposition~\ref{prop:background-resolvent} consumes the one with $+2\pi iK_n$, matching
+$\mathfrak a_z(h,\phi)=\inner{(z-A^{\rm bg})h}\phi$; with the normalisation
+$2\pi K_na^{\rm ax}_m=\tau r_m$, forced by $2\pi K_n\ell_m=Nr_m$ (the Lean keeps the seed
+wavenumber $N=2\pi k_*$ symbolic; the paper's value is $2\pi$), this is what produces the
+$+\tau s_n$ inside the phase bracket of $I_2$.
+
+\begin{proof}
+  \leanok
+  \uses{def:background:multiplier}
+  Expand $\nabla_\perp((1+i\beta)h)=(1+i\beta)\nabla_\perp h+i(\nabla_\perp\beta)h$ and take
+  real parts: the first summand gives $\norm{\nabla_\perp h}_2^2$ exactly, the second the
+  defect, which Cauchy--Schwarz bounds one direction at a time.  The zeroth-order and axial
+  identities are direct computations with a real $\Lp^\infty$ coefficient, for which
+  multiplication is self-adjoint.  The transport identity splits the weighted pairing into
+  the unweighted one, whose real part vanishes for a divergence-free $w$, and a remainder
+  carrying $\beta w$.  Finally $\abs{1+i\beta}^2=1+\beta^2\in[1,2]$ gives the two norm
+  bounds.
+\end{proof}
+
+\begin{lemma}[The coercivity estimate]
+  \label{lem:background:coercivity}
+  \lean{FastDynamo.re_inner_weightedTransverseState_horizontalInductionPencil_ge,
+    FastDynamo.BackgroundCoercivity,
+    FastDynamo.BackgroundCoercivity.re_inner_pencil_ge,
+    FastDynamo.BackgroundCoercivity.norm_add_sqrt_eps_gradientEnergy_le,
+    FastDynamo.BackgroundCoercivity.pencil_injective,
+    FastDynamo.BackgroundCoercivity.backgroundResolventConstant,
+    FastDynamo.ScaleFamily.TorusCellPlacement.backgroundCoercivityConstant,
+    FastDynamo.ScaleFamily.TorusCellPlacement.backgroundDiffusionConstant,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.coercivity,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.transport_bound}
+  \leanok
+  \uses{lem:background:weighted-test, lem:background:phase,
+    def:background:periodic-background}
+  With $z=\zeta-i\tau$, $\zeta\in\cG$, and $h\in\Hs^2(\T^2;\CC^2)$,
+  \begin{align}
+    \re\mathfrak a_z\bigl(h,(1+i\beta_n)h\bigr)
+    \geq{}&\tfrac\eps2\norm{\nabla_\perp h}_2^2
+      +\Bigl(g_*-\frac{M^2}{2\tau}-C_1\delta_+d(K_0)^2\Bigr)\norm h_2^2\notag\\
+      &+\Bigl(\frac{\tau c_q^2}2-C_0\Bigr)\int_{\mathcal C_n}\abs h^2,
+    \label{eq:background:coercivity}
+  \end{align}
+  with $C_0,C_1$ independent of $\tau$, $K_0$, $n$ and $\delta_n\in I$.  Choosing
+  \begin{equation}
+    \frac{M^2}{2\tau}\leq\frac{g_*}4,\qquad\frac{\tau c_q^2}2\geq C_0+1,
+    \qquad\text{then}\qquad C_1\delta_+\ell_0\leq\frac{g_*}4,
+    \label{eq:background:axial-separation-choice}
+  \end{equation}
+  (the paper's \texttt{eq:axial-separation-choice} and \texttt{eq:background-diffusion-small})
+leaves $\tfrac\eps2\norm{\nabla_\perp h}_2^2+\tfrac{g_*}2\norm h_2^2
+  \leq\re\mathfrak a_z(h,(1+i\beta_n)h)\leq\sqrt2\norm f_2\norm h_2$ whenever
+  $(z-A^{\rm bg}_{\eps,n})h=f$; in particular the pencil is injective on $\cG_\tau$.
+\end{lemma}
+
+The Lean constants are closed terms in the seed data alone:
+$C_0=C_vN+2(C_v/\sqrt{\delta_-})^2+4C_s$ and $C_1=18\norm{\vartheta'}_\infty^2$, both free
+of $\tau$ and of $K_0$, which is what makes the order
+$(\text{seed})\to q\to\tau\to K_0$ of the parameter chain non-circular (the order the
+paper states in prose in Section~3.1 and in the summary paragraph at the end of Section~7.2).  The
+stretching term is absorbed with the crude constant $4C_s$ where
+$\abs{1+i\beta}\leq\sqrt2$ would give $2\sqrt2C_s$; that only enlarges $C_0$, hence
+$\tau_0$.  The Lean estimate also keeps the term $\eps(2\pi K_n)^2\norm h_2^2$ of $I_2$,
+which the paper drops when it passes to \texttt{eq:background-coercivity}; it is
+non-negative and is discarded by the caller.  The Lean $M$ is any upper bound for
+$\abs{\im\zeta}$ on $\cG$ (field \texttt{imBound}), the paper's $M$ the maximum.
+
+\begin{proof}
+  \leanok
+  \uses{lem:background:weighted-test, lem:background:phase}
+  The sketch follows the paper's identity \texttt{eq:background-testing},
+  $\re\inner{(z-A^{\rm bg}_{\eps,n})h}{(1+i\beta_n)h}=I_1+I_2+I_3+I_4$, whose terms are the
+  contributions of Lemma~\ref{lem:background:weighted-test} (the transport term without a
+  factor $\beta_n$ has zero real part since $\Div_\perp(u_n^{\rm bg})_\perp=0$).  The
+  diffusion term $I_1$ is $\eps\norm{\nabla_\perp h}_2^2$ minus $\eps$ times the defect; the
+  Young absorption with \eqref{eq:background:multiplier-bounds} removes $\tfrac\eps4$ of the
+  gradient and leaves $C_1\delta_+d(K_0)^2\norm h_2^2$.  The zeroth-order term
+  $I_2=\int[\re\zeta+\eps(2\pi K_n)^2+\beta_n(\im\zeta+\tau(s_n-1))]\abs h^2$ collects
+  $z=\zeta-i\tau$ and the added axial velocities; $\re\zeta\geq g_*$ and
+  Lemma~\ref{lem:background:phase} turn it into the second and third brackets.  The weighted
+  transport term $I_3$ obeys $\abs{\beta_n(u_n^{\rm bg})_\perp}\leq C\sqrt\eps\one_{\mathcal C_n}$,
+  so a second Young absorption removes another $\tfrac\eps4$ and leaves
+  $C\int_{\mathcal C_n}\abs h^2$.  The term $I_4$, stretching plus the local axial multiplier
+  $2\pi K_n\int\beta_n\sum_{m\neq n}(u_m^{\rm loc})_3\abs h^2$, has coefficients bounded by
+  $C\one_{\mathcal C_n}$ and contributes the same way.  For the last display test with
+  $\phi=(1+i\beta_n)h$ and use $\norm{(1+i\beta_n)h}_2\leq\sqrt2\norm h_2$.
+\end{proof}
+
+\section{The resolvent}
+
+\begin{proposition}[Uniform background resolvent on $\T^2$]
+  \label{prop:background-resolvent}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.exists_hasResolventOn_shiftedRegion,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.resolvent,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.boundaryResolvent,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.norm_resolvent_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.sqrt_eps_mul_sqrt_gradientEnergy_resolvent_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.sqrt_eps_mul_norm_deriv_resolvent_le,
+    FastDynamo.TorusBackgroundResolventData,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.backgroundResolventData,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.boundaryResolventData,
+    FastDynamo.DomainOperator.analyticOnNhd_inverse_pencil,
+    FastDynamo.DomainOperator.resolventSetResolvent,
+    FastDynamo.DomainOperator.analyticOnNhd_resolventSetResolvent_inv,
+    FastDynamo.ScaleFamily.TorusCellPlacement.BackgroundParameters.exists_isOpen_hasResolventOn_analyticOnNhd}
+  \leanok
+  \uses{lem:background:coercivity, lem:torus-sector-basic, lem:operator:shifted-contour,
+    def:transfer:parameter-choice}
+  There is $\tau_0>0$, depending only on $v$, $I$, $\cG$, $g_*$ and $q$,
+  with the following property.  Fix $\tau\geq\tau_0$.  For all sufficiently large $K_0$, every $n\geq0$ and
+  every $\eps=\delta\ell_n^2$ with $\delta\in I$ satisfy
+  $\cG_\tau\subset\rho(A^{\rm bg}_{\eps,n})$, and for $z\in\cG_\tau$ and $f\in\Lp^2(\T^2;\CC^2)$,
+  \begin{equation}
+    \norm{(z-A^{\rm bg}_{\eps,n})^{-1}f}_2
+      +\sqrt\eps\,\norm{\nabla_\perp(z-A^{\rm bg}_{\eps,n})^{-1}f}_2\leq C\norm f_2,
+    \label{eq:background:bg-resolvent}
+  \end{equation}
+  with $C$ independent of $n$, $\delta$, $z$ and the final enlargement of $K_0$.
+\end{proposition}
+
+\textbf{The route is the paper's.}  The paper uses the coercivity only for
+\emph{injectivity} of the pencil and takes surjectivity from Lemma~5.1 of the paper
+(\texttt{lem:torus-sector-basic}): $z-A^{\rm bg}_{\eps,n}:\Hs^2\to\Lp^2$ has index zero, so
+injective implies bijective, and the inverse lands in $\Hs^2$ by construction.  That is
+exactly the Lean chain -- \texttt{BackgroundCoercivity.pencil\_injective}, then
+\texttt{DomainOperator.hasResolventAt\_of\_compactStateResolvent\_of\_pencil\_injective},
+then \texttt{hasResolventOnOfPointwiseTwoSidedInverses}.  Neither side needs an
+elliptic-regularity theorem or any $\Hs^1$ multiplier theory.
+
+\textbf{Additional clauses: continuity and holomorphy.}  The paper's statement says nothing about
+the dependence of the resolvent on $z$.  The Lean resolvent of the estimate is a
+\texttt{HasResolventOn} family, continuous on $\cG_\tau$.  In addition, and not stated by the
+paper, Lean proves holomorphy: \texttt{exists\_isOpen\_hasResolventOn\_analyticOnNhd}
+(\texttt{FastDynamo/Global/TorusBackgroundResolventHolomorphic.lean}): there is an open
+$U\supset\cG_\tau$ carrying a two-sided resolvent $(z-A^{\rm bg}_{\eps,n})^{-1}:\Lp^2\to\Hs^2$,
+analytic on $U$ in operator norm, that agrees on $\cG_\tau$ with the resolvent of the
+estimate.  The set $U$ is the whole resolvent set, which is open, and the resolvent is analytic
+on it by the local Neumann series
+(\texttt{DomainOperator.analyticOnNhd\_inverse\_pencil},
+\texttt{FastDynamo/Operator/ResolventSetHolomorphy.lean}).  The contour integral of Section~7
+consumes only the continuity of $z\mapsto R_{\rm bg}(z)$ on $\cG_\tau$ that
+\texttt{HasResolventOn} records.
+
+\textbf{Deviation: explicit thresholds.}  Where the paper says ``there exists $\tau_0$'' and
+``for all sufficiently large $K_0$'', the Lean proposition is stated for a
+\texttt{BackgroundParameters} record whose fields are the explicit choices:
+$\tau\geq\tau_0=\max\bigl(2M^2/g_*,\,2(C_0+1)/c_q^2\bigr)$
+(\texttt{backgroundTauThreshold}, which gives both inequalities of
+\texttt{eq:axial-separation-choice}) and $C_1\delta_+\ell_0\leq g_*/4$ (the paper's
+\texttt{eq:background-diffusion-small}, satisfiable by enlarging $K_0$ since $\ell_0=1/K_0$),
+with $C_0$, $C_1$ the closed constants above.  The explicit resolvent constant is
+$C=\sqrt2/g+2/\sqrt g$ at $g=g_*/2$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:background:coercivity, lem:torus-sector-basic}
+  Choose $\tau$ and then $K_0$ by \eqref{eq:background:axial-separation-choice}, so that
+  the two brackets of \eqref{eq:background:coercivity} are at least $g_*/2$ and $1$.
+  Injectivity at $z\in\cG_\tau$ is then immediate from
+  $\tfrac{g_*}2\norm h_2^2\leq\re\mathfrak a_z(h,(1+i\beta_n)h)$.  By
+  Lemma~\ref{lem:torus-sector-basic} the pencil is Fredholm of index zero, so it is
+  bijective onto $\Lp^2$ with bounded inverse into $\Hs^2$; the pointwise inverses are
+  continuous in $z$ because the pencil is affine in $z$, which assembles them into one
+  family on $\cG_\tau$.  The bound follows from
+  $\tfrac\eps2\norm{\nabla_\perp h}_2^2+\tfrac{g_*}2\norm h_2^2\leq\sqrt2\norm f_2\norm h_2$:
+  the second term gives $\norm h_2\leq(\sqrt2/g)\norm f_2$ and, feeding that back,
+  $\eps\norm{\nabla_\perp h}_2^2\leq(4/g)\norm f_2^2$.  For the additional holomorphy clause:
+  the resolvent set of the pencil is open and the inverse is analytic on it, by the Neumann
+  series around each of its points, and it contains $\cG_\tau$.
+\end{proof}
+
+\begin{corollary}[Resolvent on $\R^2$ for the selected cell]
+  \label{cor:scaled-local-resolvents}
+  \lean{FastDynamo.WholePlaneLocalResolventBound,
+    FastDynamo.scaledLocalResolventInv, FastDynamo.scaledLocalResolvent,
+    FastDynamo.norm_embedding_scaledLocalResolventInv_le,
+    FastDynamo.sqrt_epsilon_mul_norm_deriv_scaledLocalResolventInv_le,
+    FastDynamo.sqrt_epsilon_mul_norm_deriv_le_of_delta_le,
+    FastDynamo.scaledLocalResolventOnShiftedContour,
+    FastDynamo.LocalSeedC2.scaledResolventBoundData,
+    FastDynamo.LocalSeedC2.scaledResolvent}
+  \leanok
+  \uses{lem:exact-renormalization, prop:local-seed, lem:operator:shifted-contour}
+  Let $\eps=\delta_n\ell_n^2$ with $\delta_n\in I$.  For $z\in\Gamma_\tau$ the resolvent
+  $\cR_n(z)=(z-A^{(n)}_{\eps,n})^{-1}$ exists and
+  \begin{equation}
+    \norm{\cR_n(z)f}_2+\sqrt\eps\,\norm{\nabla_\perp\cR_n(z)f}_2\leq C\norm f_2,
+    \qquad f\in\Lp^2(\R^2;\CC^2),
+    \label{eq:background:local-gradient}
+  \end{equation}
+  with $C$ independent of $n$, $\delta_n$ and $z$.
+\end{corollary}
+
+The Lean statement is per transverse coordinate,
+$\sqrt\eps\norm{\partial_j\cR_n(z)f}_2\leq\sqrt{\delta_+}L\norm f_2$ for $j=0,1$; the
+gradient-energy form that Section~7 consumes costs one extra $\sqrt2$, and the transfer
+chapter
+builds its constant as $\sqrt2\sqrt{\delta_+}L$ accordingly.
+
+\begin{proof}
+  \leanok
+  \uses{lem:exact-renormalization, prop:local-seed}
+  By Lemma~\ref{lem:exact-renormalization},
+  $\cR_n(z)=U_n(z+i\tau-\cL_{\delta_n})^{-1}U_n^{-1}$, and $z\in\Gamma_\tau$ is exactly
+  $z+i\tau\in\Gamma$, so Proposition~\ref{prop:local-seed} applies.  $U_n$ is unitary on
+  $\Lp^2$, so the first term is bounded by the seed's own constant $L$; and
+  $\norm{\partial_jU_ng}_2=\ell_n^{-1}\norm{\partial_jg}_2$, so the gradient term picks up
+  $\sqrt\eps/\ell_n=\sqrt{\delta_n}\leq\sqrt{\delta_+}$.
+\end{proof}

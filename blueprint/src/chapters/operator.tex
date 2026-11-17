@@ -1,0 +1,268 @@
+% Chapter: the horizontal operator on T^2 and the scaling identity.  Section 5 of the paper
+% (sec:axial).
+% Paper labels: lem:torus-sector-basic (Lemma 5.1), lem:exact-renormalization (Lemma 5.2).
+
+The paper's proof works with the two horizontal components only.  Because the global
+velocity of the previous chapter is independent of $x_3$, the horizontal equations in the
+axial Fourier mode $\e^{2\pi iKx_3}$ close on $h\colon\T^2\to\CC^2$, and the resulting
+operator $A_{\eps,K}$ has domain $\Hs^2(\T^2;\CC^2)$ with \emph{no} constraint on $h$ --
+in particular multiplication by a cut-off preserves the domain, which is what makes the
+parametrix of the transfer chapter possible.  The axial velocity enters only through the
+zeroth-order multiplication operator $-2\pi iKu_3$, so no derivative of $u_3$ occurs
+anywhere.  This chapter states the basic operator-theoretic facts about $A_{\eps,K}$ and
+the exact renormalisation that identifies the selected cell with the local seed of the
+previous chapter; the missing third component is recovered only at the very end
+(Lemma~\ref{lem:axial-recovery}).
+
+The paper fixes its terminology at the start of its Section~5: in the spectral analysis it
+distinguishes the reference model on $\R^2$, the model on $\R^2$ for the selected cell, and the
+horizontal problem on $\T^2$ associated with the velocity profile $u$, and uses the same terms
+for the corresponding operators, resolvents, approximate inverses and Riesz projections.  This
+blueprint says \emph{local} for the two models on $\R^2$ and \emph{global} for the horizontal
+problem on $\T^2$, and qualifies the corresponding objects in the same way.
+
+\section{The horizontal operator on $\T^2$}
+
+\begin{definition}[The horizontal induction operator in one axial sector]
+  \label{def:operator:horizontal-induction}
+  \lean{FastDynamo.horizontalInductionDiffusion,
+    FastDynamo.horizontalInductionTransport,
+    FastDynamo.horizontalInductionAxialTransport,
+    FastDynamo.horizontalInductionStretching,
+    FastDynamo.horizontalInductionAction,
+    FastDynamo.horizontalInductionOperator,
+    FastDynamo.horizontalInductionAction_apply,
+    FastDynamo.transverseW1InfHorizontalDerivLInf,
+    FastDynamo.horizontalProjH2}
+  \leanok
+  \uses{def:main:induction-operator, def:velocity:global-velocity}
+  For $\eps>0$ and $K\in\Z$ define, on $\Lp^2(\T^2;\CC^2)$,
+  \begin{equation}
+    A_{\eps,K}h=\eps\bigl(\Delta_\perp-(2\pi K)^2\bigr)h
+      -u_\perp\cdot\nabla_\perp h-2\pi iKu_3h+(h\cdot\nabla_\perp)u_\perp,
+    \qquad D(A_{\eps,K})=\Hs^2(\T^2;\CC^2).
+    \label{eq:operator:torus-sector}
+  \end{equation}
+  No constraint is imposed on $h$.
+\end{definition}
+
+The Lean operator is \texttt{FastDynamo.horizontalInductionOperator u eps K}, a
+\texttt{DomainOperator TransverseC2L2 TransverseC2H2}
+(\texttt{FastDynamo/Operator/HorizontalSector.lean}), assembled from the four displayed
+summands.  Two points of the encoding.  The stretching coefficient is
+\texttt{transverseW1InfHorizontalDerivLInf j u}, the \emph{horizontal projection}
+$(\partial_ju)_\perp$ of the velocity gradient: this is exactly where the two-component
+operator differs from the three-component $A_{\eps,K}^{(3)}$ of
+Definition~\ref{def:main:induction-operator}, whose stretching term also produces a third
+row $\sum_jh_j\partial_ju_3$; because that row is non-zero, the horizontal subspace is not
+invariant under $A^{(3)}_{\eps,K}$.  Lifting a horizontal eigenpair back to three
+components is the content of Lemma~\ref{lem:axial-recovery}.
+
+\begin{lemma}[The horizontal operator on $\T^2$ associated with $w$]
+  \label{lem:torus-sector-basic}
+  \lean{FastDynamo.HorizontalTorusSectorBasic,
+    FastDynamo.horizontalInductionOperator_basic,
+    FastDynamo.horizontalInductionOperator_isClosedGraph,
+    FastDynamo.horizontalInductionOperator_hasNonemptyResolvent,
+    FastDynamo.norm_transverseC2H2_le_horizontalInduction_graph_of_hasResolventOn,
+    FastDynamo.isCompactOperator_horizontalInduction_stateResolvent,
+    FastDynamo.pencilFredholmIndexZeroOn_horizontalInductionOperator,
+    FastDynamo.isFredholm_horizontalInductionPencil,
+    FastDynamo.index_horizontalInductionPencil_eq_zero}
+  \leanok
+  \uses{def:operator:horizontal-induction}
+  Let $\eps>0$, $K\in\Z$ and $w=(w_\perp,w_3)\in\W^{1,\infty}(\T^2;\R^3)$ with
+  $\Div_\perp w_\perp=0$, and write $A_{\eps,K}[w]$ for the operator
+  \eqref{eq:operator:torus-sector} with $u$ replaced by $w$.  Then $A_{\eps,K}[w]$ is closed
+  and has non-empty resolvent set; its graph norm is equivalent to the $\Hs^2$ norm; its
+  resolvent is compact; and
+  \[
+    z-A_{\eps,K}[w]\colon\Hs^2(\T^2;\CC^2)\longrightarrow\Lp^2(\T^2;\CC^2)
+  \]
+  is Fredholm of index zero for every $z\in\CC$.
+\end{lemma}
+
+The paper states the lemma (its Lemma~5.1) for an arbitrary such $w$ rather than for the
+constructed velocity $u$, which is what lets the background chapter reuse it verbatim at
+$u_n^{\rm bg}$.  \textbf{The Lean statement is stronger still}:
+\texttt{horizontalInductionOperator\_basic} quantifies over an arbitrary
+$u\in\W^{1,\infty}(\T^2;\R^3)$ -- an arbitrary element of \texttt{TransverseRealW1Inf} --
+with \emph{no} hypothesis $\Div_\perp u_\perp=0$, because the route below never uses it.
+The paper's lemma is the instance $u:=w$ with the hypothesis discarded.
+
+\textbf{Deviation: a Neumann series and a compact base point, in place of coercivity and a
+compact perturbation.}  The paper's proof first obtains Fredholm index zero for every $z$
+from the fact that $z-A_{\eps,K}[w]$ differs from $\id-\eps\Delta_\perp$ by an operator
+bounded $\Hs^1\to\Lp^2$, hence compact $\Hs^2\to\Lp^2$, while $\id-\eps\Delta_\perp$ is an
+isomorphism $\Hs^2\to\Lp^2$; it then obtains injectivity of $z_0-A_{\eps,K}[w]$ at every
+real $z_0>\norm{\nabla_\perp w_\perp}_\infty$ from a coercivity estimate that uses
+$\Div_\perp w_\perp=0$ and the realness of $w_3$; surjectivity at $z_0$ comes from index
+zero, and the bounded inverse theorem gives the graph-norm equivalence, closedness and,
+with the compact embedding $\Hs^2\hookrightarrow\Lp^2$, the compact resolvent.  Lean
+reverses the order and uses neither ingredient.  It inverts the diffusion part exactly as a Fourier multiplier on the graph
+space and shows that the three lower-order terms composed with that inverse have operator
+norm tending to zero along the real ray $z\to+\infty$; a Neumann series gives a resolvent
+point directly, and the factorisation
+$z-A=\bigl[\id+(z-z_0)(z_0-A)^{-1}\bigr](z_0-A)$ -- identity-plus-compact on the
+\emph{ambient} Hilbert space $\Lp^2(\T^2;\CC^2)$ -- gives Fredholm index zero at every $z$.
+The ambient side is forced: the graph domain \texttt{TransverseC2H2} is a closed submodule
+of a sup-normed product and carries no inner product, so Atkinson's theorem is not available
+on it (\texttt{FastDynamo/Operator/CompactBaseFredholm.lean}), and the paper's route --
+index zero for $T+K$ with $T$ an isomorphism between two \emph{different} spaces -- is not
+available in Mathlib in that form.  The pencil $z-A\colon\Hs^2\to\Lp^2$ itself is then
+proved Fredholm with index zero
+(\texttt{isFredholm\_horizontalInductionPencil},
+\texttt{index\_horizontalInductionPencil\_eq\_zero}); only the argument passes through the
+ambient space.  The conclusion is the paper's, and the Lean route
+is \emph{stronger}, since it never uses $\Div_\perp w_\perp=0$.  The half of the
+graph-norm equivalence that needs no hypothesis
+($\norm h_{\Hs^2}\geq c(\norm h_2+\norm{A h}_2)$) is the continuity of the embedding
+$\Hs^2\hookrightarrow\Lp^2$ and of the operator action $\Hs^2\to\Lp^2$, which the Lean
+development does not bundle under a name; the other half is the listed
+\texttt{norm\_transverseC2H2\_le\_horizontalInduction\_graph\_of\_hasResolventOn}.  The
+Fredholm clause is stated in Lean for an arbitrary subset of $\CC$ and is therefore the
+paper's ``for every $z\in\CC$'' (take the whole plane).
+
+\begin{proof}
+  \leanok
+  \uses{def:operator:horizontal-induction}
+  Write $z-A_{\eps,K}=\eps(z/\eps-\Delta_\perp+(2\pi K)^2)-B$ with $B$ the three
+  lower-order terms.  The diffusion pencil is diagonal in the Fourier basis and invertible
+  with $\Hs^2$-bounded inverse for $z$ large and real, and the norm of
+  $B\circ(\text{that inverse})$ tends to zero, because the transport term gains one
+  derivative and the axial and stretching terms two.  So the pencil is invertible for
+  large real $z$ -- this is the deviation recorded above, in place of the paper's
+  coercivity at $z_0>\norm{\nabla_\perp w_\perp}_\infty$ -- which gives simultaneously the
+  non-empty resolvent set, the closedness of the graph and the graph-norm equivalence.
+  Compactness of the resolvent is the Rellich embedding
+  $\Hs^2(\T^2)\hookrightarrow\Lp^2(\T^2)$ composed with the bounded resolvent.  Finally
+  $z-A=\bigl[\id+(z-z_0)(z_0-A)^{-1}\bigr](z_0-A)$ exhibits the pencil as an isomorphism
+  composed with the identity plus a compact operator on the ambient $\Lp^2$, which is
+  Fredholm of index zero; the paper instead compares $z-A_{\eps,K}[w]$ with
+  $\id-\eps\Delta_\perp$.
+\end{proof}
+
+\section{Rescaling to the local model}
+
+\begin{definition}[The selected whole-plane operator and the rescaling]
+  \label{def:operator:selected-whole-plane}
+  \lean{FastDynamo.wholePlaneC2LocalAction,
+    FastDynamo.wholePlaneC2LocalOperator,
+    FastDynamo.horizontalLocalOperator,
+    FastDynamo.selectedWholePlaneC2AxialShift,
+    FastDynamo.selectedWholePlaneC2InductionAction,
+    FastDynamo.selectedWholePlaneC2InductionOperator,
+    FastDynamo.WholePlaneExactScalingParameters,
+    FastDynamo.shiftedWholePlaneC2LocalAction,
+    FastDynamo.shiftedWholePlaneC2LocalOperator}
+  \leanok
+  \uses{def:local:smoothed-velocity, def:velocity:scale-family,
+    def:velocity:global-velocity}
+  Fix $0<\eps\leq\eps_0$ and an index $n$ with $\delta_n=\eps/\ell_n^2\in I$, and work at
+  the axial index $K_n$.  The \emph{selected whole-plane model} keeps $u_n^{\rm loc}$ and
+  extends the constant axial velocity $a_ne_3$ to all of $\R^2$:
+  \begin{equation}
+    A^{(n)}_{\eps,n}h=\eps\bigl(\Delta_\perp-(2\pi K_n)^2\bigr)h
+      -(u_n^{\rm loc})_\perp\cdot\nabla_\perp h
+      -2\pi iK_n\bigl((u_n^{\rm loc})_3+a_n\bigr)h
+      +(h\cdot\nabla_\perp)(u_n^{\rm loc})_\perp
+    \label{eq:operator:selected-whole-plane}
+  \end{equation}
+  on $\Lp^2(\R^2;\CC^2)$ with domain $\Hs^2(\R^2;\CC^2)$.  The rescaling is the unitary
+  \[
+    U_n\colon\Lp^2(\R^2_Y;\CC^2)\to\Lp^2(\R^2_y;\CC^2),
+    \qquad(U_nf)(y)=\ell_n^{-1}f\Bigl(\frac{y-p_n}{\ell_n}\Bigr).
+  \]
+\end{definition}
+
+The three exact identities $\delta_n=\eps/\ell_n^2$, $N=2\pi K_n\ell_n$ and
+$\tau=2\pi K_na_n$ -- which the paper, having fixed $N=2\pi$ and $\ell_n=1/K_n$, writes
+as $\delta_n=\eps/\ell_n^2$, $K_n\ell_n=1$ and $2\pi K_na_n=\tau$ in the proof of its
+Lemma~5.2 -- are the
+three fields of the Lean record
+\texttt{WholePlaneExactScalingParameters}; they are the \emph{only} input of the next
+lemma, which is therefore stated for an arbitrary such record rather than for the
+particular cell.  $U_n$ is realised by two differently typed maps, a linear isometry
+equivalence on $\Lp^2$ and a continuous linear equivalence on $\Hs^2$, so the conjugation
+identity below is stated for the actions and the embeddings separately rather than as an
+equality of \texttt{DomainOperator}s.
+
+\begin{lemma}[Scaling]
+  \label{lem:exact-renormalization}
+  \lean{FastDynamo.exactScalingC2_diffusion,
+    FastDynamo.exactScalingC2_transverseTransport,
+    FastDynamo.exactScalingC2_localAxialTransport,
+    FastDynamo.exactScalingC2_stretching,
+    FastDynamo.exactScalingC2_constantAxialShift,
+    FastDynamo.exactScalingC2_selectedAction_clm,
+    FastDynamo.exactScalingC2_embedding,
+    FastDynamo.exactScalingC2_selectedOperator_pencil_conjugated,
+    FastDynamo.exactScalingC2_eigenpair_iff,
+    FastDynamo.exactScalingC2_selectedEigenpair_to_local}
+  \leanok
+  \uses{def:operator:selected-whole-plane, def:local:smoothed-velocity}
+  With $n=n(\eps)$ as above,
+  \begin{equation}
+    U_n^{-1}A^{(n)}_{\eps,n}U_n=\cL_{\delta_n}-i\tau
+    \label{eq:operator:exact-scaling}
+  \end{equation}
+  as operators with domain $\Hs^2(\R^2;\CC^2)$.  Consequently $\lambda$ is an eigenvalue of
+  $A^{(n)}_{\eps,n}$ with eigenfunction $U_nf$ exactly when $\lambda+i\tau$ is an
+  eigenvalue of $\cL_{\delta_n}$ with eigenfunction $f$.
+\end{lemma}
+
+The paper's Lemma~5.2 consists of the identity \texttt{eq:scaling} alone; the eigenvalue
+correspondence of the last sentence is the form in which the later chapters use it, and in
+Lean it is a separate pair of theorems (\texttt{exactScalingC2\_eigenpair\_iff} and its
+forward half \texttt{exactScalingC2\_selectedEigenpair\_to\_local}).  The identity itself is
+formalised as the conjugation of each of the four summands, of the action and of the
+embedding, and of the pencil at every spectral parameter
+(\texttt{exactScalingC2\_selectedOperator\_pencil\_conjugated}), for the reason given
+before the lemma, and for an arbitrary \texttt{WholePlaneExactScalingParameters} record.
+
+\begin{proof}
+  \leanok
+  \uses{def:operator:selected-whole-plane, def:velocity:scale-family}
+  Change variables by $y=p_n+\ell_nY$ and use
+  $u_n^{\rm loc}(p_n+\ell_nY)=\ell_nv(Y)$.  Each of the four summands scales exactly: the
+  diffusion picks up $\ell_n^{-2}$ and $\eps\ell_n^{-2}=\delta_n$, while
+  $\eps(2\pi K_n)^2=\delta_nN^2$ by $2\pi K_n\ell_n=N$ (the paper's $K_n\ell_n=1$ at
+  $N=2\pi$, giving $\eps(2\pi K_n)^2=4\pi^2\delta_n$); the transport and the stretching each
+  pick up one factor $\ell_n$ from the amplitude and one $\ell_n^{-1}$ from the derivative,
+  so they are unchanged; the axial multiplier splits as $-iNv_3-i\tau$ by
+  $2\pi K_n\ell_n=N$ and $2\pi K_na_n=\tau$ (the paper's $-2\pi iv_3-i\tau$).  Lean keeps
+  $N=2\pi k_*$ symbolic throughout, so the record is stated with $N$ and the paper's
+  display \texttt{eq:scaling} is the case $k_*=1$.
+\end{proof}
+
+\begin{lemma}[The translated contour]
+  \label{lem:operator:shifted-contour}
+  \lean{FastDynamo.backgroundShiftedContour,
+    FastDynamo.backgroundShiftedContour_growthFloor,
+    FastDynamo.verticallyShiftedSet,
+    FastDynamo.verticallyShiftedSet_boundary,
+    FastDynamo.verticallyShiftedSet_closedRegion}
+  \leanok
+  \uses{lem:exact-renormalization, def:local:seed}
+  Set $\Gamma_\tau=\{z-i\tau:z\in\Gamma\}$ and $\cG_\tau=\{z-i\tau:z\in\cG\}$.  Both are
+  independent of $n$ and of $\eps$, and translation by $-i\tau$ leaves real parts
+  unchanged, so $\min_{\zeta\in\cG_\tau}\re\zeta=g_*$.
+\end{lemma}
+
+The paper does not state this as a lemma: it is the display after the proof of its
+Lemma~5.2, followed by the remark that both sets are independent of $n$ and $\eps$ and that
+their real parts are unchanged.  In Lean $\Gamma_\tau$ is again a \texttt{SpectralCircle}, with centre
+$\Gamma.\texttt{centre}-i\tau$ and the \emph{same} radius, so the growth floor is exactly
+unchanged; \texttt{verticallyShiftedSet tau S} is the preimage $\{z:z+i\tau\in S\}$, and
+the two lemmas identify its boundary and closed region with those of the shifted circle.
+That is the bridge by which the rescaled seed resolvent of
+Corollary~\ref{cor:scaled-local-resolvents} and the background resolvent of
+Proposition~\ref{prop:background-resolvent} live on one and the same contour.
+
+\begin{proof}
+  \leanok
+  \uses{lem:exact-renormalization}
+  Immediate from \eqref{eq:operator:exact-scaling}: the spectrum of
+  $U_n^{-1}A^{(n)}_{\eps,n}U_n$ is that of $\cL_{\delta_n}$ translated by $-i\tau$, and
+  $\re(z-i\tau)=\re z$.
+\end{proof}

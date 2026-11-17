@@ -1,0 +1,749 @@
+% Chapter: The global velocity.  Section 3 of the paper (sec:velocity).
+% Owned shared labels: def:velocity:scale-family, def:velocity:placement,
+% def:velocity:global-velocity.  Paper label: lem:global-velocity (Lemma 3.1 of the paper).
+
+The local seed of the previous chapter is a single smooth, compactly supported,
+divergence-free velocity $v $ on $\R^2 $ together with one axial wave number
+$N=2\pi k_* $, one interval $I $ of admissible rescaled diffusivities, one contour
+$\Gamma $ and the growth floor $g_*>0 $ (node \texttt{prop:local-seed}).  It produces
+instability at one scale only.  This chapter installs rescaled copies of that seed at a
+geometric sequence of horizontal scales $\ell_n\downarrow0 $, packs them into pairwise
+disjoint discs of a fixed Euclidean chart of $\T^2 $, adds in each disc a small axial
+velocity whose only role is to shift that cell's spectrum vertically by the fixed amount
+$-i\tau $, and sums everything into one autonomous velocity field $u $ on $\T^3 $.
+
+The point of the construction is a quantifier order: nothing here depends on the physical
+diffusivity $\eps $.  In this blueprint's shorthand the order of the choices is
+\[
+  (v,I,\Gamma,\cG,g_*,f_*,L_*,q,\vartheta)
+  \quad\longrightarrow\quad\tau
+  \quad\longrightarrow\quad K_0 :
+\]
+the local seed, the single geometric ratio $q $ and the axial cut-off
+$\vartheta $ come first, then the axial shift $\tau $ of the background chapter, then the
+base Fourier index $K_0 $, which fixes the field $u $ and the threshold $\eps_0 $; only
+afterwards is a cell matched to a given $\eps $.  The paper states this order in prose, in
+Section~3.1 (``Choice of the parameters'') and in the paragraph collecting the parameter choices at
+the end of Section~7.2, just before Remark~7.5 of the paper (\texttt{rem:flexible-buffer-scales});
+it does not display the chain.  Every estimate that chooses $K_0 $ is uniform once the
+earlier parameters are fixed.  The chapter ends
+with the field's regularity (Lemma~\ref{lem:global-velocity}): $u $ is Lipschitz but not
+$\C^1 $, and the failure of $\C^1 $ is exactly the accumulation of nonvanishing gradients at
+infinitely many shrinking scales.  The dynamical consequences of the Lipschitz bound
+(nodes \texttt{prop:particle-flow} and \texttt{cor:ideal-growth}) are in the particle
+chapter.
+
+Terminology: the paper calls the $y $-directions \emph{horizontal} and this chapter
+follows it; the Lean identifiers use the adjective \texttt{transverse}
+(\texttt{TransverseRealW1Inf}, \texttt{transverseTorusPoint},
+\texttt{IsTransverseDivergenceFree}, \dots).  The correspondence is recorded once in
+\texttt{FastDynamo/Conventions.lean}.
+
+\section{Diffusivity intervals and horizontal scales}
+
+\begin{definition}[The scale family]
+  \label{def:velocity:scale-family}
+  \lean{FastDynamo.ScaleRatios, FastDynamo.ScaleFamily,
+    FastDynamo.ScaleFamily.fourierIndex, FastDynamo.ScaleFamily.ell,
+    FastDynamo.ScaleFamily.bufferRadius, FastDynamo.ScaleFamily.cellCenter,
+    FastDynamo.ScaleFamily.axialAmplitude,
+    FastDynamo.ScaleFamily.diffusivityInterval, FastDynamo.ScaleFamily.epsilon0,
+    FastDynamo.ScaleFamily.MatchingCell,
+    FastDynamo.ScaleRatios.q_lt_scaleRatioCeiling, FastDynamo.ScaleFamily.rounding_bound,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.accumulationPoint}
+  \leanok
+  \uses{prop:local-seed, def:local:seed}
+  Fix a ratio $1<q<\sqrt{\delta_+/\delta_-} $ and an integer $K_0 $ so large that
+  $q+K_0^{-1}<\sqrt{\delta_+/\delta_-} $.  Set
+  \[
+    K_{n+1}=\lceil qK_n\rceil,
+    \qquad
+    \ell_n=\frac{k_*}{K_n},
+    \qquad
+    R_n=\sqrt{\ell_n},
+    \qquad
+    a_n=\frac{\tau}{2\pi K_n}=\frac{\tau}{2\pi k_*}\ell_n
+  \]
+  for a parameter $\tau\geq0 $ fixed later.  Here $\ell_n $ is the horizontal scale of the
+  $n $-th rescaled copy of the local velocity (the \emph{core} scale), $R_n $ is the radius
+  reserved around it (the \emph{buffer} scale) and $a_n $ is the amplitude of the added
+  axial velocity.  The centres and the accumulation point are
+  \[
+    p_n=\Bigl(4\sum_{m\geq n}R_m,\tfrac12\Bigr),
+    \qquad
+    p_\infty=\bigl(0,\tfrac12\bigr),
+  \]
+  and the corresponding accumulation set in $\T^3 $ is the circle $\{p_\infty\}\times\T $.
+  The diffusivity intervals and the threshold are
+  \[
+    \cI_n=\Bigl[\delta_-\frac{k_*^2}{K_n^2},\;\delta_+\frac{k_*^2}{K_n^2}\Bigr],
+    \qquad
+    \eps_0=\delta_+\frac{k_*^2}{K_0^2}.
+  \]
+  An index $n $ is \emph{admissible for} $\eps $ when $\delta_n:=\eps/\ell_n^2\in I $; an
+  admissible index together with that membership is a \emph{matching cell}.
+\end{definition}
+
+In Lean the two rounds of choice are two structures: \texttt{ScaleRatios p} carries the
+single ratio $q $ together with $q<\sqrt{\delta_+/\delta_-} $
+(\texttt{ScaleRatios.q\_lt\_scaleRatioCeiling}), and \texttt{ScaleFamily r} carries only
+$K_0 $ with the rounding bound $q+K_0^{-1}<\sqrt{\delta_+/\delta_-} $
+(\texttt{ScaleFamily.rounding\_bound}), so that later stages may still enlarge $K_0 $:
+the bound is monotone in $K_0 $, which is the paper's remark after
+\texttt{eq:ratio-choice} that every subsequent enlargement of $K_0 $ preserves it
+(\texttt{ScaleFamily.rounding\_bound\_of\_le}).
+All of $K_n,\ell_n,R_n,a_n,p_n,\cI_n,\eps_0 $ are then functions of a
+\texttt{ScaleFamily} (modules \texttt{FastDynamo/Global/ScaleSelection.lean} and
+\texttt{FastDynamo/Global/CellGeometry.lean}); the point $p_\infty $ is the constant
+\texttt{accumulationPoint} of
+\texttt{FastDynamo/Global/TorusGlobalVelocityQualitative.lean}.  A
+\texttt{MatchingCell f eps} is an index bundled with the proof that
+$\eps/\ell_n^2\in I $; uniqueness of the index is neither claimed nor needed, exactly as
+in the paper.
+
+\textbf{Deviation: the free wave number $k_* $.}  The paper sets $\ell_n=1/K_n $, so that
+$K_n\ell_n=1 $, $a_n=\tau\ell_n/(2\pi) $, $\cI_n=[\delta_-/K_n^2,\delta_+/K_n^2] $ and
+$\eps_0=\delta_+/K_0^2 $.  Lean keeps the local axial wave number $N=2\pi k_* $ of the seed
+as a parameter ($k_* $ a positive integer, the field \texttt{LocalSeedParameters.kStar}) and
+sets $\ell_n=k_*/K_n $; the displays above are written in that generality.  The concrete
+seed has $k_*=1 $ (\texttt{globalSeedInterface\_kStar}), where every formula of the definition is the
+paper's.
+
+\begin{lemma}[Exact identities and geometric decay of the scale family]
+  \label{lem:velocity:scale-arithmetic}
+  \lean{FastDynamo.ScaleFamily.adjacent_ratio_bounds,
+    FastDynamo.ScaleFamily.adjacent_ratio_sq_lt,
+    FastDynamo.ScaleFamily.axial_wavenumber_match,
+    FastDynamo.ScaleFamily.bufferRadius_sq,
+    FastDynamo.ScaleFamily.ell_div_bufferRadius,
+    FastDynamo.ScaleFamily.axialAmplitude_match,
+    FastDynamo.ScaleFamily.summable_bufferRadius,
+    FastDynamo.ScaleFamily.tendsto_bufferRadius_div_ell_atTop,
+    FastDynamo.ScaleFamily.epsilon0_formula,
+    FastDynamo.ScaleFamily.iUnion_diffusivityInterval,
+    FastDynamo.ScaleFamily.exists_matchingCell,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.tendsto_cellCenter_accumulationPoint}
+  \leanok
+  \uses{def:velocity:scale-family}
+  For every scale family:
+  \begin{enumerate}
+    \item $q\leq K_{n+1}/K_n\leq q+1/K_0<\sqrt{\delta_+/\delta_-} $, the paper's
+      \texttt{eq:ratio-choice};
+    \item $2\pi K_n\ell_n=N $ and $2\pi K_na_n=\tau $;
+    \item $R_n^2=\ell_n $ and $\ell_n/R_n=R_n $, hence $R_n/\ell_n\to\infty $;
+    \item $\sum_{n\geq0}R_n<\infty $, and $p_n\to p_\infty $;
+    \item $\bigcup_{n\geq0}\cI_n=(0,\eps_0] $ with $\eps_0=\delta_+k_*^2/K_0^2 $; hence
+      every $0<\eps\leq\eps_0 $ admits at least one index $n $ with $\eps/\ell_n^2\in I $.
+  \end{enumerate}
+\end{lemma}
+
+Items (i)--(v) are separate Lean theorems, each holding for every
+\texttt{ScaleRatios} and \texttt{ScaleFamily}.  Item (i) is the full three-part chain
+\texttt{eq:ratio-choice}, one Lean theorem,
+\texttt{ScaleFamily.adjacent\_ratio\_bounds}.  In the paper its upper bound gives the
+overlap of consecutive diffusivity intervals (Section~3.2), and its lower bound gives $r_m\geq q $
+for $m<n $ and $r_m\leq q^{-1} $ for $m>n $ in the proof of Proposition~6.1 of the paper
+(\texttt{prop:background-resolvent}), where the axial shifts of distinct cells are separated
+through $c_q=(q-1)/(q+1) $.  Item (ii) is the exact frequency matching
+that makes each cell a literal dilate of the local problem, together with the identity that
+makes the added axial velocity act as the fixed spectral translation $-i\tau $ on the
+fixed-$K_n $ sector.  The paper sets $\ell_n=1/K_n $ and uses $K_n\ell_n=1 $ directly,
+without a label.  Lean keeps $k_* $ free, so \texttt{ScaleFamily.axial\_wavenumber\_match}
+reads $2\pi K_n\ell_n=N=2\pi k_* $ and is the paper's identity at $k_*=1 $.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:scale-family}
+  (i) is the rounding estimate $qK_n\leq\lceil qK_n\rceil<qK_n+1 $ combined with
+  $K_0\leq K_n $ and the rounding bound $q+K_0^{-1}<\sqrt{\delta_+/\delta_-} $.  (ii) is
+  immediate from $\ell_n=k_*/K_n $ and
+  $a_n=\tau\ell_n/(2\pi k_*) $; (iii) from $R_n=\sqrt{\ell_n} $.  (iv) follows from the
+  geometric bound $\ell_n\leq\ell_0q^{-n} $, hence $R_n\leq R_0q^{-n/2} $.  For (v), the
+  ratio condition $(q+1/K_0)^2<\delta_+/\delta_- $
+  (\texttt{ScaleFamily.adjacent\_ratio\_sq\_lt}) makes consecutive intervals overlap, and
+  both endpoints tend to zero, so their union is the half-open interval down from $\eps_0 $.
+\end{proof}
+
+\begin{lemma}[The base index may be chosen above any later bound]
+  \label{lem:velocity:base-index}
+  \lean{FastDynamo.ScaleFamily.exists_ge, FastDynamo.exists_scale_selection,
+    FastDynamo.ScaleFamily.exists_largeK0_chartPacking_and_supportFit,
+    FastDynamo.ScaleFamily.rounding_bound_of_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.nonempty}
+  \leanok
+  \uses{def:velocity:scale-family}
+  Admissible ratios exist, and for every $M\in\Z_{\geq0} $ there is a scale family with
+  $K_0\geq M $.  Moreover, for every $R_v\geq0 $ a large enough $K_0 $ satisfies both
+  \[
+    4\sum_{n\geq0}R_n+R_0<\tfrac14
+    \qquad\text{and}\qquad
+    R_v\ell_n<\frac{R_n}{10}\quad\text{for every }n .
+  \]
+\end{lemma}
+
+The \texttt{exists\_ge} shape ($\forall M,\ \exists f,\ M\leq f.K_0 $) is what implements
+the paper's dependency order: every later stage of the proof imposes one further
+monotone lower bound on $K_0 $, and all of them are absorbed into a single maximum.  The
+two displayed conditions are \texttt{eq:chart-packing} and
+\texttt{eq:local-support-in-buffer}.  The single object that funnels every later bound
+into one choice is \texttt{GlobalParameterChoice}, the node
+\texttt{def:transfer:parameter-choice} of the transfer chapter.
+
+\textbf{Deviation: explicit thresholds on $K_0 $.}  The paper asks for
+\texttt{eq:chart-packing} ``for $K_0 $ sufficiently large'' and derives
+\texttt{eq:local-support-in-buffer} from the explicit sufficient condition
+$K_0>(10R_v)^2 $, via $R_v\ell_n/R_n=R_v/\sqrt{K_n}\leq R_v/\sqrt{K_0} $ (Section~3.3).  Lean
+proves the same criterion in the form $10R_vR_0<1 $
+(\texttt{ScaleFamily.supportScale\_lt\_tenth\_buffer}), which at $k_*=1 $ is exactly
+$K_0>(10R_v)^2 $; the funnel
+\texttt{ScaleFamily.exists\_ge\_chartPacking\_supportFit\_bufferRadius\_zero\_lt} behind
+\texttt{exists\_largeK0\_chartPacking\_and\_supportFit} then chooses one explicit integer
+$K_0>k_*/t^2 $ with
+$t=\min\bigl(\tfrac14/(4/(1-q^{-1/2})+1),\ 1/(10(R_v+1)),\ \text{target}\bigr) $.  So the
+packing threshold is the explicit $R_0\bigl(4/(1-q^{-1/2})+1\bigr)<\tfrac14 $ (via
+\texttt{chartPacking\_of\_geometric\_bound}), and the support-fit threshold used
+is $K_0>k_*(10(R_v+1))^2 $, slightly larger than the paper's $(10R_v)^2 $ (the shift by one
+keeps the bound meaningful at $R_v=0 $).  Both are sufficient conditions of the paper's kind;
+nothing downstream depends on the particular values.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:scale-family, lem:velocity:scale-arithmetic}
+  Both conditions are controlled by $R_0=\sqrt{k_*/K_0} $ alone.  By the geometric bound
+  $R_n\leq R_0(\sqrt{q^{-1}})^n $ the packing quantity is at most
+  $R_0\bigl(4/(1-\sqrt{q^{-1}})+1\bigr) $, and $R_v\ell_n<R_n/10 $ reduces to
+  $10R_vR_0<1 $ because $\ell_n/R_n=R_n\leq R_0 $.  Choosing $K_0 $ beyond the corresponding
+  threshold, and beyond the prescribed $M $, gives both.
+\end{proof}
+
+\section{Disjoint placement and added axial velocity profiles on $\T^2$}
+
+\begin{definition}[Placement of the cells in the chart and in the torus]
+  \label{def:velocity:placement}
+  \lean{FastDynamo.ScaleFamily.placementChart, FastDynamo.ScaleFamily.bufferDisk,
+    FastDynamo.ScaleFamily.localCoreDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement,
+    FastDynamo.transverseTorusPoint,
+    FastDynamo.ScaleFamily.TorusCellPlacement.torusBufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.torusLocalCoreDisk,
+    FastDynamo.GlobalSeedInterface.placementRadius,
+    FastDynamo.GlobalSeedInterface.profileSupportRadius_le_placementRadius,
+    FastDynamo.GlobalSeedInterface.witnessSupportRadius_le_placementRadius,
+    FastDynamo.ScaleFamily.TorusCellPlacement.restrictSupportRadius}
+  \leanok
+  \uses{def:velocity:scale-family, lem:velocity:base-index}
+  All cells are placed in one fixed Euclidean coordinate square of $\T^2 $.  The $n $-th
+  \emph{buffer disc} is $D(p_n,R_n) $ --- what the paper calls the $n $-th \emph{cell}
+  --- and the $n $-th \emph{local-flow core} --- the paper's \emph{core} --- is the disc
+  $D(p_n,R_v\ell_n) $ carrying the support of the rescaled reference profile, where $R_v $ is
+  chosen with
+  \[
+    R_v\geq L_*
+    \qquad\text{and}\qquad
+    \supp v\cup\supp\nabla_\perp v\subset D(0,R_v)
+  \]
+  (Section~3.3 of the paper).  The corresponding subsets
+  of $\T^3 $ are $D(p_n,R_n)\times\T $ and $D(p_n,R_v\ell_n)\times\T $.  A \emph{placement}
+  is a scale family together with the two certificates of
+  Lemma~\ref{lem:velocity:base-index}: chart packing and support fit.
+\end{definition}
+
+In Lean the chart is \texttt{ScaleFamily.placementChart}, the discs are
+\texttt{bufferDisk} and \texttt{localCoreDisk} (Euclidean, in $\R\times\R $), and the
+placement certificate is the structure \texttt{ScaleFamily.TorusCellPlacement
+supportRadius}, whose two fields are exactly \texttt{chartPacking} and
+\texttt{supportFit} (module \texttt{FastDynamo/Global/TorusCellPlacement.lean}).  The
+quotient map $\R^2\to\T^2 $ is \texttt{transverseTorusPoint}
+(\texttt{FastDynamo/Analysis/TransverseChart.lean}), and \texttt{torusBufferDisk},
+\texttt{torusLocalCoreDisk} are the images of the Euclidean discs
+(\texttt{FastDynamo/Global/TorusChartEmbedding.lean}).
+
+Two differences from the paper.  First, the Lean chart is
+$(0,\tfrac14)\times(\tfrac14,\tfrac34) $, the right half of the paper's
+$(-\tfrac14,\tfrac14)\times(\tfrac14,\tfrac34) $; since every centre has positive first
+coordinate and $p_\infty $ is the left edge, every disc still lies in it and nothing about
+the accumulation changes.  Second, the concrete local profile is the smoothed Ponomarenko
+velocity of the seed chapter, whose own support radius is $1+h $ for the smoothing width
+$h $; nothing in the development bounds the witness radius $L_* $ above, so the paper's
+$R_v $ is realised as
+\[
+  R_v=\texttt{GlobalSeedInterface.placementRadius}=\max(1+h,L_*),
+\]
+which is the smallest choice satisfying both requirements of the definition.  The two
+inequalities are the Lean theorems
+\texttt{GlobalSeedInterface.profileSupportRadius\_le\_placementRadius} and
+\texttt{GlobalSeedInterface.witnessSupportRadius\_le\_placementRadius}, the second being
+exactly $R_v\geq L_* $.  The placement is carried at this joint radius (the record field
+\texttt{GlobalParameterChoice.jointPlacement}) and read back at $1+h $ for the velocity
+constructors through \texttt{TorusCellPlacement.restrictSupportRadius}, which leaves the
+scale family untouched; that reading is the derived accessor
+\texttt{GlobalParameterChoice.placement}.  The cost of the joint radius is nothing: it is
+one call of the funnel of Lemma~\ref{lem:velocity:base-index} instead of two, and it is what
+makes \texttt{eq:scaled-witness-support} a consequence rather than a further threshold
+(node \texttt{lem:transfer:witness}).
+
+\begin{lemma}[The placed cells are disjoint, in the chart and in the torus]
+  \label{lem:velocity:disjoint-placement}
+  \lean{FastDynamo.ScaleFamily.bufferDisk_subset_placementChart,
+    FastDynamo.ScaleFamily.disjoint_bufferDisk,
+    FastDynamo.ScaleFamily.localCoreDisk_subset_bufferDisk,
+    FastDynamo.transverseTorusPoint_injectiveOn_placementChart,
+    FastDynamo.ScaleFamily.TorusCellPlacement.disjoint_torusBufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.torusLocalCoreDisk_subset_torusBufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.exists_matchingCell_with_torusPlacedCore}
+  \leanok
+  \uses{def:velocity:placement}
+  For a placement: every $D(p_n,R_n) $ lies in the fixed chart; the discs $D(p_n,R_n) $ are
+  pairwise disjoint; and $D(p_n,R_v\ell_n)\subset D(p_n,R_n) $ for every $n $.  The quotient
+  map is injective on the chart, so the images in $\T^2 $ are again pairwise disjoint, with
+  each core image inside its own buffer image.  Consequently at most one cell is active at
+  each point of $\T^2 $.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:placement, lem:velocity:base-index}
+  Chart containment: the first coordinate of a point of $D(p_n,R_n) $ lies between
+  $4\sum_{m\geq n}R_m-R_n>0 $ and $4\sum_{m\geq0}R_m+R_0<\tfrac14 $, while its second
+  coordinate differs from $\tfrac12 $ by less than $R_n\leq R_0<\tfrac14 $.  Disjointness:
+  the centres are collinear with $\abs{p_n-p_{n+1}}=4R_n>R_n+R_{n+1} $, and summing adjacent
+  gaps gives $\abs{p_n-p_m}>R_n+R_m $ for $n<m $.  The core inclusion is the support fit
+  $R_v\ell_n<R_n/10 $.  Injectivity on the chart is uniqueness of representatives in
+  $[0,1) $ for $\R/\Z $, applied coordinatewise; it transports both statements to the torus.
+\end{proof}
+
+\begin{lemma}[The added axial velocity and its cut-off gradient]
+  \label{lem:velocity:axial-plateau}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.axialPlateauBump,
+    FastDynamo.ScaleFamily.TorusCellPlacement.axialPlateau_eq_one_of_norm_pairToWholePlane_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.axialOffsetEuclidean,
+    FastDynamo.ScaleFamily.TorusCellPlacement.axialOffsetEuclidean_eq_axialAmplitude_of_core,
+    FastDynamo.ScaleFamily.TorusCellPlacement.axialOffsetEuclidean_eq_zero_of_not_mem_bufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.norm_axialOffsetEuclideanDerivative_le,
+    FastDynamo.ScaleFamily.axialGradientScale,
+    FastDynamo.ScaleFamily.axialGradientScale_formula,
+    FastDynamo.ScaleFamily.axialGradientScale_le_zero}
+  \leanok
+  \uses{def:velocity:placement, lem:velocity:scale-arithmetic}
+  Let $\vartheta\in\C^\infty_c([0,\infty)) $ equal one on $[0,3/4] $ with
+  $\supp\vartheta\subset[0,1) $, and put
+  \[
+    u_n^\mathrm{ax}(y)=a_n\vartheta\Bigl(\frac{\abs{y-p_n}}{R_n}\Bigr)e_3 .
+  \]
+  Then $u_n^\mathrm{ax}=a_ne_3 $ on the \emph{constant axial region} $D(p_n,3R_n/4) $,
+  $\supp u_n^\mathrm{ax}\subset D(p_n,R_n) $, the field is independent of $x_3 $ and
+  divergence-free, and
+  \[
+    \norm{\nabla u_n^\mathrm{ax}}_\infty\leq\norm{\vartheta'}_\infty\frac{a_n}{R_n},
+    \qquad
+    \frac{a_n}{R_n}=\frac{\tau}{N}R_n=\frac{\tau}{2\pi\sqrt{k_*K_n}}
+    \leq\frac{a_0}{R_0} .
+  \]
+  In particular the supremum
+  $\eta_\mathrm{ax}=\sup_n\norm{\vartheta'}_\infty a_n/R_n $ is attained at $n=0 $ and tends to
+  $0 $ as $K_0\to\infty $.
+\end{lemma}
+
+The Lean plateau is a \texttt{ContDiffBump} at the origin of the pair chart, equal to one
+on the closed ball of radius $3/4 $ and vanishing outside the open unit ball;
+$\norm{\vartheta'}_\infty $ is realised by its Lipschitz constant
+\texttt{axialPlateauLipschitzConstant}, and the quantity $a_n/R_n $ is
+\texttt{ScaleFamily.axialGradientScale}.  The closed expression
+$\eta_\mathrm{ax}=\norm{\vartheta'}_\infty\tau/(2\pi\sqrt{k_*K_0}) $ is not a single Lean
+lemma: what is proved is the monotonicity $a_n/R_n\leq a_0/R_0 $ together with
+$a_0/R_0=(\tau/N)R_0 $ and $R_0=\sqrt{k_*/K_0} $, which is the same statement after
+substitution.  The paper uses $\eta_\mathrm{ax} $ only as a gradient bound (in the proof of
+Lemma~3.1 of the paper and in \texttt{eq:axial-shear-bound} of the proof of
+Proposition~4.1 of the paper); its smallness for large $K_0 $ is noted in Section~3.3 but is not one
+of the thresholds on $K_0 $, neither in the paper nor in
+\texttt{GlobalParameterChoice}.  The axial taper is \emph{radial} --
+$\vartheta(\abs{y-p_n}/R_n)$ in the Euclidean metric of the chart, not in the sup metric --
+which is what makes the plateau $D(p_n,3R_n/4)$ a Euclidean disc and lets the support fit of
+the placement be read off without losing a factor two.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:placement, lem:velocity:scale-arithmetic}
+  The plateau statements are the defining properties of $\vartheta $, transported by
+  $y\mapsto(y-p_n)/R_n $.  The chain rule produces the factor $R_n^{-1} $ in the gradient,
+  and $a_n/R_n=(\tau/N)\ell_n/R_n=(\tau/N)R_n $ by
+  Lemma~\ref{lem:velocity:scale-arithmetic}(iii); monotonicity in $n $ follows from
+  $R_n\leq R_0 $.  Divergence-freeness holds because the only nonzero component is the third
+  one and it does not depend on $x_3 $.
+\end{proof}
+
+\begin{definition}[The global velocity]
+  \label{def:velocity:global-velocity}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.parameterizedHelicalCellSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullEuclideanCellRealSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalEuclideanRealSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalPeriodizedRealSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalRealTorusSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf,
+    FastDynamo.TransverseRealW1Inf,
+    FastDynamo.literalVelocity}
+  \leanok
+  \uses{def:velocity:placement, lem:velocity:disjoint-placement, lem:velocity:axial-plateau,
+    def:local:seed}
+  With $u_n^\mathrm{loc}(y)=\ell_nv\bigl((y-p_n)/\ell_n\bigr) $ and $u_n^\mathrm{ax} $ as above,
+  the \emph{global velocity} is
+  \[
+    u(y,x_3)=\sum_{n\geq0}\bigl(u_n^\mathrm{loc}(y)+u_n^\mathrm{ax}(y)\bigr).
+  \]
+  It is independent of $x_3 $, and by Lemma~\ref{lem:velocity:disjoint-placement} at most
+  one summand is nonzero at each point, so the sum is defined pointwise without any
+  convergence hypothesis.
+\end{definition}
+
+Lean builds this in three stages (modules
+\texttt{FastDynamo/Global/TorusVelocityConcrete.lean},
+\texttt{FastDynamo/Global/TorusAxialVelocityConcrete.lean},
+\texttt{FastDynamo/Global/TorusFullVelocityConcrete.lean},
+\texttt{FastDynamo/Global/TorusGlobalVelocityLipschitz.lean}):
+\begin{itemize}
+  \item the \emph{chart-side representative}
+    \texttt{parameterizedFullGlobalEuclideanRealSource}, the literal pointwise sum
+    $\sum_n(\re u_n^\mathrm{loc}+u_n^\mathrm{ax}) $ on $\R^2 $, supported in the placement
+    chart;
+  \item its \emph{$\Z^2 $-periodisation}
+    \texttt{parameterizedFullGlobalPeriodizedRealSource}, which again has at most one
+    nonzero translate at each point of the plane and descends to the torus-side
+    representative \texttt{parameterizedFullGlobalRealTorusSource};
+  \item the \emph{torus-side $\W^{1,\infty} $ class} \texttt{parameterizedFullGlobalW1Inf},
+    an element of \texttt{TransverseRealW1Inf}: a real $\Lp^\infty $ field on $\T^2 $
+    bundled with two $\Lp^\infty $ derivative fields subject to the Fourier
+    weak-derivative identities
+    $\widehat{\partial_ju}(m)=2\pi i\,m_j\,\widehat u(m) $.  Membership in
+    $\W^{1,\infty} $ is thus carried by the type; the class is the sum of a pointwise
+    disjoint-support limit (the helical part, whose cell derivatives are \emph{not}
+    $\Lp^\infty $-summable) and an absolutely convergent $\Lp^\infty $ series
+    (the axial part).
+\end{itemize}
+The axial shift is the parameter \texttt{tau}; the value used downstream is the chain's
+\texttt{axialShift}.  The velocity of the main theorem is
+\texttt{GlobalParameterChoice.velocity}, that is
+\texttt{parameterizedFullGlobalW1Inf} with the helical
+speeds pinned to the seed's own $(\Omega,U) $, so that the on-core identity of
+Lemma~\ref{lem:velocity:matching-cell} produces the seed velocity $v $.  Finally
+\texttt{literalVelocity} is the axially independent extension of the torus-side
+representative to $\T^3 $, which is the field the paper writes as $u $.
+
+\begin{lemma}[On a cell core the global field is a rescaled seed copy plus $a_ne_3 $]
+  \label{lem:velocity:matching-cell}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalTorusSource_eq_rescaledLocalCopy_add_axialShift_of_mem_core,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalTorusFirstDerivative_eq_rescaledLocalCopy_of_mem_core,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalRealTorusSource_eq_axialShift_of_mem_plateau_of_not_mem_core}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:disjoint-placement,
+    lem:velocity:axial-plateau, lem:velocity:scale-arithmetic}
+  For every $n $ and every $y $ in the $n $-th local-flow core,
+  \[
+    u(y)=\ell_nv\Bigl(\frac{y-p_n}{\ell_n}\Bigr)+a_ne_3,
+    \qquad
+    \nabla_\perp u(y)=(\nabla_\perp v)\Bigl(\frac{y-p_n}{\ell_n}\Bigr),
+  \]
+  and for $y\in D(p_n,3R_n/4) $ outside the core, $u(y)=a_ne_3 $.  Since $2\pi K_na_n=\tau $,
+  the added axial velocity acts on the fixed-$K_n $ Fourier subspace
+  $B(y,x_3)=\e^{2\pi iK_nx_3}b(y) $ as the constant translation
+  $-(a_ne_3\cdot\nabla)B=-i\tau B $, which changes no spectral real part.
+\end{lemma}
+
+The last two Lean names state the same identities almost everywhere for the stored
+$\Lp^\infty $ classes at the selected matching cell, in the form the parametrix chapter
+consumes (module \texttt{FastDynamo/Global/TorusSelectedCellChartAgreement.lean}); there
+the local profile is exactly the seed's, because the helical speeds of the global
+velocity are pinned to the seed's profile data (the fields \texttt{smoothingWidth},
+\texttt{angularSpeed} and \texttt{axialSpeed} of \texttt{GlobalSeedInterface}).  The consequent operator identity
+$U_n^{-1}A_nU_n=L_{\delta_n}-i\tau $ is the exact-renormalisation node
+\texttt{lem:exact-renormalization} of the operator chapter (Lemma~5.2 of the paper,
+``Scaling'', identity \texttt{eq:scaling}), which is where the paper carries out the
+$-i\tau $ computation; it is not restated here.
+
+\begin{proof}
+  \leanok
+  \uses{lem:velocity:disjoint-placement, lem:velocity:axial-plateau,
+    lem:velocity:scale-arithmetic}
+  By disjointness only the $n $-th summand is active on $D(p_n,R_n) $.  The support fit puts
+  the core well inside $D(p_n,3R_n/4) $, where the axial cut-off is identically one, so the
+  axial summand is the constant $a_ne_3 $ there and contributes nothing to the derivative.
+  The helical summand is by definition $\ell_nv((y-p_n)/\ell_n) $, whose derivative is
+  $(\nabla_\perp v)((y-p_n)/\ell_n) $ because the amplitude $\ell_n $ exactly cancels the
+  dilation.  Outside the core the helical summand vanishes.  The spectral statement is the
+  identity $2\pi K_na_n=\tau $ of Lemma~\ref{lem:velocity:scale-arithmetic}(ii).
+\end{proof}
+
+\section{Regularity and incompressibility of the velocity field on $\T^3$}
+
+\begin{lemma}[Reality, $x_3 $-independence and incompressibility]
+  \label{lem:velocity:divergence-free}
+  \lean{FastDynamo.IsTransverseDivergenceFree,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalTorusSource_pointwiseReal,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalTorusFirstDerivative_transverseDivergence,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf_isTransverseDivergenceFree}
+  \leanok
+  \uses{def:velocity:global-velocity}
+  The global velocity is real valued, independent of $x_3 $, and $\Div u=0 $: pointwise
+  $\partial_1u_1+\partial_2u_2=0 $ for the displayed representatives, hence $\Div u=0 $ in
+  the $\W^{1,\infty} $ graph sense.
+\end{lemma}
+
+In Lean, $x_3 $-independence is by type (the class lives on the transverse torus $\T^2 $),
+reality is the vanishing of the imaginary part of every component of the complexified
+representative, and $\Div u=0 $ is the predicate \texttt{IsTransverseDivergenceFree}: the
+vanishing in $\Lp^\infty $ of the sum of the two stored diagonal derivative components.
+Because the stored derivatives satisfy the Fourier weak-derivative identities, this is the
+paper's distributional statement and not merely a pointwise one.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:disjoint-placement,
+    lem:velocity:axial-plateau}
+  Each rescaled local copy is divergence-free because $\Div_\perp v_\perp=0 $ and dilation
+  preserves that identity; each added axial velocity is divergence-free because it is
+  parallel to $e_3 $ and independent of $x_3 $.  The supports are pairwise disjoint, so the
+  identity for the sum is the identity for the unique active summand at each point.  Passing
+  from the pointwise identity to the graph identity uses that the stored derivative fields
+  are represented almost everywhere by the displayed pointwise sums.
+\end{proof}
+
+\begin{lemma}[Explicit uniform derivative bound and Lipschitz constant]
+  \label{lem:velocity:w1inf-bound}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.norm_parameterizedFullEuclideanCellRealSource_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.globalVelocityCoordinateDerivativeBound,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.globalVelocityLipschitzBound,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.norm_fderiv_parameterizedFullGlobalEuclideanRealSource_le,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.lipschitzWith_parameterizedFullGlobalEuclideanRealSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.lipschitzWith_parameterizedFullGlobalRealTorusSource,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.lipschitzWith_literalVelocity_parameterizedFullGlobalRealTorusSource}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:axial-plateau,
+    lem:velocity:disjoint-placement}
+  Each combined cell obeys
+  $\norm{u_n^\mathrm{loc}+u_n^\mathrm{ax}}_\infty\leq(\norm v_\infty+\tau/N)\ell_n $, and there is
+  an explicit constant
+  \[
+    L=2\Bigl(\norm{\nabla v}_\infty+\norm{\vartheta'}_\infty\frac{a_0}{R_0}\Bigr)
+  \]
+  with $\norm{Du(x)}\leq L $ at every point of the chart.  Consequently $u $ is Lipschitz
+  with constant $2L $ on $\T^2 $ and, after the axial extension, on $\T^3 $.
+\end{lemma}
+
+This is the quantitative half of the paper's $\W^{1,\infty} $ claim, in slightly
+different bookkeeping.  The proof of Lemma~3.1 of the paper bounds
+$\norm{Du}\leq\norm{\nabla v}_\infty+\eta_\mathrm{ax} $ at every point; Lean proves
+an everywhere bound on the chart carrying two extra factors of $2 $: one because the
+operator norm on the pair chart is estimated by the sum of the two coordinate derivatives,
+one because the periodisation estimate compares two competing integer translates.  The
+role of $\norm{\nabla v}_\infty $ is played by the sum of the two first-order Schwartz
+seminorms of the smoothed profile.  The constant is explicit but not claimed optimal, and
+no later step uses its value.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:axial-plateau,
+    lem:velocity:disjoint-placement}
+  Directly from the definitions, $\norm{u_n^\mathrm{loc}}_\infty\leq\ell_n\norm v_\infty $ and
+  $\norm{u_n^\mathrm{ax}}_\infty\leq a_n=(\tau/N)\ell_n $.  For the derivative, the amplitude
+  $\ell_n $ of the local copy exactly cancels its dilation, so
+  $\norm{\nabla u_n^\mathrm{loc}}_\infty\leq\norm{\nabla v}_\infty $ uniformly in $n $, while
+  $\norm{\nabla u_n^\mathrm{ax}}_\infty\leq\norm{\vartheta'}_\infty a_n/R_n
+  \leq\norm{\vartheta'}_\infty a_0/R_0 $ by Lemma~\ref{lem:velocity:axial-plateau}.  Since
+  the supports are pairwise disjoint, only one cell contributes at each point, which gives
+  the bound for the whole sum; the mean value inequality turns it into a Lipschitz
+  statement, and the descent lemma for $\Z^2 $-periodic Lipschitz maps transports it to
+  $\T^2 $ and then to $\T^3 $.
+\end{proof}
+
+\begin{lemma}[Quadratic decay and differentiability at the accumulation circle]
+  \label{lem:velocity:accumulation-decay}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.three_mul_bufferRadius_lt_dist_accumulationPoint_of_mem_bufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalEuclideanRealSource_eq_cell_of_mem_bufferDisk,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalEuclideanRealSource_eq_zero_of_outside_buffers,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.norm_parameterizedFullGlobalEuclideanRealSource_le_dist_sq,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalEuclideanRealSource_hasFDerivAt_accumulationPoint,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalEuclideanRealSource_differentiableAt_accumulationPoint}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:disjoint-placement,
+    lem:velocity:scale-arithmetic}
+  With $C=\norm v_\infty+\tau/N $,
+  \[
+    \abs{u(y,x_3)}\leq C\abs{y-p_\infty}^2 ,
+  \]
+  so $u $ vanishes at $p_\infty $ and is differentiable there with derivative zero.  The
+  bound does not involve $x_3 $, so the same holds at every point of
+  $\{p_\infty\}\times\T $.
+\end{lemma}
+
+The Lean statements are for the chart-side representative.  The only geometric inputs are
+$\ell_n=R_n^2 $ and the separation $\abs{y-p_\infty}\geq3R_n $ for $y\in D(p_n,R_n) $.
+
+\begin{proof}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:disjoint-placement,
+    lem:velocity:scale-arithmetic}
+  If $y\in D(p_n,R_n) $ then
+  $\abs{y-p_\infty}\geq\abs{p_n-p_\infty}-R_n=4\sum_{m\geq n}R_m-R_n\geq3R_n $, and there the
+  field is the single $n $-th cell, of size at most $C\ell_n=CR_n^2 $; hence
+  $\abs{u(y)}\leq C\abs{y-p_\infty}^2/9\leq C\abs{y-p_\infty}^2 $.  Outside all buffer discs
+  the field vanishes, so the bound holds everywhere.  A field that is
+  $O(\abs{y-p_\infty}^2) $ at $p_\infty $ is Fr\'echet differentiable there with derivative
+  zero.
+\end{proof}
+
+\begin{lemma}[The global velocity is non-zero for a positive axial shift]
+  \label{lem:velocity:nonvanishing}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalTorusSource_ne_zero,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf_ne_zero}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:matching-cell, lem:velocity:axial-plateau}
+  If $\tau>0 $ then $u\neq0 $: on the nonempty set
+  $D(p_n,3R_n/4)\setminus\supp u_n^\mathrm{loc} $ the field equals $a_ne_3\neq0 $.  The axial
+  shift used in the construction is strictly positive, so the velocity of the main
+  theorem is non-zero.
+\end{lemma}
+
+Because the torus-side object is an $\Lp^\infty $ equivalence class, the Lean proof needs
+a set of positive measure rather than one point: it uses the explicit annular witness at
+distance $R_n/2 $ from $p_n $ (outside the core by the support fit, inside the constant
+axial plateau) together with a ball of radius $R_n/20 $ around it.  At $\tau=0 $ nothing
+is proved; a helical-core witness would be needed, and the library contains none.
+This is harmless: the shift used downstream is strictly positive.
+
+\begin{proof}
+  \leanok
+  \uses{lem:velocity:matching-cell, lem:velocity:axial-plateau}
+  Take the point at distance $R_n/2 $ from $p_n $.  The support fit $R_v\ell_n<R_n/10 $ puts
+  it outside the local-flow core, and $R_n/2<3R_n/4 $ puts it inside the constant axial
+  region, so by Lemma~\ref{lem:velocity:matching-cell} the field equals $a_ne_3 $ there,
+  with $a_n=\tau\ell_n/(2\pi k_*)>0 $.  A ball of radius $R_n/20 $ around that point stays
+  in the same region and has positive measure, which upgrades the pointwise statement to the
+  $\Lp^\infty $ class.
+\end{proof}
+
+\begin{lemma}[Regularity and incompressibility of the velocity field on $\T^3$]
+  \label{lem:global-velocity}
+  \lean{FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf_isTransverseDivergenceFree,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.parameterizedFullGlobalW1Inf_ne_zero,
+    FastDynamo.ScaleFamily.TorusCellPlacement.FullVelocityConcrete.lipschitzWith_literalVelocity_parameterizedFullGlobalRealTorusSource}
+  \leanok
+  \uses{def:velocity:global-velocity, lem:velocity:divergence-free, lem:velocity:w1inf-bound,
+    lem:velocity:accumulation-decay, lem:velocity:nonvanishing}
+  The field $u $ is a non-zero real-valued autonomous vector field belonging to
+  $\W^{1,\infty}(\T^3;\R^3) $.  It is independent of $x_3 $, and $\Div u=0 $.
+\end{lemma}
+
+The paper's lemma ends with one further clause: \emph{$u $ is smooth away from
+$\{p_\infty\}\times\T $ and is differentiable at every point of this circle, with derivative
+zero.}  That clause is not part of the statement above, and it is not proved on $\T^3 $:
+it is formalised for the chart-side representative and its periodisation in
+Lemma~\ref{lem:main:velocity-regularity}.
+
+Four remarks on the Lean form.  (a) Membership in $\W^{1,\infty} $ is carried by the type
+\texttt{TransverseRealW1Inf}, so it is true by construction rather than proved; the
+content is the construction itself --- that the infinite sum does define such an element
+--- together with the explicit bound of Lemma~\ref{lem:velocity:w1inf-bound}.  The
+$\W^{1,\infty} $ class lives on $\T^2 $ and reaches $\T^3 $ through the axially
+independent extension \texttt{literalVelocity}, which is proved Lipschitz; there is no
+separate $\W^{1,\infty}(\T^3) $ space in the development.  (b) Reality,
+$x_3 $-independence and $\Div u=0 $ are Lemma~\ref{lem:velocity:divergence-free}.
+(c) Non-vanishing holds for $\tau>0 $ (Lemma~\ref{lem:velocity:nonvanishing}).
+(d) The smoothness and differentiability clauses are proved for the chart-side
+representative and its $\Z^2 $-periodisation on the plane, not as smoothness in a manifold
+structure on $\T^2 $ (the development installs none); they are collected, with the failure
+of $\C^1 $, in the node \texttt{lem:main:velocity-regularity} and its Lean predicate
+\texttt{GlobalVelocityQualitative}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:velocity:divergence-free, lem:velocity:w1inf-bound,
+    lem:velocity:accumulation-decay, lem:velocity:nonvanishing,
+    lem:velocity:disjoint-placement}
+  Incompressibility and reality are Lemma~\ref{lem:velocity:divergence-free}, the uniform
+  gradient bound is Lemma~\ref{lem:velocity:w1inf-bound}, non-vanishing is
+  Lemma~\ref{lem:velocity:nonvanishing}, and differentiability with vanishing derivative on
+  the accumulation circle is Lemma~\ref{lem:velocity:accumulation-decay}.  Away from
+  $p_\infty $ the family of supports is locally finite, so the sum is locally a finite sum
+  of smooth functions; with the previous sentence this makes $u $ differentiable at every
+  point of $\T^3 $, with derivative bounded by $\norm{\nabla v}_\infty+\eta_\mathrm{ax} $
+  (in Lean by the constant $L $ of Lemma~\ref{lem:velocity:w1inf-bound}).  Applying the mean value theorem to the periodic
+  lift of $u $, we deduce that $u $ is globally Lipschitz with this bound.  Its classical
+  divergence vanishes everywhere.  Since the weak derivative of a Lipschitz function agrees
+  almost everywhere with its classical derivative, $u\in\W^{1,\infty} $ and $\Div u=0 $ in
+  distributions.
+\end{proof}
+
+\textbf{Deviation: a Fourier dominated limit, not Rademacher.}  The route just narrated is
+the paper's, and the two steps it rests on --- global
+Lipschitz-ness from the mean value theorem on the periodic lift, and the vanishing of the
+classical divergence --- are proved in Lean exactly that way
+(\texttt{lipschitzWith\_parameterizedFullGlobalEuclideanRealSource}, obtained from
+\texttt{norm\_\allowbreak fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource\_\allowbreak le} through Mathlib's mean value inequality, and
+\texttt{parameterizedFullGlobalTorusFirstDerivative\_transverseDivergence}, which is a
+pointwise identity on the displayed representatives).  The last step is not: membership in
+$\W^{1,\infty} $ is, in this development, membership in the closed Fourier graph
+\texttt{TransverseRealW1Inf}, and no bridge \emph{Lipschitz $\Rightarrow$ Fourier graph}
+--- a Rademacher theorem on $\T^2 $ together with an integration by parts for Lipschitz maps
+--- exists in this library or in Mathlib in the required form.  Lean therefore builds the
+graph element directly, by a route that needs neither a $\W^{1,1} $ summation of the cells
+nor the paper's a.e.\ identification of weak and classical derivatives: the helical part is a dominated
+limit of the Fourier coefficients of the partial sums (its cell derivatives are uniformly
+bounded but \emph{not} $\Lp^\infty $-summable, so the graph norms cannot simply be added),
+the axial part is an absolutely convergent $\Lp^\infty $ series, and the two graph elements
+are added
+(\texttt{integral\_parameterizedHelicalGlobal\_weakDerivative},
+\texttt{parameterizedHelicalGlobalW1Inf}, \texttt{axialGlobalW1Inf} in
+\texttt{FastDynamo/Global/TorusFullVelocityConcrete.lean}).  The conclusion --- that the
+stored derivative fields are the Fourier weak derivatives of the stored value, and that
+their diagonal sum vanishes --- is the paper's $u\in\W^{1,\infty} $, $\Div u=0 $.
+
+\section{Why the construction stops at Lipschitz regularity}
+
+The local field $v $ is smooth; regularity is lost only because the global field has
+nonvanishing gradients at infinitely many shrinking horizontal scales.  The estimate of
+Lemma~\ref{lem:velocity:accumulation-decay} shows that $u $ is nevertheless differentiable on
+the accumulation circle, with $Du(p_\infty,x_3)=0 $ for every $x_3\in\T $.  At the other end,
+both cut-offs are constant near each cell centre: the support fit puts $p_n $ well inside the
+axial plateau $D(p_n,3R_n/4) $, and the rescaled local copy has amplitude $\ell_n $ and
+dilation $\ell_n $, which cancel.  Hence, by Lemma~\ref{lem:velocity:matching-cell},
+\[
+  Du(p_n,x_3)=
+  \begin{pmatrix}
+    0      & -\Omega & 0 \\
+    \Omega & 0       & 0 \\
+    0      & 0       & 0
+  \end{pmatrix}
+  \neq0
+  \qquad(x_3\in\T),
+\]
+that is, $Du(p_n,x_3)e_1=\Omega e_2 $, $Du(p_n,x_3)e_2=-\Omega e_1 $ and $Du(p_n,x_3)e_3=0 $;
+it is non-zero because $\Omega\neq0 $.  It is one and the same map for every $n $, namely the
+derivative at the origin of the unrescaled profile $v $.  Since $p_n\to p_\infty $, the
+classical derivative $Du $ is discontinuous at every point of $\{p_\infty\}\times\T $.  A
+continuous representative of the weak gradient would have to agree everywhere with $Du $, so
+no such representative exists and
+$u\notin\C^1 $, even though $u $ is differentiable everywhere (Section~3.4 of the paper).
+
+These three statements --- differentiable everywhere, smooth off the accumulation point,
+derivative discontinuous there --- are the content of the node
+\texttt{lem:main:velocity-regularity} and of the Lean predicate
+\texttt{GlobalVelocityQualitative} in
+\texttt{FastDynamo/Global/TorusGlobalVelocityRegularity.lean}, and the Lean proof is the
+argument just given, along the cell centres:
+\texttt{fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource\_\allowbreak cellCenter\_\allowbreak eq} gives one
+and the same map at every centre,
+\texttt{lineDeriv\_parameterizedSmoothedVelocity\_zero\_apply\_one} identifies its $(2,1) $
+entry as the angular speed $\Omega $, whence
+\texttt{fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource\_\allowbreak cellCenter\_\allowbreak ne\_\allowbreak zero} under
+$\Omega\neq0 $, and
+\texttt{not\_\allowbreak continuousAt\_\allowbreak fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource} concludes from
+\texttt{tendsto\_cellCenter\_accumulationPoint} and
+\texttt{fderiv\_\allowbreak parameterizedFullGlobalEuclideanRealSource\_\allowbreak accumulationPoint}, which says that
+the derivative is $0 $ there.  Lean extracts only the entry $\Omega $ of the
+matrix rather than the matrix itself, which is all the non-vanishing needs.  The global
+failure of $\C^1 $ is the field \texttt{periodized\_not\_continuousAt\_fderiv} of the
+strengthened main theorem (Theorem~\ref{thm:main-strengthened}): the derivative of the
+$\Z^2$-periodised plane representative \texttt{mainVelocityPeriodizedRepresentative} is
+discontinuous at the accumulation point
+(\texttt{not\_\allowbreak continuousAt\_\allowbreak fderiv\_\allowbreak mainVelocityPeriodizedRepresentative}), a statement on
+the plane, not on the manifold $\T^3 $ (Lemma~\ref{lem:main:velocity-regularity}).

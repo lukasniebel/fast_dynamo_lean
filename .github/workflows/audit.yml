@@ -1,0 +1,45 @@
+name: release-gate
+
+# Manual only: one run of this gate builds the whole library (about a quarter of an hour on four cores).
+# The same gate is run locally (`bash scripts/audit.sh`); start this workflow
+# by hand from the Actions tab for an independent run on GitHub's runners.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zstd
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zstd
+
+      - name: Cache Lean toolchain and dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .toolchains
+            .lake/packages
+          key: lean-deps-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'scripts/bootstrap-lean.sh') }}
+
+      - name: Cache project build outputs
+        uses: actions/cache@v4
+        with:
+          path: .lake/build
+          key: lake-build-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-${{ github.sha }}
+          restore-keys: |
+            lake-build-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
+
+      - name: Bootstrap Lean and the Mathlib cache
+        run: bash scripts/bootstrap-lean.sh
+
+      - name: Release gate
+        env:
+          LEAN_NUM_THREADS: 4
+        run: bash scripts/audit.sh

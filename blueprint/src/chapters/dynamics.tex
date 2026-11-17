@@ -1,0 +1,1901 @@
+This chapter is the blueprint's appendix.  It records Lemma~A.1 of the paper
+(\texttt{lem:semigroup-spectral-growth}, in its Appendix~A, \texttt{sec:semigroup-growth}) ---
+Lemma~\ref{lem:semigroup-spectral-growth} here, the analytic input that turns the spectrum of
+$L_{\eps,u}$ into a statement about the growth rate $\gamma(u,\eps)$ --- together with the
+facts about $\gamma(u,\eps)$ that §1.1 of the paper states with it (the limit
+\texttt{eq:semigroup-growth-rate} exists, and the spectral supremum is attained), and the Lean
+chain that proves them.  The other nodes of this chapter are the formalisation's own: the paper
+states none of them, and they are compared with the paper only through
+Lemma~\ref{lem:semigroup-spectral-growth}, the growth-rate clause of Theorem~\ref{thm:main}, the
+energy identity \texttt{eq:energy-competition} and the phrase ``its solution'' of
+Theorem~\ref{thm:main}.  The particle flow, its entropy, the ideal induction group and the
+vanishing-diffusivity limit are Section~4 and Remark~1.7 of the paper and have their own
+chapter.
+
+The paper proves its Lemma~A.1 on $\Lp^2_\sigma$ directly: $\eps\Delta$ with domain
+$\Hs^2\cap\Lp^2_\sigma$ generates an analytic semigroup there, $C_uB=\curl(u\times B)$ is
+infinitesimally bounded relative to it, so $L_{\eps,u}$ generates an analytic semigroup by
+the perturbation theorem [Engel--Nagel, Theorem III.2.10]; the graph norm is equivalent to
+the $\Hs^2$ norm, so the resolvent is compact; analyticity makes the semigroup immediately
+compact, which gives the spectral mapping theorem and the equality of the growth bound with
+the spectral bound; and $0\in\sigma(L_{\eps,u})$, together with the finiteness of the
+spectrum in any right half-plane, makes the spectral supremum a maximum.  The formalisation
+proves every one of these statements (Lemma~\ref{lem:semigroup-spectral-growth},
+\texttt{SemigroupSpectralGrowth}), along a different route.  Mathlib has no
+$\C_0$-semigroup theory, so the development builds what it needs from scratch.
+\begin{itemize}
+  \item \emph{Generation} (Sections~\ref{sec:dynamics:hille-yosida}
+    to~\ref{sec:dynamics:solenoidal}).  A resolvent estimate $\norm{R(r)}\leq(r-M)^{-1}$ on a
+    real ray (Definition~\ref{def:dynamics:hille-yosida-ray}) drives a Yosida approximation
+    scheme whose limit is a strongly continuous semigroup
+    (Theorem~\ref{thm:dynamics:hille-yosida}).  Feeding it the dissipativity of the reduced
+    operator $A_{\eps,K}$ and of its formal adjoint
+    (Lemma~\ref{lem:dynamics:reduced-adjoint},
+    Proposition~\ref{prop:dynamics:reduced-half-plane-resolvent}) gives each axial sector a
+    Hille--Yosida ray (Theorem~\ref{thm:dynamics:sector-semigroup}); summing the sector
+    resolvents over the axial Fourier index (Lemmas~\ref{lem:dynamics:axial-hilbert-sum}
+    and~\ref{lem:dynamics:uniform-sector-estimate},
+    Proposition~\ref{prop:dynamics:product-resolvent}) gives a ray for, and hence generates
+    the semigroup of, the all-frequency auxiliary operator $\mathcal A_\eps$
+    (\texttt{productInductionOperator u $\eps$}, domain $\Hs^2(\T^3;\CC^3)$) on the whole of
+    $\Lp^2(\T^3;\CC^3)$ (Theorem~\ref{thm:dynamics:product-semigroup}); restricting it to the
+    closed solenoidal subspace (Lemma~\ref{lem:dynamics:solenoidal-subspace},
+    Theorem~\ref{thm:dynamics:solenoidal-semigroup}) puts it on the paper's state space
+    $\Lp^2_\sigma(\T^3)$.
+  \item \emph{The generator} (Section~\ref{sec:dynamics:generator}).  The generator of a
+    $\C_0$-semigroup and the spectrum of an unbounded operator are defined
+    (Definition~\ref{def:dynamics:generator}); the generator of the Hille--Yosida semigroup is
+    the operator it was built from (Lemma~\ref{lem:dynamics:hille-yosida-generator}); and the
+    generator of the semigroup on $\Lp^2_\sigma$ is the paper's $L_{\eps,u}$ with domain
+    $\Hs^2\cap\Lp^2_\sigma$, which determines the semigroup
+    (Theorem~\ref{thm:dynamics:solenoidal-generator}).  So the semigroup whose growth bound is
+    the Lean value of $\gamma(u,\eps)$ (Definition~\ref{def:main:growth-rate},
+    \texttt{FastDynamo.gamma}) is the paper's $\e^{tL_{\eps,u}}$.
+  \item \emph{Analyticity, compactness, spectral mapping} (Section~\ref{sec:dynamics:analytic}).
+    A sector condition on the numerical range of $\mathcal A_\eps$
+    (Lemma~\ref{lem:dynamics:sectorial}) passes to the Yosida approximants in complex time and
+    makes the semigroup analytic of angle $\pi/4$
+    (Theorem~\ref{thm:dynamics:analytic-generation}); the resolvent factors through the compact
+    embedding $\Hs^2\hookrightarrow\Lp^2$ (Lemma~\ref{lem:dynamics:compact-embedding}); an
+    analytic semigroup with compact resolvent is immediately compact
+    (Lemma~\ref{lem:dynamics:immediate-compactness}); and for such semigroups a direct
+    point-spectrum argument gives the spectral mapping theorem and the equality of the growth
+    bound with the spectral bound, attained at an eigenvalue
+    (Theorem~\ref{thm:dynamics:spectral-mapping}).  Mean conservation gives
+    $0\in\sigma(L_{\eps,u})$ and $\norm{\e^{tL_{\eps,u}}}\geq1$
+    (Lemma~\ref{lem:dynamics:mean-conservation}), and the growth bound of every
+    $\C_0$-semigroup is a limit (Lemma~\ref{lem:dynamics:growth-bound-limit}).
+    Theorem~\ref{thm:dynamics:induction-spectrum} collects the instances at the induction
+    semigroup.
+  \item \emph{Solutions} (Section~\ref{sec:dynamics:solutions}).  The energy identity
+    \texttt{eq:energy-competition} (Lemma~\ref{lem:dynamics:energy-identity}), and uniqueness
+    of strong solutions of the curl-form induction equation, which identifies every solution
+    with divergence-free datum with the semigroup orbit
+    (Lemma~\ref{lem:dynamics:physical-uniqueness}).
+\end{itemize}
+
+The growth-rate clause of Theorem~\ref{thm:main} needs only part of this: the paper bounds
+$\norm{\e^{tL_{\eps,u}}}$ from below by $\norm{B^\eps(t)}_2/\norm{B_{\rm in}^\eps}_2$, and Lean
+bounds the growth bound from below by the real part of an eigenvalue whose eigenfunction lies in
+$\Lp^2_\sigma$ (Theorem~\ref{thm:main-growth-rate}); analyticity, compactness and spectral
+mapping are not used there.  Both the paper and the Lean clause (\texttt{gamma\_ge\_gamma0})
+state the growth-rate clause for $0<\eps\leq\eps_0$.
+
+Besides the semigroup chain, the first section records the Lean-side nodes: the
+$\C_0$-semigroup interface (Definition~\ref{def:dynamics:semigroup-interface}); the a priori
+energy bound $\norm{B(t)}_2\leq\e^{M_ut}\norm{B(0)}_2$ for forward strong solutions of the
+reduced operator and the uniqueness of those solutions
+(Lemmas~\ref{lem:dynamics:energy-bound} and~\ref{lem:dynamics:strong-solution-uniqueness});
+the exponential growth bound of an \emph{arbitrary} strongly continuous semigroup, its two
+elementary norm bounds and its description as a limit
+(Definition~\ref{def:dynamics:growth-bound},
+Lemmas~\ref{lem:dynamics:growth-bound-norm-bounds} and~\ref{lem:dynamics:growth-bound-limit});
+the exact exponential law of an explicit eigen-trajectory
+(Lemma~\ref{lem:dynamics:eigen-trajectory-law}); and the growth floor of the initial-value
+problem on the operator domain, sandwiched at the explicit witnesses by
+$\gamma_0\leq\gamma_{\rm str}(A_{\eps,K_\eps})\leq M_u$
+(Lemma~\ref{lem:dynamics:strong-solution-growth-floor}).  Throughout,
+$M_u:=\norm{\nabla_\perp u}_\infty$ is the $\Lp^\infty$ norm of the stretching matrix field,
+independent of $\eps$ and of the axial index.  The map \texttt{docs/MODULE\_MAP.md} contains
+the same accounting on the Lean side.
+
+\section{The growth rate and the analytic semigroup}
+
+\begin{lemma}[Semigroup generation and spectral growth]
+  \label{lem:semigroup-spectral-growth}
+  \lean{FastDynamo.SemigroupSpectralGrowth, FastDynamo.semigroupSpectralGrowth_holds}
+  \leanok
+  \uses{def:main:induction-operator, def:main:growth-rate, def:dynamics:generator,
+    def:dynamics:analytic-semigroup}
+  Let $u\in\W^{1,\infty}(\T^3;\R^3) $ be divergence-free and let $\eps>0 $.  Then the
+  following hold.
+  \begin{enumerate}
+    \item The operator $L_{\eps,u} $, with domain $\Hs^2\cap\Lp^2_\sigma $, generates an
+      analytic $\C_0 $-semigroup on $\Lp^2_\sigma $.
+    \item The resolvent of $L_{\eps,u} $ is compact, $\e^{tL_{\eps,u}} $ is compact for
+      every $t>0 $, and
+      \begin{equation}
+        \sigma(\e^{tL_{\eps,u}})\setminus\{0\}
+        =\left\{\e^{t\lambda}:\lambda\in\sigma(L_{\eps,u})\right\},
+        \qquad t>0.
+        \label{eq:dynamics:compact-semigroup-spectral-mapping}
+      \end{equation}
+    \item Furthermore,
+      \begin{equation}
+        \gamma(u,\eps)
+        =\max\{\re\lambda:\lambda\in\sigma(L_{\eps,u})\}.
+        \label{eq:dynamics:growth-rate-spectral-bound}
+      \end{equation}
+  \end{enumerate}
+\end{lemma}
+
+The paper states the lemma in two paragraphs, the second with the two displays; the
+enumeration into items (1)--(3) is the blueprint's, for reference.  The Lean statement is the
+structure \texttt{SemigroupSpectralGrowth u hu h$\eps$}, proved for every divergence-free
+transverse velocity and every $\eps>0$ by \texttt{semigroupSpectralGrowth\_holds}
+(\texttt{FastDynamo/Dynamics/Assembly/SemigroupSpectralGrowth.lean}).  Its fields, in order:
+\texttt{generator\_eq}, \texttt{generator\_curlForm}, \texttt{generator\_unique} and
+\texttt{analytic} (item~(1)); \texttt{resolventSet\_nonempty},
+\texttt{isCompactOperator\_resolvent}, \texttt{isCompactOperator\_semigroup} and
+\texttt{spectralMapping} (item~(2)); \texttt{gamma\_tendsto} (the limit
+\texttt{eq:semigroup-growth-rate} exists and is a real number, as §1.1 of the paper states);
+\texttt{gamma\_eq\_iSup} ($\gamma(u,\eps)$ is the supremum);
+\texttt{zero\_mem\_spectrum}; and \texttt{exists\_eigenvalue\_re\_eq\_gamma} (the supremum is
+attained, at an eigenvalue with an eigenvector, as §1.1 of the paper states);
+\texttt{gamma\_eq\_iSup} and \texttt{exists\_eigenvalue\_re\_eq\_gamma} together are
+\eqref{eq:dynamics:growth-rate-spectral-bound}.  It differs from the paper's
+statement as follows.
+\begin{itemize}
+  \item \emph{Model.}  The torus is the product $\T^2\times\T$, the state space is the
+    Fourier-defined $\Lp^2_\sigma$ of that model (\texttt{productSolenoidalSubspace}), and the
+    velocity is axially independent (\texttt{TransverseRealW1Inf}), as everywhere in this
+    blueprint.  The clauses are stated for the semigroup \texttt{solenoidalInductionSemigroup}
+    on the product model; \texttt{gamma} is the growth bound of its isometric transport to the
+    literal three-torus, which has the same operator norms and the same growth bound
+    (\texttt{growthBound\_literalInductionSemigroup}).
+  \item \emph{The operator.}  The generator is \texttt{solenoidalInductionOperator}: domain
+    the divergence-free $\Hs^2$ fields, values the auxiliary action $\mathcal A_\eps B$ of
+    Definition~\ref{def:main:induction-operator}, which lies in $\Lp^2_\sigma$.  On that
+    domain the action is the curl form: its image in the Fourier model of $\Hs^{-2}$ is
+    $\curl(u\times B)+\eps\Delta B$ (\texttt{generator\_curlForm}), and the embedding of
+    $\Lp^2$ into that model is injective.  This is an equivalent formulation of the paper's
+    operator.
+  \item \emph{Analyticity} is \texttt{IsAnalyticSemigroup} with the explicit angle $\pi/4$
+    (Definition~\ref{def:dynamics:analytic-semigroup}); the paper names no angle.  The
+    spectrum is \texttt{LinearPMap.spectrum}, the complement of the set of $z$ at which
+    $z-L$ has a bounded two-sided inverse (Definition~\ref{def:dynamics:generator}).
+  \item \emph{Additional clauses.}  \texttt{generator\_unique} (every $\C_0$-semigroup on
+    $\Lp^2_\sigma$ with this generator is this one), \texttt{resolventSet\_nonempty} and
+    \texttt{zero\_mem\_spectrum} are not in the paper's statement; the last is a step of the
+    paper's proof.  Attainment is stated with an eigenvector.
+\end{itemize}
+The route differs from the paper's at every step; the proof below gives both.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator, def:main:growth-rate,
+    thm:dynamics:product-semigroup, thm:dynamics:solenoidal-semigroup,
+    thm:dynamics:solenoidal-generator, thm:dynamics:induction-spectrum,
+    lem:dynamics:growth-bound-limit, lem:dynamics:mean-conservation}
+  \emph{The paper's proof.}  Work on $\Lp^2_\sigma $ throughout.  The operator $\eps\Delta $
+  with domain $\Hs^2\cap\Lp^2_\sigma $ generates an analytic semigroup there by its Fourier
+  representation, and $C_uB=\curl(u\times B) $ belongs to $\Lp^2_\sigma $ for every
+  $B\in\Hs^2\cap\Lp^2_\sigma $.  For every $\eta>0 $, interpolation gives
+  $\norm{C_uB}_2\leq C\norm u_{\W^{1,\infty}}\norm B_{\Hs^1}\leq\eta\norm{\Delta B}_2+C_\eta\norm B_2 $,
+  so $C_u $ is infinitesimally bounded relative to $\eps\Delta $ on $\Lp^2_\sigma $, and the
+  perturbation theorem for analytic semigroups [Engel--Nagel, Theorem III.2.10] gives item
+  (1) with the stated domain.  By the same relative bound and the elliptic estimate
+  $\norm B_{\Hs^2}\leq C(\norm{\Delta B}_2+\norm B_2) $ the graph norm of $L_{\eps,u} $ is
+  equivalent to the $\Hs^2 $-norm, so the compact embedding
+  $\Hs^2(\T^3)\hookrightarrow\Lp^2(\T^3) $ gives a compact resolvent; analyticity plus
+  [Engel--Nagel, Theorem II.4.29] makes the semigroup immediately compact, and
+  [Engel--Nagel, Corollaries IV.3.11 and IV.3.12] give
+  \eqref{eq:dynamics:compact-semigroup-spectral-mapping} and the equality of the growth
+  bound with the spectral bound, which is
+  \eqref{eq:dynamics:growth-rate-spectral-bound}.  For attainment: every
+  $B\in D(L_{\eps,u}) $ has $\int_{\T^3}L_{\eps,u}B\dd x=0 $, and $\Lp^2_\sigma $ contains
+  non-zero constant fields, so $L_{\eps,u} $ is not surjective and $0\in\sigma(L_{\eps,u}) $.
+  By [Engel--Nagel, Corollary V.3.2] only finitely many spectral points lie in any fixed
+  right half-plane; applied to $\{\re z\geq0\} $, this makes the spectral supremum a maximum.
+  The paper's proof notes in addition that the limit in \texttt{eq:semigroup-growth-rate} is
+  this growth bound.
+
+  \emph{The Lean proof.}  Item~(1): the semigroup is generated on all of
+  $\Lp^2(\T^3;\CC^3)$ by the auxiliary operator through the Hille--Yosida theorem
+  (Theorem~\ref{thm:dynamics:product-semigroup}) and restricted to the invariant closed
+  subspace $\Lp^2_\sigma$ (Theorem~\ref{thm:dynamics:solenoidal-semigroup}); its generator is
+  identified with $L_{\eps,u}$ on $\Hs^2\cap\Lp^2_\sigma$ and determines it
+  (Theorem~\ref{thm:dynamics:solenoidal-generator}); analyticity comes from a sector condition
+  on the numerical range through the Yosida approximants in complex time, not from
+  [Engel--Nagel, Theorem III.2.10] (Theorem~\ref{thm:dynamics:analytic-generation}).
+  Item~(2): the resolvent factors through the compact embedding, as in the paper;
+  compactness of $\e^{tL_{\eps,u}}$ for $t>0$ is proved from analyticity directly
+  (Lemma~\ref{lem:dynamics:immediate-compactness}), where the paper cites
+  [Engel--Nagel, Theorem II.4.29]; and the spectral mapping theorem is proved by a direct
+  point-spectrum argument (Theorem~\ref{thm:dynamics:spectral-mapping}), where the paper cites
+  [Engel--Nagel, Corollaries IV.3.11 and IV.3.12].  Item~(3): the same point-spectrum argument,
+  with Gelfand's formula for $\e^{L_{\eps,u}}$ in place of [Engel--Nagel, Corollary V.3.2],
+  gives the growth bound as the spectral bound, attained at an eigenvalue; the spectrum is
+  non-empty because $0\in\sigma(L_{\eps,u})$, which is the paper's mean argument
+  (Lemma~\ref{lem:dynamics:mean-conservation}).  The limit is
+  Lemma~\ref{lem:dynamics:growth-bound-limit}, and it is a real number because
+  $\norm{\e^{tL_{\eps,u}}}\geq1$ (Lemma~\ref{lem:dynamics:mean-conservation}).  The instances
+  at the induction semigroup are Theorem~\ref{thm:dynamics:induction-spectrum}.
+\end{proof}
+
+\begin{definition}[The Lean $\C_0$-semigroup interface]
+  \label{def:dynamics:semigroup-interface}
+  \lean{FastDynamo.StronglyContinuousSemigroup, FastDynamo.DomainOperator.IsForwardStrongSolution, FastDynamo.DomainOperator.ForwardStrongSolutionsUnique, FastDynamo.DomainOperatorSemigroupRealization}
+  \leanok
+  \uses{def:main:induction-operator}
+  For a complex normed space $X $, a \emph{strongly continuous semigroup} is a family
+  $S(t)\in\mathcal L(X) $, $t\geq0 $, with $S(0)=\id $,
+  $S(s+t)=S(s)S(t) $, and $t\mapsto S(t)x $ continuous for every $x\in X $.  For an
+  operator $A $ presented as a bounded map out of a Banach domain $D $ with continuous
+  injection $\iota:D\to X $, a curve $B:\R\to D $ is a \emph{forward strong solution}
+  when $t\mapsto\iota(B(t)) $ has one-sided derivative $A(B(t)) $ at every $t\geq0 $, and
+  $A $ has \emph{unique forward strong solutions} when two forward strong solutions with
+  the same initial ambient state agree for all $t\geq0 $.  A \emph{realization} of $S $ by
+  $A $ is the data of a domain-valued orbit $B\mapsto\Theta(B,\cdot) $ with
+  $\Theta(B,0)=B $, each $\Theta(B,\cdot) $ a forward strong solution, and
+  $S(t)\iota(B)=\iota(\Theta(B,t)) $ for every $t\geq0 $.
+\end{definition}
+
+In Lean the four items are \texttt{StronglyContinuousSemigroup} (a structure bundling the
+three semigroup axioms, with time in \texttt{NNReal}),
+\texttt{DomainOperator.IsForwardStrongSolution},
+\texttt{DomainOperator.ForwardStrongSolutionsUnique} and
+\texttt{DomainOperatorSemigroupRealization}, all in
+\texttt{FastDynamo/Dynamics/StronglyContinuousSemigroup.lean}.  The realization structure
+packages the \emph{conclusion} of item~(1) of Lemma~\ref{lem:semigroup-spectral-growth} as a
+hypothesis, and \emph{both} of the hypotheses this interface isolates are discharged for
+the operators of this development, so the theorems quantified over a realization are not
+vacuous:
+Lemma~\ref{lem:dynamics:strong-solution-uniqueness} and
+Lemma~\ref{lem:dynamics:product-dissipative} inhabit
+\texttt{ForwardStrongSolutionsUnique} for $A_{\eps,K} $ and for
+$\mathcal A_\eps $, at every divergence-free $u $ and $\eps\geq0 $, and \texttt{HilleYosidaRay.realization}
+(Theorem~\ref{thm:dynamics:hille-yosida}) and
+\texttt{productInductionRealization} (Theorem~\ref{thm:dynamics:product-semigroup})
+inhabit \texttt{DomainOperatorSemigroupRealization}.  One reading of the interface should
+be resisted: a realization records that the semigroup \emph{solves} the Cauchy
+problem, not that it is the only family doing so, and it is forward uniqueness, not the
+structure, that supplies the definite article
+(Lemma~\ref{lem:dynamics:semigroup-unique}).
+
+\begin{lemma}[A priori energy bound for forward strong solutions]
+  \label{lem:dynamics:energy-bound}
+  \lean{FastDynamo.DomainOperator.norm_embedding_le_exp_of_isForwardStrongSolution, FastDynamo.reducedInductionOperator_norm_embedding_le_exp, FastDynamo.re_inner_reducedInductionAction_le}
+  \leanok
+  \uses{def:main:induction-operator}
+  Let $A $ be an operator with bundled domain $D $ and continuous injection $\iota:D\to X $
+  into a complex inner-product space, and suppose that the numerical range of $A $ lies in
+  a half-plane,
+  \[
+    \re\inner{\iota(d)}{A d}\leq M\norm{\iota(d)}^2
+    \qquad(d\in D).
+  \]
+  Then every forward strong solution $B $ of $A $ obeys
+  \[
+    \norm{\iota(B(t))}\leq\e^{Mt}\norm{\iota(B(0))}
+    \qquad(t\geq0).
+  \]
+  The hypothesis holds for the reduced fixed-sector operator $A_{\eps,K} $ of
+  \eqref{eq:main:torus-sector} with $M=M_u:=\norm{\nabla_\perp u}_\infty $, for every
+  divergence-free transverse $u\in\W^{1,\infty} $, every $\eps\geq0 $ and every $K\in\Z $;
+  hence every forward strong solution of $A_{\eps,K} $ satisfies
+  $\norm{B(t)}_2\leq\e^{M_ut}\norm{B(0)}_2 $ for $t\geq0 $, with a ceiling independent of
+  the diffusivity and of the axial index.
+\end{lemma}
+
+This is the operator-level form of the paper's energy competition
+(\texttt{eq:energy-competition}): stretching contributes at most
+$M_u\norm B_2^2 $,
+diffusion contributes a nonpositive term and transport contributes nothing.  In Lean the
+abstract bound is
+\texttt{DomainOperator.norm\_embedding\_le\_exp\_of\_isForwardStrongSolution} and its
+instance for $A_{\eps,K} $ is
+\texttt{reducedInductionOperator\_norm\_embedding\_le\_exp}, both in
+\texttt{FastDynamo/Dynamics/StrongSolutionUniqueness.lean}; the half-plane hypothesis is
+discharged there by \texttt{re\_inner\_reducedInductionAction\_le}, which combines the
+exact energy identity and the stretching estimate of
+\texttt{FastDynamo/Global/ReducedInductionEnergyIdentity.lean}.  The constant $M_u $ is the
+$\Lp^\infty $ operator norm of the stretching matrix field
+$b\mapsto(b_\perp\cdot\nabla_\perp)u $, and it does not depend on $\eps $ or $K $.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  Along a forward strong solution the squared ambient energy
+  $\varphi(t)=\norm{\iota(B(t))}^2 $ is differentiable at every $t>0 $ with
+  $\varphi'(t)=2\re\inner{\iota(B(t))}{A(B(t))}\leq2M\varphi(t) $, so
+  $t\mapsto\e^{-2Mt}\varphi(t) $ has nonpositive derivative on $(0,T) $ and is antitone on
+  $[0,T] $; evaluating at the endpoints and taking square roots gives the bound.  (This is
+  Gronwall's lemma in exponential-multiplier form; Lean carries it out by hand, with
+  mean-value theory only, rather than through \texttt{Mathlib.Analysis.ODE.Gronwall}.)
+  For $A_{\eps,K} $ the
+  half-plane hypothesis is the exact identity
+  \[
+    \re\inner{b}{A_{\eps,K}b}
+    =-\eps\bigl(\norm{\nabla_\perp b}_2^2+(2\pi K)^2\norm b_2^2\bigr)
+    +\re\inner{b}{(b_\perp\cdot\nabla_\perp)u},
+  \]
+  in which the transport terms are skew and drop out, together with the stretching bound
+  $\re\inner{b}{(b_\perp\cdot\nabla_\perp)u}\leq M_u\norm b_2^2 $ and $\eps\geq0 $.
+\end{proof}
+
+\begin{lemma}[Uniqueness of forward strong solutions]
+  \label{lem:dynamics:strong-solution-uniqueness}
+  \lean{FastDynamo.DomainOperator.forwardStrongSolutionsUnique_of_re_inner_le, FastDynamo.reducedInductionOperator_forwardStrongSolutionsUnique}
+  \leanok
+  \uses{lem:dynamics:energy-bound}
+  With $A $, $\iota $ and $M $ as in Lemma~\ref{lem:dynamics:energy-bound}, two forward
+  strong solutions of $A $ with the same initial ambient state agree in $X $ at every
+  $t\geq0 $.  In particular, for every divergence-free transverse $u\in\W^{1,\infty} $,
+  every $\eps\geq0 $ and every $K\in\Z $, the reduced operator $A_{\eps,K} $ has unique
+  forward strong solutions, with no further hypothesis.
+\end{lemma}
+
+This is the uniqueness half of an energy well-posedness statement, for the
+fixed-sector reduced operator; existence is not formalised.  The paper states no such
+proposition, and Theorem~\ref{thm:main} does not need one.  The Lean statement is weaker
+than a full energy well-posedness proposition in three ways -- the velocity is
+autonomous, the data lie in the bundled $\Hs^2 $ domain rather than in $\Lp^2_\sigma $, and
+the solution concept is the strong one of Definition~\ref{def:dynamics:semigroup-interface}
+rather than the Lions--Magenes energy one -- and it holds for every divergence-free $u $, every
+$\eps\geq0 $ and every $K $.  In Lean:
+\texttt{DomainOperator.forwardStrongSolutionsUnique\_of\_re\_inner\_le} and
+\texttt{reducedInductionOperator\_forwardStrongSolutionsUnique}
+(\texttt{FastDynamo/Dynamics/StrongSolutionUniqueness.lean}).  It inhabits one of the two hypotheses isolated by
+Definition~\ref{def:dynamics:semigroup-interface}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:energy-bound}
+  The difference of two forward strong solutions is again a forward strong solution, by
+  linearity of $\iota $ and of $A $, and its initial ambient state vanishes.  The bound of
+  Lemma~\ref{lem:dynamics:energy-bound} applied to the difference gives
+  $\norm{\iota(B_1(t)-B_2(t))}\leq\e^{Mt}\cdot0=0 $ for every $t\geq0 $.
+\end{proof}
+
+\begin{lemma}[Exact exponential law of an eigen-trajectory]
+  \label{lem:dynamics:eigen-trajectory-law}
+  \lean{FastDynamo.DomainOperator.isStrongSolution_eigenTrajectory, FastDynamo.DomainOperator.norm_embedding_eigenTrajectory}
+  \leanok
+  \uses{def:main:induction-operator}
+  Let $A $ be an operator with bundled Banach domain $D $ and continuous injection
+  $\iota:D\to X $, and let $\lambda\in\CC $, $0\neq B\in D $ satisfy $AB=\lambda\iota(B) $.
+  Then the curve $t\mapsto\e^{t\lambda}B $ is a strong solution of
+  $\frac{\dd}{\dd t}\iota(B(t))=A(B(t)) $ on all of $\R $, and
+  \[
+    \norm{\iota(\e^{t\lambda}B)}
+    =\e^{t\re\lambda}\norm{\iota(B)}
+    \qquad(t\in\R).
+  \]
+\end{lemma}
+
+In Lean the curve is \texttt{FastDynamo.DomainOperator.eigenTrajectory}, and the two
+displayed facts are \texttt{isStrongSolution\_eigenTrajectory}
+(\texttt{FastDynamo/Operator/Evolution.lean}) and
+\texttt{norm\_embedding\_eigenTrajectory}
+(\texttt{FastDynamo/Finish/GrowingModeEvolution.lean}); the same module derives that the
+norm tends to infinity when $\re\lambda>0 $ and crosses every threshold at a nonnegative
+time.
+
+This is \emph{not} the growth bound of Lemma~\ref{lem:semigroup-spectral-growth}, and the
+distinction is the whole content of this chapter.  The lemma describes a single
+trajectory, written down by hand by scalar exponentiation; it asserts nothing about the
+existence of an evolution operator, and the quantity it controls is
+$\norm{\iota(\e^{t\lambda}B)} $ for one datum, not
+$\norm{\e^{tL_{\eps,u}}}_{\Lp^2_\sigma\to\Lp^2_\sigma} $.  To convert it into a lower
+bound for $\gamma(u,\eps) $ one needs a semigroup to exist and this curve to be its orbit,
+which is exactly the realization hypothesis of
+Definition~\ref{def:dynamics:semigroup-interface}; that hypothesis is a theorem
+(Theorem~\ref{thm:dynamics:product-semigroup}), and the conversion is carried out in
+Theorem~\ref{thm:main-growth-rate}.  It is this lemma, at the level of the physical
+real-valued field, that supplies the exact norm law in Theorem~\ref{thm:main}; the
+growth-rate clause is a separate statement, proved separately and by a different route.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  Differentiating $s\mapsto\e^{s\lambda} $ in the real variable $s $ and applying the
+  bounded map $\iota $ gives
+  $\frac{\dd}{\dd t}\iota(\e^{t\lambda}B)=\lambda\,\iota(\e^{t\lambda}B)$, which equals
+  $A(\e^{t\lambda}B) $ by the eigenvalue equation and linearity.  For the norm,
+  $\norm{\iota(\e^{t\lambda}B)}=\abs{\e^{t\lambda}}\norm{\iota(B)}=\e^{t\re\lambda}\norm{\iota(B)} $.
+  Neither step needs a hypothesis or an analytic input.
+\end{proof}
+
+\begin{definition}[The growth bound of a strongly continuous semigroup]
+  \label{def:dynamics:growth-bound}
+  \lean{FastDynamo.StronglyContinuousSemigroup.growthBound}
+  \leanok
+  \uses{def:dynamics:semigroup-interface}
+  For a strongly continuous semigroup $S $ on a complex normed space $X $, the
+  \emph{exponential growth bound} is
+  \[
+    \omega_0(S)
+    :=\limsup_{t\to\infty}\frac1t\log\norm{S(t)}
+    \in[-\infty,+\infty],
+  \]
+  with the convention that a time at which $S(t)=0 $ contributes $-\infty $.
+\end{definition}
+
+In Lean this is \texttt{StronglyContinuousSemigroup.growthBound}
+(\texttt{FastDynamo/Dynamics/GrowthBound.lean}), valued in \texttt{EReal}.  Two points of
+the encoding matter.  First, it is defined as a $\limsup $, so that it is defined for every
+semigroup with no preliminary work; Lemma~\ref{lem:dynamics:growth-bound-limit} proves that
+for every $\C_0$-semigroup on a Banach space it is a limit, so it is the limit of
+Definition~\ref{def:main:growth-rate}.  Second, the integrand is $-\infty $ rather than
+Mathlib's junk value $\log0=0 $ at the times where $\norm{S(t)}=0 $, so the definition is
+faithful on the nilpotent semigroups the interface permits.  This is the growth bound of an
+arbitrary \emph{given} semigroup; applied to the semigroup of
+Theorem~\ref{thm:dynamics:solenoidal-semigroup} it is the Lean value of $\gamma(u,\eps) $
+(Definition~\ref{def:main:growth-rate}).
+
+\begin{lemma}[Exponential majorants and minorants control the growth bound]
+  \label{lem:dynamics:growth-bound-norm-bounds}
+  \lean{FastDynamo.StronglyContinuousSemigroup.growthBound_le_of_norm_le, FastDynamo.StronglyContinuousSemigroup.le_growthBound_of_norm_ge}
+  \leanok
+  \uses{def:dynamics:growth-bound}
+  Let $S $ be a strongly continuous semigroup on $X $ and let $\omega\in\R $.  If
+  $\norm{S(t)}\leq C\e^{\omega t} $ for every $t\geq0 $ and some $C>0 $, then
+  $\omega_0(S)\leq\omega $.  If $\e^{\omega t}\leq\norm{S(t)} $ for all large $t $, then
+  $\omega\leq\omega_0(S) $.
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:growth-bound}
+  For the first bound, at the times where $\norm{S(t)}=0 $ the integrand is $-\infty $ and
+  there is nothing to prove; elsewhere take logarithms, divide by $t>0 $ and use
+  monotonicity of the $\limsup $ against the majorant $t^{-1}\log C+\omega $, which tends
+  to $\omega $.  For the second bound the hypothesis makes $\norm{S(t)} $ positive along
+  $t\to\infty $, so the same computation shows that the integrand is eventually at least
+  $\omega $, which is below the $\limsup $.
+\end{proof}
+
+\begin{lemma}[The growth bound is a limit]
+  \label{lem:dynamics:growth-bound-limit}
+  \lean{FastDynamo.StronglyContinuousSemigroup.growthExponent,
+    FastDynamo.StronglyContinuousSemigroup.exists_norm_operator_le,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_eq_iInf,
+    FastDynamo.StronglyContinuousSemigroup.tendsto_growthExponent,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_ne_top,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_ne_bot_iff,
+    FastDynamo.StronglyContinuousSemigroup.exists_growthBound_eq_and_tendsto}
+  \leanok
+  \uses{def:dynamics:growth-bound}
+  Let $S $ be a strongly continuous semigroup on a complex Banach space $X $.  Then
+  \[
+    \frac1t\log\norm{S(t)}\xrightarrow[t\to\infty]{}\omega_0(S)
+    =\inf_{t>0}\frac1t\log\norm{S(t)}\in[-\infty,\infty),
+  \]
+  with $\log0=-\infty$.  The limit is finite exactly when there is $\omega\in\R$ with
+  $\e^{\omega t}\leq\norm{S(t)}$ for every $t>0$, and then it is a real number $L$ with
+  $t^{-1}\log\norm{S(t)}\to L$ in $\R$.  In particular the $\limsup$ of
+  Definition~\ref{def:dynamics:growth-bound} is the limit of
+  \eqref{eq:main:semigroup-growth-rate}.
+\end{lemma}
+
+This is the paper's justification of \texttt{eq:semigroup-growth-rate} (the sentence after that
+display: subadditivity and local boundedness, [Engel--Nagel, Proposition IV.2.2]), for every
+$\C_0$-semigroup, with no hypothesis beyond completeness of $X$.  In Lean:
+\texttt{FastDynamo/Dynamics/GrowthBoundLimit.lean}.  \texttt{growthExponent} is the integrand of
+\texttt{growthBound}, valued in \texttt{EReal} and equal to $\bot=-\infty$ where $S(t)=0$;
+\texttt{growthBound\_eq\_iInf} and \texttt{tendsto\_growthExponent} are the display;
+\texttt{growthBound\_ne\_bot\_iff} is the criterion for finiteness, and
+\texttt{exists\_growthBound\_eq\_and\_tendsto} the real-valued form.  The limit lies in
+$[-\infty,\infty)$, as in the paper; it is $-\infty$ for nilpotent semigroups and also for
+semigroups whose norm decays faster than every exponential without vanishing.  Completeness of
+$X$ enters through the Banach--Steinhaus theorem (\texttt{exists\_norm\_operator\_le}).
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:growth-bound}
+  Fix $s>0$ and put $n=\lfloor t/s\rfloor$.  The semigroup law gives
+  $\norm{S(t)}\leq\norm{S(t-ns)}\norm{S(s)}^n\leq K\norm{S(s)}^n$, where $K$ bounds
+  $\norm{S(r)}$ for $0\leq r\leq s$ (strong continuity on a compact interval and the
+  Banach--Steinhaus theorem).  Taking logarithms,
+  $t^{-1}\log\norm{S(t)}\leq t^{-1}\log K+(n/t)\log\norm{S(s)}$, whose right side tends to
+  $s^{-1}\log\norm{S(s)}$; if $S(s)=0$ then $S(t)=0$ for $t\geq s$.  Hence the $\limsup$ is
+  at most every value $s^{-1}\log\norm{S(s)}$, so at most their infimum, which is at most the
+  $\liminf$.  So $\limsup=\inf=\liminf$, and the limit exists.  It is finite exactly when the
+  infimum is, which is the exponential minorant.
+\end{proof}
+
+\begin{lemma}[Spectral lower bound for the growth bound of a realizing semigroup]
+  \label{lem:dynamics:conditional-growth-bound}
+  \lean{FastDynamo.DomainOperatorSemigroupRealization.exp_re_le_operatorNorm, FastDynamo.DomainOperatorSemigroupRealization.eigenpair_orbit_and_growth, FastDynamo.DomainOperatorSemigroupRealization.re_le_growthBound_of_eigenpair}
+  \leanok
+  \uses{def:dynamics:growth-bound, def:dynamics:semigroup-interface, lem:dynamics:strong-solution-uniqueness, lem:dynamics:eigen-trajectory-law}
+  Let $S $ be a strongly continuous semigroup on $X $, let $A $ be an operator with
+  bundled domain $D $, assume a realization of $S $ by $A $ in the sense of
+  Definition~\ref{def:dynamics:semigroup-interface}, and assume that $A $ has unique
+  forward strong solutions.  Then for every eigenpair $AB=\lambda\iota(B) $ with
+  $\iota(B)\neq0 $ and every $t\geq0 $,
+  \[
+    S(t)\iota(B)=\iota(\e^{t\lambda}B),
+    \qquad
+    \norm{S(t)\iota(B)}=\e^{t\re\lambda}\norm{\iota(B)},
+    \qquad
+    \e^{t\re\lambda}\leq\norm{S(t)},
+  \]
+  and consequently $\re\lambda\leq\omega_0(S) $.
+\end{lemma}
+
+The statement carries its own hypotheses, and in that form it is proved in Lean
+(\texttt{FastDynamo/Dynamics/StronglyContinuousSemigroup.lean} for the three displayed
+identities, \texttt{FastDynamo/Dynamics/GrowthBound.lean} for
+\texttt{re\_le\_growthBound\_of\_eigenpair}).  It isolates the easy half of the growth
+clause: the implication ``an eigenvalue with $\re\lambda\geq\gamma_0 $
+$\Rightarrow$ $\norm{S(t)}\geq\e^{t\gamma_0} $, hence $\gamma(u,\eps)\geq\gamma_0 $''.  Both
+of the hypotheses the lemma carries are theorems: forward
+uniqueness for the reduced operator, for the all-frequency operator and for the curl form
+(Lemmas~\ref{lem:dynamics:strong-solution-uniqueness},
+\ref{lem:dynamics:product-dissipative} and~\ref{lem:dynamics:physical-uniqueness}), and the realization by the generation theorem
+(Theorem~\ref{thm:dynamics:product-semigroup}).
+The lemma is therefore not conditional in substance: it is the engine of the lower
+bound of Lemma~\ref{lem:dynamics:hille-yosida-growth-sandwich} and, through it, of
+Theorem~\ref{thm:main-growth-rate}.
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:growth-bound, lem:dynamics:growth-bound-norm-bounds, lem:dynamics:eigen-trajectory-law}
+  The realization supplies a forward strong solution starting at $B $ whose embedding is
+  the semigroup orbit; the eigen-trajectory of
+  Lemma~\ref{lem:dynamics:eigen-trajectory-law} is a second forward strong solution with
+  the same initial state.  Forward uniqueness identifies the two, which gives the first
+  identity; the norm law of Lemma~\ref{lem:dynamics:eigen-trajectory-law} gives the
+  second; and dividing $\norm{S(t)\iota(B)}\leq\norm{S(t)}\norm{\iota(B)} $ by
+  $\norm{\iota(B)}>0 $ gives the third.  The third inequality holds for every $t\geq0 $, so
+  the minorant half of Lemma~\ref{lem:dynamics:growth-bound-norm-bounds} with
+  $\omega=\re\lambda $ gives $\re\lambda\leq\omega_0(S) $.  Forward uniqueness enters as a
+  \emph{hypothesis} of this lemma, not as a lemma its proof invokes; it is discharged
+  downstream at Lemma~\ref{lem:dynamics:strong-solution-uniqueness}, whose Lean module
+  \texttt{Dynamics/StrongSolutionUniqueness.lean} imports
+  \texttt{Dynamics/StronglyContinuousSemigroup.lean} and not the other way round, so this
+  proof does not \texttt{\textbackslash uses} it.
+\end{proof}
+
+\begin{lemma}[The growth floor of the initial-value problem]
+  \label{lem:dynamics:strong-solution-growth-floor}
+  \lean{FastDynamo.DomainOperator.strongSolutionGrowthFloor, FastDynamo.DomainOperator.re_le_strongSolutionGrowthFloor_of_eigenpair, FastDynamo.DomainOperator.strongSolutionGrowthFloor_le_of_norm_le, FastDynamo.reducedInductionOperator_strongSolutionGrowthFloor_le, FastDynamo.mainGrowthFloor_le_strongSolutionGrowthFloor, FastDynamo.mainGrowthFloor_le_strongSolutionGrowthFloor_le}
+  \leanok
+  \uses{lem:dynamics:eigen-trajectory-law, lem:dynamics:energy-bound, thm:main-spectral, def:main:witnesses}
+  For an operator $A $ with bundled domain $D $ and continuous injection $\iota:D\to X $
+  put
+  \[
+    \gamma_{\rm str}(A)
+    :=\sup_B\ \limsup_{t\to\infty}\frac1t
+    \log\frac{\norm{\iota(B(t))}}{\norm{\iota(B(0))}}
+    \in[-\infty,+\infty],
+  \]
+  the supremum being over all forward strong solutions $B $ of $A $ with
+  $\iota(B(0))\neq0 $ (and $-\infty $ if there are none; a time at which $\iota(B(t)) $
+  vanishes contributes $-\infty $ to the inner $\limsup $).  Then
+  \[
+    \re\lambda\leq\gamma_{\rm str}(A)
+  \]
+  for every eigenpair $AB=\lambda\iota(B) $ with $\iota(B)\neq0 $, and
+  \[
+    \gamma_{\rm str}(A)\leq M
+  \]
+  whenever every forward strong solution of $A $ obeys
+  $\norm{\iota(B(t))}\leq\e^{Mt}\norm{\iota(B(0))} $ for $t\geq0 $.  Both halves apply to
+  the reduced fixed-sector operator: with $M_u=\norm{\nabla_\perp u}_\infty $ as in
+  Lemma~\ref{lem:dynamics:energy-bound} one has $\gamma_{\rm str}(A_{\eps,K})\leq M_u $
+  for every divergence-free transverse $u\in\W^{1,\infty} $, every $\eps\geq0 $ and every
+  $K\in\Z $; and at the explicit witnesses $u $, $\eps_0 $, $\gamma_0 $ of
+  Definition~\ref{def:main:witnesses} the eigenpairs of Theorem~\ref{thm:main-spectral}
+  give, for every $0<\eps\leq\eps_0 $, an axial index $K_\eps\neq0 $ with
+  \[
+    \gamma_0\leq\gamma_{\rm str}(A_{\eps,K_\eps})\leq M_u.
+  \]
+\end{lemma}
+
+This has no hypothesis: no semigroup, no realization and no uniqueness hypothesis.  It is
+\emph{not} the paper's $\gamma(u,\eps) $, and the Lean name
+\texttt{strongSolutionGrowthFloor} is chosen so that it cannot be mistaken for it.  The
+difference is the one this whole chapter is about: $\gamma_{\rm str} $ is the growth rate
+of the initial-value problem on the operator's domain, a supremum over curves that happen
+to solve the equation, whereas $\gamma(u,\eps) $ of Definition~\ref{def:main:growth-rate}
+is a supremum over \emph{all} $\Lp^2_\sigma $ data taken inside an operator norm.  Given a
+strongly continuous semigroup $S $ realizing $A $, the inequality
+$\gamma_{\rm str}(A)\leq\omega_0(S) $ follows from
+$\norm{S(t)x}\leq\norm{S(t)}\norm x $, and the converse from density of the domain
+together with the locally uniform bound of Lemma~\ref{lem:dynamics:energy-bound}; neither
+direction is proved.  In Lean:
+\texttt{DomainOperator.strongSolutionGrowthFloor} and
+\texttt{DomainOperator.re\_le\_strongSolutionGrowthFloor\_of\_eigenpair}
+and the ceiling \texttt{DomainOperator.strongSolutionGrowthFloor\_le\_of\_norm\_le}
+(\texttt{FastDynamo/Dynamics/GrowthBound.lean}).  The sandwich at the explicit witnesses is
+\texttt{mainGrowthFloor\_le\_strongSolutionGrowthFloor\_le}, assembled from
+\texttt{mainGrowthFloor\_le\_strongSolutionGrowthFloor} (the eigenpairs of
+Theorem~\ref{thm:main-spectral} at the witnesses of Definition~\ref{def:main:witnesses})
+and \texttt{reducedInductionOperator\_strongSolutionGrowthFloor\_le} (the ceiling, fed by
+the a priori bound of Lemma~\ref{lem:dynamics:energy-bound}), both in
+\texttt{FastDynamo/Dynamics/MainGrowthFloor.lean}.  So
+$\gamma_0\leq\gamma_{\rm str}(A_{\eps,K_\eps})\leq M_u $ holds for every $0<\eps\leq\eps_0 $:
+it is the counterpart of \eqref{eq:main-growth-conclusion} for $\gamma_{\rm str} $, the lower bound carrying the growth conclusion and the
+upper bound showing that $\gamma_{\rm str} $ is a real quantity and not a vacuous
+$+\infty $.  It is a statement about the initial-value problem on the domain; the
+corresponding statement about $\gamma(u,\eps) $ is Theorem~\ref{thm:main-growth-rate}, and
+it needs the whole generation chain of the next three sections, not this lemma.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:eigen-trajectory-law, lem:dynamics:energy-bound, thm:main-spectral, def:main:witnesses}
+  The eigen-trajectory $t\mapsto\e^{t\lambda}B $ of
+  Lemma~\ref{lem:dynamics:eigen-trajectory-law} is a forward strong solution with
+  $\iota(B(0))=\iota(B)\neq0 $ and
+  $\norm{\iota(\e^{t\lambda}B)}/\norm{\iota(B)}=\e^{t\re\lambda} $ for every $t $.  Taking
+  logarithms and dividing by $t>0 $ makes the inner integrand identically $\re\lambda $
+  along $t\to\infty $, so the $\limsup $ for this single solution is $\re\lambda $, and the
+  supremum over all solutions is at least that.  For the ceiling, the hypothesis bounds
+  the inner integrand of every admissible solution by $t^{-1}\log\e^{Mt}=M $ along
+  $t\to\infty $ (the times where $\iota(B(t)) $ vanishes contribute $-\infty $), so every
+  inner $\limsup $, and hence the supremum, is at most $M $.  The instance for
+  $A_{\eps,K} $ is Lemma~\ref{lem:dynamics:energy-bound} with $M=M_u $, and the lower
+  bound at the witnesses of Definition~\ref{def:main:witnesses} is the eigenpair clause of
+  Theorem~\ref{thm:main-spectral} fed to the displayed eigenpair bound.
+\end{proof}
+
+\section{The Hille--Yosida generation theorem}
+\label{sec:dynamics:hille-yosida}
+
+Mathlib has no $\C_0 $-semigroup theory, so the generation theorem that item~(1) of
+Lemma~\ref{lem:semigroup-spectral-growth} needs is built here from scratch, in
+\texttt{FastDynamo/Dynamics/HilleYosida/}.  The paper generates an \emph{analytic}
+semigroup by an infinitesimal perturbation of $\eps\Delta $; the formalisation instead uses
+the dissipative route, whose only analytic input is a resolvent estimate on a real ray and
+whose conclusion is a $\C_0 $-semigroup with an exponential norm bound.  Its generator is
+identified in Lemma~\ref{lem:dynamics:hille-yosida-generator}, and analyticity is proved from a
+sector condition in Theorem~\ref{thm:dynamics:analytic-generation}, on the same Yosida
+approximants.
+
+\begin{definition}[Hille--Yosida ray]
+  \label{def:dynamics:hille-yosida-ray}
+  \lean{FastDynamo.HilleYosidaRay, FastDynamo.HilleYosidaRay.ofHalfPlane,
+    FastDynamo.HilleYosidaRay.norm_smul_stateResolvent_le,
+    FastDynamo.HilleYosidaRay.tendsto_smul_stateResolvent}
+  \leanok
+  \uses{def:main:induction-operator}
+  Let $A $ be an operator presented as a bounded map out of a Banach domain $D $ with
+  continuous injection $\iota:D\to X $, and let $M\in\R $.  A \emph{Hille--Yosida ray of
+  constant $M $} for $A $ is a set $S\subset\CC $ together with a two-sided inverse
+  $(z-A)^{-1}:X\to D $ of the pencil $z\iota-A $ at every $z\in S $, such that $S $ contains
+  every real $r>M $ and the state resolvent $R(r)=\iota\circ(r-A)^{-1} $ obeys
+  \[
+    \norm{R(r)}_{X\to X}\leq(r-M)^{-1}
+    \qquad(r\in\R,\ r>M).
+  \]
+\end{definition}
+
+In Lean this is the structure \texttt{FastDynamo.HilleYosidaRay A M}
+(\texttt{FastDynamo/Dynamics/HilleYosida/ResolventRay.lean}), with fields
+\texttt{spectralSet}, a \texttt{HasResolventOn} certificate, membership of the real ray and
+the displayed bound.  The certificate records only the two inverse equations: no closed
+graph, no completeness of $D $ and no continuity of $z\mapsto R(z) $ is assumed, and every
+algebraic identity the construction needs (the resolvent identity, $AR(z)=zR(z)-\id $,
+commutation of the resolvents) is derived from them.  \texttt{HilleYosidaRay.ofHalfPlane}
+builds a ray from a resolvent on the half-plane $\{\re z>M\} $, which is how the two
+instances below arise.  The two quantitative consequences the approximation scheme consumes
+are \texttt{norm\_smul\_stateResolvent\_le} ($\norm{rR(r)}\leq r/(r-M) $, a bound uniform for
+large $r $) and, when $\iota $ has dense range, the strong convergence
+$rR(r)x\to x $ of \texttt{tendsto\_smul\_stateResolvent}.
+
+\begin{theorem}[Hille--Yosida generation]
+  \label{thm:dynamics:hille-yosida}
+  \lean{FastDynamo.exists_stronglyContinuousSemigroup_of_hilleYosidaRay,
+    FastDynamo.HilleYosidaRay.semigroup, FastDynamo.HilleYosidaRay.realization,
+    FastDynamo.HilleYosidaRay.semigroup_spec,
+    FastDynamo.HilleYosidaRay.norm_semigroup_le,
+    FastDynamo.HilleYosidaRay.growthBound_le}
+  \leanok
+  \uses{def:dynamics:hille-yosida-ray, def:dynamics:semigroup-interface,
+    def:dynamics:growth-bound}
+  Let $X $ be a complex Banach space and let $A $ carry a Hille--Yosida ray of constant $M $
+  whose domain injection $\iota:D\to X $ has dense range.  Then $A $ generates a strongly
+  continuous semigroup $S $ on $X $: there is a realization of $S $ by $A $ in the sense of
+  Definition~\ref{def:dynamics:semigroup-interface} --- every $d\in D $ evolves along a
+  domain-valued forward strong solution whose embedding is the orbit $t\mapsto S(t)\iota(d) $
+  --- and
+  \[
+    \norm{S(t)}_{X\to X}\leq\e^{Mt}
+    \qquad(t\geq0),
+    \qquad\text{hence}\qquad
+    \omega_0(S)\leq M .
+  \]
+\end{theorem}
+
+The existential form is
+\texttt{exists\_stronglyContinuousSemigroup\_of\_hilleYosidaRay}; because the consumers need
+the orbit and not only its existence, the same content is also stated about the named
+objects \texttt{HilleYosidaRay.semigroup} and \texttt{HilleYosidaRay.realization}, as
+\texttt{HilleYosidaRay.semigroup\_spec} (\texttt{FastDynamo/Dynamics/HilleYosida/Generation.lean}).
+This is the analogue of the classical generation theorem for contraction-type semigroups
+[Engel--Nagel, Theorem II.3.5] in this development's \texttt{DomainOperator} formulation.
+Analyticity is not part of this theorem: it needs the additional sector condition of
+Theorem~\ref{thm:dynamics:analytic-generation}.
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:hille-yosida-ray, def:dynamics:semigroup-interface,
+    lem:dynamics:growth-bound-norm-bounds}
+  The Yosida route.  The approximants $A_r:=r^2R(r)-r $
+  (\texttt{HilleYosidaRay.yosida}) are bounded operators with
+  $\norm{\e^{tA_r}}\leq\e^{Mrt/(r-M)} $, so their exponentials
+  $\e^{tA_r} $ (\texttt{HilleYosidaRay.approx}) are uniformly bounded on compact time
+  intervals; $A_r\iota(d)\to A d $ for every $d\in D $, and the two approximants commute,
+  which turns the telescoping identity
+  $\e^{tA_r}x-\e^{tA_s}x=\int_0^t\frac{\dd}{\dd\tau}\bigl(\e^{(t-\tau)A_s}\e^{\tau A_r}x\bigr)\dd\tau $
+  into the Cauchy estimate of \texttt{cauchySeq\_approx}, first on the dense range of $\iota $
+  and then, by the uniform bound, on all of $X $.  Completeness of $X $ gives the strong
+  limit $S(t) $ (\texttt{HilleYosidaRay.semigroupOperator}); the semigroup law and
+  $S(0)=\id $ pass to the limit, and strong continuity at $t=0 $ comes from the convergence
+  being uniform on compact time intervals (\texttt{tendstoUniformlyOn\_approx}).  The
+  exponential bound survives the limit, and the majorant half of
+  Lemma~\ref{lem:dynamics:growth-bound-norm-bounds} turns it into $\omega_0(S)\leq M $.  For
+  the realization, fix a real $\lambda_0>M $ and transport the ambient orbit of
+  $(\lambda_0-A)d $ back to $D $ along $(\lambda_0-A)^{-1} $; because $S(t) $ commutes with
+  $R(\lambda_0) $, the embedding of that domain-valued curve is $S(t)\iota(d) $ and the
+  operator applied to it is $S(t)(Ad) $.  Its one-sided derivative at each $t\geq0 $ then
+  comes from the integral identity
+  $S(t)\iota(d)-\iota(d)=\int_0^tS(\tau)(Ad)\dd\tau $ by the second fundamental theorem of
+  calculus, the endpoint $t=0 $ included.
+\end{proof}
+
+\begin{lemma}[The generated semigroup is the only one]
+  \label{lem:dynamics:semigroup-unique}
+  \lean{FastDynamo.StronglyContinuousSemigroup.operator_eq_of_realization,
+    FastDynamo.HilleYosidaRay.semigroup_unique}
+  \leanok
+  \uses{def:dynamics:semigroup-interface, thm:dynamics:hille-yosida}
+  Let $A $ have a densely embedded domain and unique forward strong solutions.  Then two
+  strongly continuous semigroups admitting a realization by $A $ have the same evolution
+  operator at every time.  In particular, if $A $ carries a Hille--Yosida ray, every
+  strongly continuous semigroup realizing $A $ equals the one built in
+  Theorem~\ref{thm:dynamics:hille-yosida}.
+\end{lemma}
+
+This is what earns the definite article in ``\emph{the} semigroup of $A $'' below, and it
+removes any content from the choices made inside the construction: the semigroup does not
+depend on which resolvent certificate the ray carries.  In Lean:
+\texttt{StronglyContinuousSemigroup.operator\_eq\_of\_realization}
+(\texttt{FastDynamo/Dynamics/StronglyContinuousSemigroup.lean}) and
+\texttt{HilleYosidaRay.semigroup\_unique}
+(\texttt{FastDynamo/Dynamics/HilleYosida/Generation.lean}).
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:semigroup-interface}
+  On the image of $\iota $ the two realizations give two forward strong solutions with the
+  same initial state, so forward uniqueness makes the two orbits agree there; both evolution
+  operators are bounded and the image of $\iota $ is dense, so they agree on $X $.  As in
+  Lemma~\ref{lem:dynamics:conditional-growth-bound}, forward uniqueness is a hypothesis of
+  the statement rather than a lemma the proof calls: the concrete instance
+  Lemma~\ref{lem:dynamics:strong-solution-uniqueness} lives in a Lean module that
+  \emph{imports} this one, so it is not a \texttt{\textbackslash uses} of this proof.
+\end{proof}
+
+\begin{lemma}[Growth-bound sandwich for a Hille--Yosida generator]
+  \label{lem:dynamics:hille-yosida-growth-sandwich}
+  \lean{FastDynamo.re_le_growthBound_of_hilleYosidaRay_of_eigenpair}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, def:dynamics:growth-bound}
+  Let $A $ carry a Hille--Yosida ray of constant $M $, let its domain embed densely, and let
+  its forward strong solutions be unique.  Then for every eigenpair $Ab=\lambda\iota(b) $
+  with $\iota(b)\neq0 $,
+  \[
+    \re\lambda\ \leq\ \omega_0(S)\ \leq\ M ,
+  \]
+  $S $ being the semigroup of Theorem~\ref{thm:dynamics:hille-yosida}.
+\end{lemma}
+
+This is the shape in which the rest of the chapter uses the generation theorem: it converts
+an eigenvalue of the operator into a two-sided pin on the growth bound of a
+constructed semigroup.  It is
+\texttt{re\_le\_growthBound\_of\_hilleYosidaRay\_of\_eigenpair}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:conditional-growth-bound, thm:dynamics:hille-yosida}
+  The upper bound is the exponential norm bound of Theorem~\ref{thm:dynamics:hille-yosida}.
+  For the lower bound, the realization and forward uniqueness put the semigroup orbit of the
+  eigenvector equal to the eigen-trajectory $t\mapsto\e^{t\lambda}b $, which is exactly the
+  hypothesis discharged in Lemma~\ref{lem:dynamics:conditional-growth-bound}; its conclusion
+  $\re\lambda\leq\omega_0(S) $ applies verbatim.
+\end{proof}
+
+\begin{lemma}[Invariant closed subspaces and the restricted semigroup]
+  \label{lem:dynamics:invariant-restriction}
+  \lean{FastDynamo.HilleYosidaRay.semigroup_mem_of_closed_resolvent_invariant,
+    FastDynamo.HilleYosidaRay.restrictedSemigroup,
+    FastDynamo.StronglyContinuousSemigroup.restrict,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_restrict_le,
+    FastDynamo.StronglyContinuousSemigroup.congr,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_congr,
+    FastDynamo.StronglyContinuousSemigroup.growthBound_mono_of_norm_le}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, def:dynamics:growth-bound}
+  Let $A $ carry a Hille--Yosida ray of constant $M $ and a densely embedded domain, and let
+  $W\subset X $ be a closed subspace such that $R(r)W\subset W $ for every real $r>M $.  Then
+  the generated semigroup leaves $W $ invariant, and its restriction $S|_W $ is a strongly
+  continuous semigroup on $W $ with $\norm{S|_W(t)}\leq\e^{Mt} $ and
+  $\omega_0(S|_W)\leq\omega_0(S) $.  Moreover, conjugating a strongly continuous semigroup by
+  a surjective linear isometry changes no operator norm and hence no growth bound, and
+  $\norm{S(t)}\leq\norm{T(t)} $ for all $t\geq0 $ implies $\omega_0(S)\leq\omega_0(T) $.
+\end{lemma}
+
+The invariance hypothesis is checked on the resolvent -- an explicit operator -- and
+propagated to the semigroup along the approximation scheme,
+$R(r)\rightsquigarrow A_r\rightsquigarrow\e^{tA_r}\rightsquigarrow S(t) $; closedness of $W $
+is used exactly once, to pass the exponential series to the limit.  This is the only
+available route, since the generated semigroup is a limit and not a formula.  Note the
+direction: passing to an invariant subspace can strictly \emph{lower} a growth bound, so the
+reverse inequality is false in general and is never claimed; a lower bound on
+$\omega_0(S|_W) $ has to be proved on $W $ itself.  In Lean:
+\texttt{FastDynamo/Dynamics/HilleYosida/Invariance.lean} for the invariance and
+\texttt{HilleYosidaRay.restrictedSemigroup}, and
+\texttt{FastDynamo/Dynamics/SemigroupRestriction.lean} for
+\texttt{StronglyContinuousSemigroup.restrict}, \texttt{congr} and the two growth-bound
+comparisons.
+
+\begin{proof}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, def:dynamics:growth-bound}
+  A closed subspace invariant under a bounded operator $B $ is invariant under $\e^B $,
+  because the exponential series converges in operator norm and every partial sum lies in
+  $W $; the Yosida approximant $A_r=r^2R(r)-r $ preserves $W $ as soon as $R(r) $ does on the
+  whole ray, hence so does $\e^{tA_r} $, and $S(t)x $ is the limit of $\e^{tA_r}x $.  The
+  restricted family is the ambient one read through the subtype inclusion, so the three
+  semigroup laws and strong continuity are inherited and $\norm{S|_W(t)}\leq\norm{S(t)} $.
+  The comparison of growth bounds is monotonicity of the $\limsup $, the times with
+  $\norm{S(t)}=0 $ contributing $-\infty $; for a surjective isometry both conjugations
+  preserve norms, so the comparison holds in both directions and the growth bounds are equal.
+\end{proof}
+
+\section{The induction operator on one axial sector}
+
+The Hille--Yosida ray of each axial sector comes from the dissipativity proved for the
+reduced fixed-sector operator $A_{\eps,K} $ of \eqref{eq:main:torus-sector}.  What dissipativity of
+$A_{\eps,K} $ alone gives is the lower bound $(\re z-M_u)\norm{\iota b}\leq\norm{(z-A)b} $,
+that is, injectivity with closed range; surjectivity of the pencil is the Lumer--Phillips
+half, and it comes from the same bound for the formal adjoint.
+
+\begin{lemma}[The displayed formal adjoint of the reduced operator]
+  \label{lem:dynamics:reduced-adjoint}
+  \lean{FastDynamo.reducedInductionAdjointOperator,
+    FastDynamo.reducedInductionStretchingTranspose,
+    FastDynamo.reducedInductionOperator_formalAdjointPairing,
+    FastDynamo.re_inner_reducedInductionAdjointAction_le,
+    FastDynamo.reducedInductionAdjointOperator_forwardStrongSolutionsUnique,
+    FastDynamo.reducedInductionOperator_isAdjointRealization}
+  \leanok
+  \uses{def:main:induction-operator, lem:dynamics:energy-bound}
+  For a transverse divergence-free $u\in\W^{1,\infty} $, $\eps\geq0 $ and $K\in\Z $ put
+  \[
+    A^*_{\eps,K}b
+    =\eps\bigl(\Delta_\perp-(2\pi K)^2\bigr)b
+    +u_\perp\cdot\nabla_\perp b+2\pi iKu_3b
+    +(\nabla_\perp u)^{\mathsf T}b,
+    \qquad D(A^*_{\eps,K})=\Hs^2(\T^2;\CC^3),
+  \]
+  on the same domain and with the same $\Lp^2 $ embedding as $A_{\eps,K} $.  Then
+  $\inner{A_{\eps,K}b}{c}=\inner{b}{A^*_{\eps,K}c} $ for all $b,c $ in the domain, the
+  numerical range of $A^*_{\eps,K} $ lies in the same half-plane,
+  \[
+    \re\inner{b}{A^*_{\eps,K}b}\leq M_u\norm{b}_2^2,
+  \]
+  and $A^*_{\eps,K} $ has unique forward strong solutions.  If moreover $\eps>0 $, then
+  $A^*_{\eps,K} $ is a maximal adjoint realization of $A_{\eps,K} $, and $A_{\eps,K} $ has a
+  closed graph.
+\end{lemma}
+
+Two devices let this rest on facts proved elsewhere.  The transposed stretching matrix
+is the pointwise adjoint $\star $ of the literal stretching matrix field of
+\texttt{FastDynamo/Global/TorusLocalCoreMeasurability.lean}, so no new $\W^{1,\infty} $ datum is
+introduced; and the three bilinear integration-by-parts identities (diffusion, transverse
+transport, axial transport) are obtained from the \emph{quadratic} identities proved
+in \texttt{FastDynamo/Global/ReducedInductionEnergyIdentity.lean} by complex polarization,
+which over $\CC $ loses nothing.  In particular the divergence-freeness of $u $ enters
+exactly where it enters the energy identity of Lemma~\ref{lem:dynamics:energy-bound}.  The
+passage from the formal pairing to a \emph{maximal} adjoint realization, and with it the
+closed graph, needs one far real reference point at which both $A_{\eps,K} $ and
+$A^*_{\eps,K} $ are invertible; that is where $\eps>0 $ is used.  Module
+\texttt{FastDynamo/Global/ReducedInductionAdjoint.lean}, with the reference point and the
+maximality in \texttt{FastDynamo/Global/ReducedInductionHalfPlaneResolvent.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:energy-bound}
+  A sesquilinear form over $\CC $ vanishing on the diagonal vanishes identically (test with
+  $b+c $ and $b+ic $), so each quadratic identity
+  $\im\inner{b}{\eps\Delta_\perp b}=0 $, $\re\inner{b}{u_\perp\cdot\nabla_\perp b}=0 $,
+  $\re\inner{b}{2\pi iKu_3b}=0 $ upgrades to the corresponding bilinear pairing identity, and
+  the stretching term contributes the pointwise adjoint relation
+  $\inner{(b_\perp\cdot\nabla_\perp)u}{c}=\inner{b}{(\nabla_\perp u)^{\mathsf T}c} $
+  integrated over $\T^2 $.  Summing the four gives the formal pairing.  The half-plane bound
+  for $A^*_{\eps,K} $ is then the same computation as for $A_{\eps,K} $, the diffusion term
+  being nonpositive and the transposed stretching matrix having the same $\Lp^\infty $ norm;
+  uniqueness of forward strong solutions follows from
+  Lemma~\ref{lem:dynamics:strong-solution-uniqueness} applied to $A^*_{\eps,K} $.  For the
+  last claim, the exponential-ray Neumann construction of
+  \texttt{FastDynamo/Operator/FixedSectorLowerOrderDecay.lean} inverts the diffusion pencil
+  far out on the positive real axis and absorbs the lower-order part; it applies verbatim to
+  $A^*_{\eps,K} $, whose diffusion pencil is the same and whose lower-order part decays
+  relative to the diffusion inverse in the same way, the transposed stretching matrix being
+  an $\Lp^\infty $ multiplier composed with the $\Hs^2\to\Lp^2 $ embedding.
+\end{proof}
+
+\begin{proposition}[The reduced operator has a resolvent on the right half-plane]
+  \label{prop:dynamics:reduced-half-plane-resolvent}
+  \lean{FastDynamo.reducedInductionRightHalfPlane,
+    FastDynamo.reducedInductionOperator_pencil_bijective_of_lt_re,
+    FastDynamo.reducedInductionRightHalfPlaneResolvent,
+    FastDynamo.norm_stateResolvent_reducedInductionOperator_rightHalfPlane_le,
+    FastDynamo.norm_stateResolvent_reducedInductionOperator_realRay_le}
+  \leanok
+  \uses{lem:dynamics:reduced-adjoint, lem:dynamics:energy-bound}
+  Let $u $ be transverse divergence-free, $\eps>0 $ and $K\in\Z $.  Then for every
+  $z\in\CC $ with $\re z>M_u $ the pencil $z-A_{\eps,K}:\Hs^2(\T^2;\CC^3)\to\Lp^2 $ is
+  bijective, and the resolvents assemble into a single continuous family on the open
+  half-plane $\{\re z>M_u\} $ with
+  \[
+    \norm{(z-A_{\eps,K})^{-1}}_{\Lp^2\to\Lp^2}\leq(\re z-M_u)^{-1} .
+  \]
+  In particular the bound holds at every real $r>M_u $.
+\end{proposition}
+
+This is the Lumer--Phillips input of Theorem~\ref{thm:dynamics:sector-semigroup}: the real-ray
+specialization \texttt{norm\_stateResolvent\_reducedInductionOperator\_realRay\_le} is
+exactly the hypothesis of Definition~\ref{def:dynamics:hille-yosida-ray}.  Module
+\texttt{FastDynamo/Global/ReducedInductionHalfPlaneResolvent.lean}; the set
+$\{\re z>M_u\} $ is \texttt{reducedInductionRightHalfPlane u}.  The coherent family is
+assembled from the pointwise inverses by the repository's rational-propagation construction
+\texttt{DomainOperator.hasResolventOnOfPointwiseTwoSidedInverses}, following the template
+already used for the periodic background, so no continuity in $z $ is proved by hand.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:reduced-adjoint, lem:dynamics:energy-bound}
+  The numerical-range bound of Lemma~\ref{lem:dynamics:energy-bound} places the numerical
+  range of $A_{\eps,K} $ in $\{\re\nu\leq M_u\} $, which gives the ambient pencil lower
+  bound $(\re z-M_u)\norm{\iota b}\leq\norm{(z-A_{\eps,K})b} $; hence the pencil is injective
+  with closed range, and the same bound at $\bar z $ for the adjoint
+  (Lemma~\ref{lem:dynamics:reduced-adjoint}) makes the range dense.  Closed plus dense is
+  everything, so the pencil is bijective, and the open mapping theorem gives a bounded
+  inverse; dividing the lower bound by $\norm{(z-A_{\eps,K})b} $ turns it into the displayed
+  estimate.  The closed graph of $A_{\eps,K} $ and the maximality of the adjoint, both from
+  the far real reference point of Lemma~\ref{lem:dynamics:reduced-adjoint}, are what make
+  the range closed and identify the displayed formal adjoint with the Hilbert adjoint.
+\end{proof}
+
+\begin{theorem}[The Hille--Yosida ray of one axial sector]
+  \label{thm:dynamics:sector-semigroup}
+  \lean{FastDynamo.reducedInductionHilleYosidaRay,
+    FastDynamo.reducedInductionHilleYosidaRay_spectralSet,
+    FastDynamo.norm_stateResolvent_reducedInductionHilleYosidaRay_le}
+  \leanok
+  \uses{prop:dynamics:reduced-half-plane-resolvent, def:dynamics:hille-yosida-ray}
+  Let $u $ be transverse divergence-free, $\eps>0 $ and $K\in\Z $.  Then $A_{\eps,K} $
+  carries a Hille--Yosida ray of constant $M_u $ in the sense of
+  Definition~\ref{def:dynamics:hille-yosida-ray}, whose spectral set is the whole open
+  half-plane $\{\re z>M_u\} $ and whose state resolvent obeys
+  $\norm{(r-A_{\eps,K})^{-1}}_{\Lp^2\to\Lp^2}\leq(r-M_u)^{-1} $ at every real $r>M_u $.
+\end{theorem}
+
+The ray is the input that the next section sums over the axial sectors: its resolvent
+certificate is the summand of the all-frequency resolvent of
+Proposition~\ref{prop:dynamics:product-resolvent}.  No semigroup is generated at the level
+of a single sector; the semigroup of the development is that of the all-frequency operator
+(Theorem~\ref{thm:dynamics:product-semigroup}).  The spectral set being the whole
+half-plane is definitional: \texttt{HilleYosidaRay.ofHalfPlane} keeps the half-plane
+certificate and only adds the ray estimate.  Module
+\texttt{FastDynamo/Dynamics/ReducedInductionHilleYosidaRay.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{prop:dynamics:reduced-half-plane-resolvent, def:dynamics:hille-yosida-ray}
+  Restrict the half-plane resolvent of
+  Proposition~\ref{prop:dynamics:reduced-half-plane-resolvent} to the real ray by
+  \texttt{HilleYosidaRay.ofHalfPlane}; the ray estimate is the half-plane estimate at real
+  $z=r $.
+\end{proof}
+
+\section{From the axial sectors to the solenoidal semigroup}
+\label{sec:dynamics:solenoidal}
+
+The paper's semigroup acts on $\Lp^2_\sigma(\T^3) $.  Three steps separate it from the
+fixed-sector operator $A_{\eps,K} $ and its Hille--Yosida ray
+(Theorem~\ref{thm:dynamics:sector-semigroup}): summing the axial
+sectors into the all-frequency operator $\mathcal A_\eps $ on $\Lp^2(\T^3;\CC^3) $,
+restricting to the closed solenoidal subspace, and transporting to the literal three-torus.
+The first step is the only one with analytic content, and it is done at the level of
+resolvents rather than of semigroups: the sector resolvents sum to a resolvent as soon as
+one elliptic estimate is uniform in the axial index, and the generation theorem is then
+applied once, to the sum.
+
+\begin{lemma}[The axial sectors decompose product $\Lp^2$ and diagonalise the operator]
+  \label{lem:dynamics:axial-hilbert-sum}
+  \lean{FastDynamo.isHilbertSum_axialLiftL2, FastDynamo.axialDecomposition,
+    FastDynamo.axialSectorProjL2, FastDynamo.hasSum_axialLiftL2_axialSectorProjL2,
+    FastDynamo.hasSum_norm_sq_axialSector, FastDynamo.hasSum_re_inner_axialSector,
+    FastDynamo.axialSectorProjH2, FastDynamo.norm_axialSectorProjH2_le,
+    FastDynamo.hasSum_axialLiftH2_axialSectorProjH2,
+    FastDynamo.axialSectorProjL2_productInductionAction}
+  \leanok
+  \uses{def:main:induction-operator}
+  The isometries $b\mapsto\e^{2\pi iKx_3}b $, $K\in\Z $, make $\Lp^2(\T^3;\CC^3) $ the
+  Hilbert sum of copies of $\Lp^2(\T^2;\CC^3) $: they have pairwise orthogonal ranges, and
+  the closed span of those ranges is everything.  Writing $P_K $ for the resulting
+  orthogonal projection onto the $K $-th sector, read as a transverse amplitude,
+  \[
+    \norm{V}_2^2=\sum_{K\in\Z}\norm{P_KV}_2^2
+    \qquad(V\in\Lp^2(\T^3;\CC^3)).
+  \]
+  The same decomposition lifts to the $\Hs^2 $ domain: there are projections
+  $\Pi_K:\Hs^2(\T^3;\CC^3)\to\Hs^2(\T^2;\CC^3) $ of norm at most one, uniformly in $K $,
+  such that every $B\in\Hs^2(\T^3;\CC^3) $ is the $\Hs^2 $-convergent sum
+  $B=\sum_K\e^{2\pi iKx_3}\Pi_KB $.  The all-frequency operator is block diagonal for this
+  decomposition,
+  \[
+    P_K\bigl(\mathcal A_\eps B\bigr)=A_{\eps,K}\bigl(\Pi_KB\bigr)
+    \qquad(K\in\Z,\ B\in\Hs^2(\T^3;\CC^3)).
+  \]
+\end{lemma}
+
+The ambient statement is Fourier analysis on the product torus together with Mathlib's
+\texttt{IsHilbertSum} API: orthogonality is Fubini plus orthonormality of the circle
+characters, and totality is completeness of the product Fourier system.  The domain-level
+projection is not the adjoint of the $\Hs^2 $ lift -- that lift is only
+$1+(2\pi K)^2 $-bounded -- but the ambient sector projection of the stored field paired with
+the $K $-th row of the stored Fourier certificate, rescaled by a ratio bounded by one; this
+is what makes $\norm{\Pi_K}\leq1 $ uniform in $K $.  Modules
+\texttt{FastDynamo/Dynamics/Assembly/AxialHilbertSum.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/AxialSectorDomain.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  For orthogonality, $\inner{\e^{2\pi ikx_3}b}{\e^{2\pi iKx_3}c} $ splits by Fubini into the
+  transverse inner product times $\int_{\T}\e^{2\pi i(K-k)x_3}\dd x_3 $, which is $1 $ when
+  $k=K $ and $0 $ otherwise.  For totality, a field orthogonal to every sector has every
+  product Fourier coefficient zero, by testing against a transverse scalar field placed in
+  one vector coordinate.  Parseval is then Mathlib's, and the domain-level sum follows from
+  the $\ell^2 $ expansion of the stored certificate together with closedness of the Fourier
+  graph submodule.  Block diagonality holds on a single lifted sector by the exact sector
+  identity of Definition~\ref{def:main:induction-operator}, and both sides are continuous in
+  $B $, so the $\Hs^2 $-convergent sector expansion extends it to the whole domain.
+\end{proof}
+
+\begin{lemma}[The all-frequency operator is dissipative up to $M_u$]
+  \label{lem:dynamics:product-dissipative}
+  \lean{FastDynamo.re_inner_productInductionAction_le,
+    FastDynamo.productInductionOperator_forwardStrongSolutionsUnique}
+  \leanok
+  \uses{lem:dynamics:axial-hilbert-sum, lem:dynamics:energy-bound}
+  For every transverse divergence-free $u\in\W^{1,\infty} $, every $\eps\geq0 $ and every
+  $B\in\Hs^2(\T^3;\CC^3) $,
+  \[
+    \re\inner{B}{\mathcal A_\eps B}\leq M_u\norm{B}_2^2 ,
+  \]
+  and consequently $\mathcal A_\eps $ has unique forward strong solutions, with no further
+  hypothesis.
+\end{lemma}
+
+The energy competition is never redone at the product level: transport skewness and the sign
+of the diffusion are consumed only through the reduced operator, sector by sector, which is
+why the constant is the sector constant $M_u $ and is independent of $\eps $ and of the axial
+index.  The statement is about the auxiliary operator $\mathcal A_\eps $; uniqueness for the
+$\Hs^{-2}$ curl-form realisation in which clause~(16) of
+Definition~\ref{def:main:physical-clauses} is stated is
+Lemma~\ref{lem:dynamics:physical-uniqueness}, which reduces to this one.  Module
+\texttt{FastDynamo/Dynamics/Assembly/AxialSectorDomain.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:axial-hilbert-sum, lem:dynamics:energy-bound,
+    lem:dynamics:strong-solution-uniqueness}
+  Both sides are sums over the axial sectors: the left-hand side by block diagonality and
+  Parseval for the real part of the inner product, the right-hand side by Parseval for the
+  norm.  Termwise the inequality is the fixed-sector bound of
+  Lemma~\ref{lem:dynamics:energy-bound} with the same constant $M_u $, so it survives the
+  summation.  Uniqueness is then
+  Lemma~\ref{lem:dynamics:strong-solution-uniqueness} applied to $\mathcal A_\eps $.
+\end{proof}
+
+\begin{lemma}[An elliptic estimate uniform in the axial index]
+  \label{lem:dynamics:uniform-sector-estimate}
+  \lean{FastDynamo.productH2Weight_le_diffusion_bound_times_symbol,
+    FastDynamo.norm_axialMultiplier_mul_inverseSymbol_le,
+    FastDynamo.exists_uniform_sigma_norm_lowerOrder_comp_diffusionInverse_le_half,
+    FastDynamo.norm_axialLiftH2_le_graph}
+  \leanok
+  \uses{def:main:induction-operator}
+  Let $\eps>0 $.  There is a threshold $\sigma $, as large as one likes, at which the
+  lower-order part of $A_{\eps,K} $ composed with the inverse of the diffusion pencil at
+  $\sigma $ has norm at most $\tfrac12 $ \emph{simultaneously for every} $K\in\Z $; and there
+  is $C>0 $ with
+  \[
+    \norm{\e^{2\pi iKx_3}b}_{\Hs^2(\T^3)}
+    \leq C\bigl(\norm{b}_{\Lp^2(\T^2)}+\norm{A_{\eps,K}b}_{\Lp^2(\T^2)}\bigr)
+    \qquad(K\in\Z,\ b\in\Hs^2(\T^2;\CC^3)).
+  \]
+\end{lemma}
+
+This is the analytic crux of the assembly, and the only place where anything beyond algebra
+is needed.  The fixed-sector chain of \texttt{FastDynamo/Operator/FixedSectorLowerOrderDecay.lean}
+produces both a threshold and an $\Hs^2 $ bound that degrade as $\abs K\to\infty $, because
+the axial transport term carries $\norm{2\pi K} $ and the sector lift is only
+$1+(2\pi K)^2 $-bounded.  Two $K $-free scalar estimates remove both dependencies: the
+product-weight elliptic gain
+$\texttt{productH2Weight}\,(n,K)\leq(\sigma^{-1}+\eps^{-1})\,\texttt{symbol}_{\eps,\sigma,K}(n) $,
+the three-dimensional analogue of the transverse gain already used to land the diffusion
+inverse in $\Hs^2 $; and the arithmetic--geometric bound
+$2\pi\abs K\cdot\texttt{inverseSymbol}_{\eps,\sigma,K}(n)\leq(2\sqrt{\eps\sigma})^{-1} $,
+which absorbs the axial factor into the diffusion symbol.  The uniform threshold is a separate construction alongside the fixed-sector one, which
+the fixed-sector statements do not depend on.
+Module \texttt{FastDynamo/Dynamics/Assembly/UniformSectorResolvent.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  The lower-order part of $A_{\eps,K} $ is transverse transport plus axial transport plus
+  stretching.  The transverse-transport and stretching bounds relative to the diffusion
+  inverse are already $K $-free; the axial one is made $K $-free by the
+  arithmetic--geometric estimate above, and all three tend to zero as $\sigma\to\infty $, so
+  a single $\sigma $ works for every sector.  At such a $\sigma $ the Neumann series
+  converges, which bounds $\norm{b}_{\Hs^2} $ by the diffusion-pencil norm and hence, through
+  the product-weight gain applied to the lifted field, the $\Hs^2(\T^3) $ norm of
+  $\e^{2\pi iKx_3}b $ by the graph norm of $A_{\eps,K} $ with a constant independent of $K $.
+\end{proof}
+
+\begin{proposition}[The all-frequency resolvent and its Hille--Yosida ray]
+  \label{prop:dynamics:product-resolvent}
+  \lean{FastDynamo.productResolventInv,
+    FastDynamo.productInductionHalfPlaneResolvent,
+    FastDynamo.norm_stateResolvent_productInduction_le,
+    FastDynamo.productHilleYosidaRay}
+  \leanok
+  \uses{prop:dynamics:reduced-half-plane-resolvent, lem:dynamics:axial-hilbert-sum,
+    lem:dynamics:uniform-sector-estimate, def:dynamics:hille-yosida-ray}
+  Let $u $ be transverse divergence-free and $\eps>0 $.  On the half-plane $\{\re z>M_u\} $
+  the operator
+  \[
+    R(z)x:=\sum_{K\in\Z}\e^{2\pi iKx_3}\,(z-A_{\eps,K})^{-1}(P_Kx)
+  \]
+  converges in $\Hs^2(\T^3;\CC^3) $, is a two-sided inverse of the pencil
+  $z-\mathcal A_\eps $, depends continuously on $z $, and obeys
+  $\norm{R(z)}_{\Lp^2\to\Lp^2}\leq(\re z-M_u)^{-1} $.  Hence $\mathcal A_\eps $ carries a
+  Hille--Yosida ray of constant $M_u $.
+\end{proposition}
+
+The constant is not recomputed at the product level: it is the sector constant $M_u $, which
+is independent of $\eps $ and of the axial index, and Parseval turns the sector estimates
+into the same estimate for the sum.  Module
+\texttt{FastDynamo/Dynamics/Assembly/ProductResolvent.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{prop:dynamics:reduced-half-plane-resolvent, lem:dynamics:axial-hilbert-sum,
+    lem:dynamics:uniform-sector-estimate}
+  Square summability of the summands is where the uniform estimate is used: by
+  Lemma~\ref{lem:dynamics:uniform-sector-estimate} and the identity
+  $A_{\eps,K}(z-A_{\eps,K})^{-1}=z(z-A_{\eps,K})^{-1}-\id $, the $\Hs^2 $ norm of the
+  $K $-th summand is at most a constant depending only on $z $, $\eps $ and $M_u $ times
+  $\norm{P_Kx} $, and $\sum_K\norm{P_Kx}^2=\norm{x}^2 $.  A family of sector lifts with square-summable graph
+  norms sums in $\Hs^2(\T^3;\CC^3) $, the physical halves through the Hilbert-sum
+  decomposition of Lemma~\ref{lem:dynamics:axial-hilbert-sum} and the stored certificates
+  through their $\ell^2 $ expansion, the two limits being glued by closedness of the Fourier
+  graph submodule.  Both inverse equations hold sector by sector, by block diagonality, and
+  transport to the sum by uniqueness of limits.  The Parseval bound on the sum gives the
+  estimate.  Continuity in $z $ is not proved by hand: the pointwise inverses are fed to the
+  same rational-propagation construction as in
+  Proposition~\ref{prop:dynamics:reduced-half-plane-resolvent}, whose stored inverse is
+  continuous and, two-sided pencil inverses being unique, agrees with the sector sum.
+  Restricting to the real ray gives the Hille--Yosida ray.
+\end{proof}
+
+\begin{theorem}[The all-frequency induction semigroup]
+  \label{thm:dynamics:product-semigroup}
+  \lean{FastDynamo.productInductionSemigroup, FastDynamo.productInductionRealization,
+    FastDynamo.norm_productInductionSemigroup_le,
+    FastDynamo.growthBound_productInductionSemigroup_le,
+    FastDynamo.re_le_growthBound_productInductionSemigroup_of_eigenpair,
+    FastDynamo.productInductionSemigroup_unique}
+  \leanok
+  \uses{prop:dynamics:product-resolvent, thm:dynamics:hille-yosida,
+    lem:dynamics:product-dissipative, lem:dynamics:hille-yosida-growth-sandwich,
+    lem:dynamics:semigroup-unique}
+  Let $u $ be transverse divergence-free and $\eps>0 $.  Then the auxiliary operator
+  $\mathcal A_\eps $ with domain $\Hs^2(\T^3;\CC^3) $ generates a strongly continuous
+  semigroup on $\Lp^2(\T^3;\CC^3) $, realizing it in the sense of
+  Definition~\ref{def:dynamics:semigroup-interface}, with
+  $\norm{\e^{t\mathcal A_\eps}}\leq\e^{M_ut} $, hence
+  $\omega_0\leq M_u $, and with $\re\lambda\leq\omega_0 $ for every eigenpair of
+  $\mathcal A_\eps $.  It is the only strongly continuous semigroup realizing
+  $\mathcal A_\eps $ in this sense.
+\end{theorem}
+
+This is the generation step of item~(1) of Lemma~\ref{lem:semigroup-spectral-growth}, for the
+\emph{auxiliary} operator on all of $\Lp^2(\T^3;\CC^3)$.  Uniqueness is
+Lemma~\ref{lem:dynamics:semigroup-unique} applied to the realization
+(\texttt{productInductionSemigroup\_unique}), so the choice of resolvent family inside the
+construction is immaterial.  The paper's operator is the curl form on $\Lp^2_\sigma$; the two
+ambient operators are different on $\Lp^2(\T^3;\CC^3)$ (they differ by $-u\,\Div B $, which
+vanishes only on solenoidal fields), and their actions agree on divergence-free $\Hs^2 $
+fields (\texttt{productInductionAction\_toHMinus2\_eq\_physical},
+\texttt{FastDynamo/Operator/Compatibility.lean}).  The generator of this semigroup is
+$\mathcal A_\eps$ with domain $\Hs^2$ (\texttt{generator\_productInductionSemigroup},
+Lemma~\ref{lem:dynamics:hille-yosida-generator}), and the generator of its restriction to
+$\Lp^2_\sigma$ is the part of $\mathcal A_\eps$ there, which is the paper's $L_{\eps,u}$
+(Theorem~\ref{thm:dynamics:solenoidal-generator}).  Module
+\texttt{FastDynamo/Dynamics/Assembly/ProductSemigroup.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{prop:dynamics:product-resolvent, thm:dynamics:hille-yosida,
+    lem:dynamics:product-dissipative, lem:dynamics:hille-yosida-growth-sandwich}
+  The Hille--Yosida ray is Proposition~\ref{prop:dynamics:product-resolvent}, the
+  $\Hs^2\to\Lp^2 $ inclusion has dense range
+  (\texttt{FastDynamo/Analysis/ProductH2DenseEmbedding.lean}), and forward strong solutions
+  are unique by Lemma~\ref{lem:dynamics:product-dissipative}.  Apply
+  Theorem~\ref{thm:dynamics:hille-yosida} and
+  Lemma~\ref{lem:dynamics:hille-yosida-growth-sandwich}.
+\end{proof}
+
+\begin{lemma}[The solenoidal subspace is closed and resolvent-invariant]
+  \label{lem:dynamics:solenoidal-subspace}
+  \lean{FastDynamo.productSolenoidalSubspace, FastDynamo.mem_productSolenoidalSubspace_iff,
+    FastDynamo.isClosed_productSolenoidalSubspace,
+    FastDynamo.stateResolvent_mem_productSolenoidalSubspace_of_re_pos,
+    FastDynamo.productH2Embedding_mem_productSolenoidalSubspace_of_isEigenpair}
+  \leanok
+  \uses{def:main:induction-operator, lem:positive-eigenfunction-solenoidal}
+  The set $\Lp^2_\sigma(\T^3)=\{V\in\Lp^2(\T^3;\CC^3):\Div V=0\} $ is a closed subspace of
+  $\Lp^2(\T^3;\CC^3) $, hence a Hilbert space in its own right.  It is invariant under every
+  state resolvent of $\mathcal A_\eps $ at a spectral parameter with positive real part: if
+  $\eps\geq0 $, $u $ is transverse divergence-free, $(z-\mathcal A_\eps)^{-1} $ exists,
+  $\re z>0 $ and $\Div x=0 $, then $\Div\bigl((z-\mathcal A_\eps)^{-1}x\bigr)=0 $.  Moreover
+  every eigenfunction of $\mathcal A_\eps $ with eigenvalue of positive real part lies in
+  $\Lp^2_\sigma(\T^3) $.
+\end{lemma}
+
+Both halves are cheap here, and neither is a new analytic input.  Solenoidality is a family
+of scalar linear equations in the Fourier coefficients -- for each transverse frequency $n $
+and axial frequency $k $ the combination
+$\sum_{j<2}2\pi in_j\widehat V_j(n,k)+2\pi ik\widehat V_3(n,k) $ is a continuous linear
+functional -- so $\Lp^2_\sigma $ is an intersection of kernels, exactly as the Fourier graph
+domain is.  Invariance is the resolvent form of
+Lemma~\ref{lem:positive-eigenfunction-solenoidal}: taking the weak divergence of the
+resolvent equation turns it into a scalar advection--diffusion equation for $d=\Div B $ whose
+forcing is the weak divergence of the solenoidal datum and therefore vanishes, and the same
+energy endpoint forces $d=0 $.  The statement is quantified over an \emph{arbitrary}
+resolvent certificate, so it does not depend on the construction of
+Proposition~\ref{prop:dynamics:product-resolvent}.  Module
+\texttt{FastDynamo/Dynamics/Assembly/SolenoidalSubspace.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:positive-eigenfunction-solenoidal}
+  A submodule cut out by a family of continuous linear functionals is closed, and a closed
+  subspace of a Hilbert space is complete.  For invariance, write $B=(z-\mathcal A_\eps)^{-1}x $
+  and apply the weak divergence to $zB-\mathcal A_\eps B=x $: incompressibility of $u $ makes
+  the transport and stretching terms combine into $-(u\cdot\nabla)\Div B $, so
+  $d=\Div B $ satisfies $(z-\eps\Delta+u\cdot\nabla)d=\Div x=0 $ weakly, and the energy
+  endpoint of Lemma~\ref{lem:positive-eigenfunction-solenoidal} with $\re z>0 $ gives $d=0 $.
+  The eigenfunction statement is the same argument with $x=0 $.
+\end{proof}
+
+\begin{theorem}[The induction semigroup on the solenoidal space]
+  \label{thm:dynamics:solenoidal-semigroup}
+  \lean{FastDynamo.productInductionSemigroup_mem_productSolenoidalSubspace,
+    FastDynamo.solenoidalInductionSemigroup,
+    FastDynamo.growthBound_solenoidalInductionSemigroup_le,
+    FastDynamo.re_le_growthBound_solenoidalInductionSemigroup_of_eigenpair,
+    FastDynamo.literalSolenoidalSubspace, FastDynamo.isClosed_literalSolenoidalSubspace,
+    FastDynamo.exists_ne_zero_literalSolenoidalSubspace,
+    FastDynamo.solenoidalToLiteral, FastDynamo.literalInductionSemigroup,
+    FastDynamo.norm_literalInductionSemigroup_le,
+    FastDynamo.growthBound_literalInductionSemigroup,
+    FastDynamo.productInductionRealization_domainOrbit_mem_productSolenoidalSubspace,
+    FastDynamo.productL2ToHMinus2_domainOrbit_eq_physical}
+  \leanok
+  \uses{thm:dynamics:product-semigroup, lem:dynamics:solenoidal-subspace,
+    lem:dynamics:invariant-restriction, lem:main:literal-torus}
+  Let $u $ be transverse divergence-free and $\eps>0 $.  Then $\e^{t\mathcal A_\eps} $ leaves
+  $\Lp^2_\sigma(\T^3) $ invariant, and its restriction
+  $T(t):=\e^{t\mathcal A_\eps}|_{\Lp^2_\sigma} $ is a strongly continuous semigroup on
+  $\Lp^2_\sigma(\T^3) $ with $\norm{T(t)}\leq\e^{M_ut} $ and $\omega_0(T)\leq M_u $.  For
+  every eigenpair $\mathcal A_\eps V=\lambda V $ whose eigenfunction lies in
+  $\Lp^2_\sigma(\T^3) $ one has $\re\lambda\leq\omega_0(T) $.  All of this transports, with
+  no change of any operator norm and hence no change of the growth bound, to the literal
+  three-torus $\T^3=(\R/\Z)^3 $, where the solenoidal subspace is again closed.  Moreover
+  the orbit of every solenoidal $\Hs^2 $ datum is a solenoidal $\Hs^2 $ field at every
+  $t\geq0 $ and solves the paper's curl-form induction equation
+  $\partial_tB=\operatorname{curl}(u\times B)+\eps\Delta B $ in $\Hs^{-2} $ there.
+\end{theorem}
+
+Three points of the passage to the subspace matter.
+
+First, invariance is proved on the resolvent, at every real $r>M_u\geq0 $, and propagated
+through the approximation scheme by Lemma~\ref{lem:dynamics:invariant-restriction}; there is
+no other route, the generated semigroup being a limit and not a formula.  Second, the
+spectral lower bound has to be \emph{re-proved} on the subspace: restriction can strictly
+lower a growth bound, so the ambient bound of
+Theorem~\ref{thm:dynamics:product-semigroup} is no evidence about the restricted one.  It is
+re-proved by evaluating the restricted operator on an eigenvector that lies in
+$\Lp^2_\sigma $ -- the subspace carries the ambient norm, so nothing is lost -- which is why
+Lemma~\ref{lem:dynamics:solenoidal-subspace} is needed twice.  That same eigenvector shows
+$\Lp^2_\sigma(\T^3)\neq0$ (\texttt{exists\_ne\_zero\_literalSolenoidalSubspace}): it is
+non-zero by the definition of an eigenpair and solenoidal by the auxiliary solenoidality
+theorem.  The statement is recorded because every clause of the ideal half of
+Theorem~\ref{thm:main} is quantified over $B\in\Lp^2_\sigma(\T^3) $ and would hold verbatim
+on the zero space; see Corollary~\ref{cor:ideal-growth}.
+
+Third, \emph{$T(t)$ is the paper's $\e^{tL_{\eps,u}}$}: its generator is $L_{\eps,u}$ with
+domain $\Hs^2\cap\Lp^2_\sigma$, and a $\C_0$-semigroup is determined by its generator
+(Theorem~\ref{thm:dynamics:solenoidal-generator}).  What remains a deviation is the route: the
+paper generates on $\Lp^2_\sigma$ directly, by perturbation of $\eps\Delta$, whereas this node
+restricts the semigroup of the ambient auxiliary operator, and the generator is identified
+afterwards.  The orbit of every solenoidal $\Hs^2 $ datum stays solenoidal and satisfies the
+curl-form equation in $\Hs^{-2} $ at every $t\geq0 $
+(\texttt{productL2ToHMinus2\_domainOrbit\_eq\_physical}), and it is the only solution of that
+equation with that datum (Lemma~\ref{lem:dynamics:physical-uniqueness}).  So
+$\gamma(u,\eps)$ (Definition~\ref{def:main:growth-rate}) is the growth bound of $T $.
+
+Modules \texttt{FastDynamo/Dynamics/Assembly/ProductSemigroup.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/MainGrowthRate.lean}; the isometric identification of
+the product model with the literal three-torus is the one of
+Lemma~\ref{lem:main:literal-torus}.
+
+\begin{proof}
+  \leanok
+  \uses{thm:dynamics:product-semigroup, lem:dynamics:solenoidal-subspace,
+    lem:dynamics:invariant-restriction}
+  The state resolvent of the product Hille--Yosida ray at a real $r>M_u $ preserves
+  $\Lp^2_\sigma $ by Lemma~\ref{lem:dynamics:solenoidal-subspace}, the positivity of $r $
+  being free since $M_u\geq0 $; the subspace is closed, so
+  Lemma~\ref{lem:dynamics:invariant-restriction} propagates the invariance to the semigroup
+  and produces the restriction with the same exponential bound.  For the lower bound,
+  evaluate the restricted operator at time $t $ on an eigenvector $V\in\Lp^2_\sigma $: its
+  orbit is $\e^{t\lambda}V $ by Theorem~\ref{thm:dynamics:product-semigroup}, so
+  $\e^{t\re\lambda}\norm{V}\leq\norm{T(t)}\norm{V} $ and the minorant half of
+  Lemma~\ref{lem:dynamics:growth-bound-norm-bounds} applies.  The transport is conjugation by
+  a surjective linear isometry, which preserves operator norms exactly, so the growth bound
+  is unchanged (Lemma~\ref{lem:dynamics:invariant-restriction}).
+\end{proof}
+
+\section{The generator}
+\label{sec:dynamics:generator}
+
+The semigroup of the previous section is built from an operator; this section proves that the
+operator is its generator, which identifies the semigroup on $\Lp^2_\sigma$ with the paper's
+$\e^{tL_{\eps,u}}$.
+
+\begin{definition}[Generator, resolvent set and spectrum]
+  \label{def:dynamics:generator}
+  \lean{FastDynamo.StronglyContinuousSemigroup.diffQuotient,
+    FastDynamo.StronglyContinuousSemigroup.generator,
+    FastDynamo.StronglyContinuousSemigroup.mem_generator_domain_iff,
+    FastDynamo.LinearPMap.IsResolvent, FastDynamo.LinearPMap.resolventSet,
+    FastDynamo.LinearPMap.spectrum, FastDynamo.DomainOperator.toLinearPMap}
+  \leanok
+  \uses{def:dynamics:semigroup-interface}
+  The \emph{generator} of a strongly continuous semigroup $S$ on $X$ is the operator
+  \[
+    Gx:=\lim_{h\downarrow0}\frac{S(h)x-x}{h},
+    \qquad
+    D(G)=\{x\in X:\text{the limit exists}\}.
+  \]
+  For a linear operator $T$ with domain $D(T)\subset X$, the \emph{resolvent set}
+  $\rho(T)$ is the set of $z\in\CC$ at which $z-T:D(T)\to X$ has a bounded two-sided inverse
+  $X\to X$ with range in $D(T)$, and the \emph{spectrum} is $\sigma(T)=\CC\setminus\rho(T)$.
+  An operator presented by a bounded map out of a graph domain with an injective embedding
+  (\texttt{DomainOperator}) is read as an operator on the range of the embedding.
+\end{definition}
+
+The definitions are the standard ones, which the paper uses without stating them.  In Lean the
+generator is a \texttt{LinearPMap} (\texttt{FastDynamo/Dynamics/SemigroupGenerator.lean}), and
+\texttt{LinearPMap.IsResolvent}, \texttt{resolventSet}, \texttt{spectrum} and
+\texttt{DomainOperator.toLinearPMap} are in \texttt{FastDynamo/Operator/UnboundedResolvent.lean}.
+The resolvent set asks for a bounded inverse explicitly; no closedness of $T$ is assumed.
+
+\begin{lemma}[Properties of the generator]
+  \label{lem:dynamics:generator-basic}
+  \lean{FastDynamo.StronglyContinuousSemigroup.generator_eq_iff,
+    FastDynamo.StronglyContinuousSemigroup.apply_mem_generator_domain,
+    FastDynamo.StronglyContinuousSemigroup.hasDerivWithinAt_apply,
+    FastDynamo.StronglyContinuousSemigroup.dense_generator_domain,
+    FastDynamo.StronglyContinuousSemigroup.apply_eq_cexp_smul_of_generator_eq_smul,
+    FastDynamo.StronglyContinuousSemigroup.ext_of_generator_eq,
+    FastDynamo.StronglyContinuousSemigroup.mem_generator_restrict_domain_iff,
+    FastDynamo.StronglyContinuousSemigroup.generator_restrict_apply,
+    FastDynamo.LinearPMap.mem_spectrum_of_eigenvector,
+    FastDynamo.LinearPMap.exists_eigenvector_of_mem_spectrum,
+    FastDynamo.LinearPMap.IsResolvent.isCompactOperator_of_isResolvent,
+    FastDynamo.DomainOperator.isResolvent_stateResolvent}
+  \leanok
+  \uses{def:dynamics:generator, lem:dynamics:invariant-restriction}
+  Let $S$ be a strongly continuous semigroup on a complex Banach space $X$ with generator $G$.
+  Then $D(G)$ is dense and invariant under $S(t)$, $GS(t)x=S(t)Gx$ on $D(G)$, and
+  $t\mapsto S(t)x$ is differentiable on $[0,\infty)$ with derivative $GS(t)x$ for $x\in D(G)$;
+  an eigenvector $Gx=\lambda x$ has $S(t)x=\e^{t\lambda}x$.  Two strongly continuous semigroups
+  with the same generator are equal.  If $W\subset X$ is a closed subspace invariant under
+  $S$, the generator of $S|_W$ is the part of $G$ in $W$: $D(G|_W)=D(G)\cap W$ with the same
+  values.  Every eigenvalue of an operator lies in its spectrum; if the resolvent at one point
+  is compact, it is compact at every point of the resolvent set, and then every point of the
+  spectrum is an eigenvalue.
+\end{lemma}
+
+The semigroup facts are [Engel--Nagel, Lemma~II.1.3, Theorem~II.1.4, Proposition~II.2.3]; the
+last two sentences are the resolvent identity and the Fredholm alternative for compact
+operators.  The paper uses all of them without stating them.
+
+\begin{proof}
+  \leanok
+  \uses{def:dynamics:generator}
+  The derivative of $t\mapsto S(t)x$ is computed from the difference quotient on both sides;
+  the integrals $\int_0^tS(s)x\dd s$ lie in $D(G)$ and approximate $x$, which gives density.
+  For uniqueness, if $S$ and $T$ have the same generator then
+  $s\mapsto T(t-s)S(s)x$ has derivative zero for $x\in D(G)$, so $S(t)x=T(t)x$ on a dense set
+  and hence everywhere.  The restriction statement compares the difference quotients in $W$
+  and in $X$.  For the spectrum: the resolvent identity
+  $R(w)=R(z)+(z-w)R(w)R(z)$ transfers compactness, and for $z\in\sigma(T)$ and a compact
+  resolvent $R(r)$ the operator $z-T$ is $(\id-(r-z)R(r))(r-T)$, so non-invertibility of
+  $z-T$ forces a non-trivial kernel of $\id-(r-z)R(r)$ by the Fredholm alternative.
+\end{proof}
+
+\begin{lemma}[The generator of the Hille--Yosida semigroup]
+  \label{lem:dynamics:hille-yosida-generator}
+  \lean{FastDynamo.HilleYosidaRay.generator_semigroup,
+    FastDynamo.HilleYosidaRay.tendsto_diffQuotient_semigroup_embedding,
+    FastDynamo.generator_productInductionSemigroup}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, def:dynamics:generator, lem:dynamics:generator-basic,
+    thm:dynamics:product-semigroup}
+  Let $A$ carry a Hille--Yosida ray whose domain embeds densely in the Banach space $X$, and let
+  $S$ be the semigroup of Theorem~\ref{thm:dynamics:hille-yosida}.  Then the generator of $S$
+  is $A$, with domain the range of the embedding.  In particular the generator of the
+  all-frequency semigroup of Theorem~\ref{thm:dynamics:product-semigroup} is $\mathcal A_\eps$
+  with domain $\Hs^2(\T^3;\CC^3)$.
+\end{lemma}
+
+This is [Engel--Nagel, Theorem~II.3.5] in the generator direction.  Modules
+\texttt{FastDynamo/Dynamics/HilleYosida/GeneratorIdentification.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/SolenoidalGenerator.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, lem:dynamics:generator-basic}
+  The range of the embedding lies in $D(G)$ with $G=A$ there: the realization of
+  Theorem~\ref{thm:dynamics:hille-yosida} differentiates the orbit at $t=0$.  Conversely, let
+  $x\in D(G)$ and fix a real $r$ beyond the ray constant and with $\norm{S(1)}<\e^r$.  Put
+  $w=R(r)(rx-Gx)-x$; then $w\in D(G)$ and $Gw=rw$, so $S(1)w=\e^rw$ by
+  Lemma~\ref{lem:dynamics:generator-basic}, and $\norm{S(1)}<\e^r$ forces $w=0$.  Hence $x$
+  is in the range of the embedding.
+\end{proof}
+
+\begin{theorem}[The induction semigroup is generated by $L_{\eps,u}$]
+  \label{thm:dynamics:solenoidal-generator}
+  \lean{FastDynamo.solenoidalH2, FastDynamo.productInductionAction_mem_productSolenoidalSubspace,
+    FastDynamo.solenoidalInductionOperator,
+    FastDynamo.generator_solenoidalInductionSemigroup,
+    FastDynamo.mem_generator_solenoidalInductionSemigroup_domain_iff,
+    FastDynamo.coe_generator_solenoidalInductionSemigroup,
+    FastDynamo.productL2ToHMinus2_generator_solenoidalInductionSemigroup,
+    FastDynamo.eq_solenoidalInductionSemigroup_of_generator_eq,
+    FastDynamo.gamma_eq_growthBound_of_generator_eq,
+    FastDynamo.exists_isResolvent_generator_solenoidalInductionSemigroup_eq}
+  \leanok
+  \uses{thm:dynamics:solenoidal-semigroup, lem:dynamics:hille-yosida-generator,
+    lem:dynamics:generator-basic, lem:finish:physical-compatibility}
+  Let $u$ be transverse divergence-free and $\eps>0$.  For every divergence-free
+  $B\in\Hs^2$ the field $\mathcal A_\eps B$ lies in $\Lp^2_\sigma$, and it is the curl form
+  $L_{\eps,u}B=\curl(u\times B)+\eps\Delta B$.  The generator of the semigroup $T$ of
+  Theorem~\ref{thm:dynamics:solenoidal-semigroup} is $L_{\eps,u}$ with domain
+  $\Hs^2\cap\Lp^2_\sigma$; every strongly continuous semigroup on $\Lp^2_\sigma$ with that
+  generator is $T$, and its growth bound is $\gamma(u,\eps)$.
+\end{theorem}
+
+This is the generation statement of item~(1) of Lemma~\ref{lem:semigroup-spectral-growth},
+without analyticity.  The Lean operator \texttt{solenoidalInductionOperator} has domain the
+divergence-free $\Hs^2$ fields (\texttt{solenoidalH2}) and values the auxiliary action
+$\mathcal A_\eps B$; the identification with the curl form is
+\texttt{productL2ToHMinus2\_generator\_solenoidalInductionSemigroup}, an identity in the Fourier
+model of $\Hs^{-2}$, into which $\Lp^2$ embeds injectively.  So the curl form of the paper's
+\texttt{eq:physical-generator}, computed distributionally, is the $\Lp^2$ field
+$\mathcal A_\eps B$: an equivalent formulation.  The route differs from the paper's: the
+semigroup is generated on all of $\Lp^2$ by Hille--Yosida, its generator identified
+(Lemma~\ref{lem:dynamics:hille-yosida-generator}), and restricted to $\Lp^2_\sigma$
+(Lemma~\ref{lem:dynamics:generator-basic}, [Engel--Nagel, Proposition~II.2.3]), not generated
+on $\Lp^2_\sigma$ by perturbation of $\eps\Delta$.  Module
+\texttt{FastDynamo/Dynamics/Assembly/SolenoidalGenerator.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:hille-yosida-generator, lem:dynamics:generator-basic,
+    lem:finish:physical-compatibility}
+  On a divergence-free $\Hs^2$ field the lower-order part of $\mathcal A_\eps B$ is the weak
+  curl $\curl(u\times B)$, which is solenoidal, and $\Delta B$ is solenoidal coefficientwise;
+  the two actions agree in $\Hs^{-2}$ by Lemma~\ref{lem:finish:physical-compatibility}.  The
+  generator of the restriction is the part in $\Lp^2_\sigma$ of the ambient generator
+  $\mathcal A_\eps$ (Lemmas~\ref{lem:dynamics:hille-yosida-generator}
+  and~\ref{lem:dynamics:generator-basic}), whose domain is
+  $\Hs^2\cap\Lp^2_\sigma$.  Uniqueness is uniqueness of the semigroup with a given generator.
+\end{proof}
+
+\section{Analyticity, compactness and spectral mapping}
+\label{sec:dynamics:analytic}
+
+\begin{definition}[Analytic semigroup]
+  \label{def:dynamics:analytic-semigroup}
+  \lean{FastDynamo.openSector, FastDynamo.AnalyticExtension, FastDynamo.IsAnalyticSemigroup,
+    FastDynamo.isOpen_openSector, FastDynamo.isPreconnected_openSector}
+  \leanok
+  \uses{def:dynamics:semigroup-interface}
+  For $0<\delta\leq\pi/2$ let $\Sigma_\delta=\{z\in\CC\setminus\{0\}:\abs{\arg z}<\delta\}$.  A
+  strongly continuous semigroup $S$ is \emph{analytic of angle $\delta$} if there is a map
+  $T:\Sigma_\delta\cup[0,\infty)\to\mathcal L(X)$ that agrees with $S$ on $[0,\infty)$, obeys
+  $T(z+w)=T(z)T(w)$ on $\Sigma_\delta$, is holomorphic on $\Sigma_\delta$ in the operator norm,
+  and converges strongly to the identity as $z\to0$ within every smaller sector
+  $\Sigma_{\delta'}$.
+\end{definition}
+
+This is [Engel--Nagel, Definition~II.4.5], the notion of the paper's
+Lemma~\ref{lem:semigroup-spectral-growth}, with the angle explicit.  Module
+\texttt{FastDynamo/Dynamics/AnalyticSemigroup.lean}.
+
+\begin{lemma}[The sector condition]
+  \label{lem:dynamics:sectorial}
+  \lean{FastDynamo.productInductionTransport, FastDynamo.productInductionAction_eq_transport,
+    FastDynamo.re_inner_productInductionAction_le_sub,
+    FastDynamo.exists_norm_productInductionTransport_le,
+    FastDynamo.re_inner_productInductionTransport_skew,
+    FastDynamo.exists_norm_productInductionStretching_le,
+    FastDynamo.exists_productInduction_sectorial}
+  \leanok
+  \uses{def:main:induction-operator, lem:dynamics:energy-identity}
+  Let $u$ be transverse divergence-free and $\eps>0$.  There is $\omega\in\R$ with
+  \[
+    \abs{\im\inner{B}{\mathcal A_\eps B}}\leq\omega\norm B_2^2-\re\inner{B}{\mathcal A_\eps B}
+    \qquad(B\in\Hs^2(\T^3;\CC^3)).
+  \]
+\end{lemma}
+
+The paper states no such estimate; it is the numerical-range condition from which the Lean
+proof derives analyticity, in place of the paper's relative bound for $\curl(u\times B)$.  The
+constant is $\omega=M_u+d+c^2/(4\eps)$, with $c$ a bound of the transport term by the $\Hs^1$
+seminorm and $d$ a bound of the stretching term in $\Lp^2$.  Module
+\texttt{FastDynamo/Dynamics/Assembly/ProductInductionEnergy.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:energy-identity}
+  The diffusion contributes the real number $-\eps\norm{\nabla B}_2^2$, transport is skew and
+  contributes only to the imaginary part, bounded by $c\norm{\nabla B}_2\norm B_2$, and
+  stretching contributes at most $d\norm B_2^2$ to either part.  Young's inequality absorbs
+  $c\norm{\nabla B}_2\norm B_2$ into $\eps\norm{\nabla B}_2^2+\tfrac{c^2}{4\eps}\norm B_2^2$,
+  and the energy identity bounds $\re\inner{B}{\mathcal A_\eps B}$ by
+  $M_u\norm B_2^2-\eps\norm{\nabla B}_2^2$.
+\end{proof}
+
+\begin{theorem}[Analytic generation from the sector condition]
+  \label{thm:dynamics:analytic-generation}
+  \lean{FastDynamo.HilleYosidaRay.sectorial_yosida,
+    FastDynamo.HilleYosidaRay.sectorExtension,
+    FastDynamo.HilleYosidaRay.isAnalyticSemigroup_of_sectorial,
+    FastDynamo.IsAnalyticSemigroup.restrict,
+    FastDynamo.differentiableOn_of_forall_apply}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, def:dynamics:analytic-semigroup,
+    lem:dynamics:invariant-restriction}
+  Let $X$ be a complex Hilbert space and let $A$ carry a Hille--Yosida ray with densely
+  embedded domain.  If there is $\omega\in\R$ with
+  $\abs{\im\inner{\iota d}{Ad}}\leq\omega\norm{\iota d}^2-\re\inner{\iota d}{Ad}$ for every
+  $d$ in the domain, then the semigroup of Theorem~\ref{thm:dynamics:hille-yosida} is analytic
+  of angle $\pi/4$.  The restriction of an analytic semigroup of angle $\delta$ to a closed
+  invariant subspace is analytic of angle $\delta$.  A family of bounded operators on an open
+  set of $\CC$ that is locally bounded and holomorphic at every vector is holomorphic in the
+  operator norm.
+\end{theorem}
+
+The paper obtains analyticity from [Engel--Nagel, Theorem~III.2.10] (relative boundedness with
+respect to $\eps\Delta$); this theorem replaces that step, and exhibits the angle.  Modules
+\texttt{FastDynamo/Dynamics/HilleYosida/AnalyticGeneration.lean},
+\texttt{FastDynamo/Dynamics/AnalyticSemigroup.lean} and
+\texttt{FastDynamo/Operator/StrongHolomorphy.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{thm:dynamics:hille-yosida, lem:dynamics:invariant-restriction}
+  The sector condition passes to the Yosida approximants $A_s=s^2R(s)-s$ of the proof of
+  Theorem~\ref{thm:dynamics:hille-yosida}, with $\abs\omega+1$ in place of $\omega$, for all
+  large $s$; for a bounded operator with numerical range in that sector,
+  $\norm{\e^{wA_s}}\leq\e^{(\abs\omega+1)\abs w}$ on $\{\abs{\im w}\leq\re w\}$.  The
+  exponentials $\e^{wA_s}$ are then Cauchy uniformly on bounded parts of that closed sector, by
+  the complex form of the telescoping estimate of Theorem~\ref{thm:dynamics:hille-yosida}; the
+  strong limit is the extension, holomorphic in $w$ at every vector as a locally uniform limit
+  of holomorphic maps, and locally bounded, hence holomorphic in the operator norm by the
+  last statement (Cauchy estimates for the first two derivatives and the mean value
+  inequality).  The open sector $\Sigma_{\pi/4}$ lies in $\{\abs{\im w}\leq\re w\}$.  For the
+  restriction, the map $z\mapsto(\id-P_W)T(z)x$, $x\in W$, vanishes on $[0,\infty)$ and is
+  holomorphic on the connected open sector, so it vanishes there by the identity theorem.
+\end{proof}
+
+\begin{lemma}[The compact embedding]
+  \label{lem:dynamics:compact-embedding}
+  \lean{FastDynamo.isCompactOperator_lpDiagonal,
+    FastDynamo.isCompactOperator_productH2Embedding}
+  \leanok
+  \uses{def:main:induction-operator}
+  The embedding $\Hs^2(\T^3;\CC^3)\hookrightarrow\Lp^2(\T^3;\CC^3)$ is a compact operator.
+\end{lemma}
+
+This is the compact embedding the paper's proof of Lemma~A.1 uses.  Module
+\texttt{FastDynamo/Operator/ProductH2Compact.lean}.
+
+\begin{proof}
+  \leanok
+  In Fourier variables the embedding is division of the $\Hs^2$-weighted coefficients by the
+  weight $1+4\pi^2\abs\xi^2$, which tends to infinity; a diagonal operator on $\ell^2$ with
+  multipliers tending to zero is the operator-norm limit of its finite truncations, which have
+  finite rank.
+\end{proof}
+
+\begin{lemma}[Immediate compactness]
+  \label{lem:dynamics:immediate-compactness}
+  \lean{FastDynamo.IsAnalyticSemigroup.exists_generator_comp,
+    FastDynamo.IsAnalyticSemigroup.isCompactOperator}
+  \leanok
+  \uses{def:dynamics:analytic-semigroup, def:dynamics:generator,
+    lem:dynamics:generator-basic}
+  Let $S$ be an analytic semigroup on a Banach space with generator $G$.  For every $t>0$,
+  $S(t)$ maps into $D(G)$ and $GS(t)$ is bounded.  If moreover $G$ has a compact resolvent,
+  then $S(t)$ is compact for every $t>0$.
+\end{lemma}
+
+The paper cites [Engel--Nagel, Theorem~II.4.29] for immediate compactness; the Lean proof is
+the direct factorisation below.  Module
+\texttt{FastDynamo/Dynamics/AnalyticSemigroupGenerator.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:generator-basic}
+  The holomorphic extension $T$ is differentiable at the real point $t$, and its complex
+  derivative there is a bounded operator $D$; the real difference quotient of $S$ at $S(t)x$
+  converges to $Dx$, so $S(t)x\in D(G)$ and $GS(t)=D$.  Then
+  $S(t)=R(r)\bigl(rS(t)-GS(t)\bigr)$ is a compact operator composed with a bounded one.
+\end{proof}
+
+\begin{theorem}[Spectral mapping and the growth bound]
+  \label{thm:dynamics:spectral-mapping}
+  \lean{FastDynamo.StronglyContinuousSemigroup.exp_re_mul_le_norm,
+    FastDynamo.StronglyContinuousSemigroup.operator_natCast,
+    FastDynamo.StronglyContinuousSemigroup.cexp_mem_spectrum,
+    FastDynamo.IsAnalyticSemigroup.exists_cexp_eq_of_mem_spectrum,
+    FastDynamo.IsAnalyticSemigroup.spectrum_diff_zero,
+    FastDynamo.IsAnalyticSemigroup.growthBound_eq_iSup}
+  \leanok
+  \uses{lem:dynamics:immediate-compactness, lem:dynamics:generator-basic,
+    lem:dynamics:growth-bound-limit, def:dynamics:growth-bound}
+  Let $S$ be an analytic semigroup on a complex Banach space whose generator $G$ has a compact
+  resolvent.  Then for every $t>0$
+  \[
+    \sigma(S(t))\setminus\{0\}=\{\e^{t\lambda}:\lambda\in\sigma(G)\},
+  \]
+  and if $\sigma(G)\neq\emptyset$, then
+  $\omega_0(S)=\sup\{\re\lambda:\lambda\in\sigma(G)\}$ and the supremum is attained at an
+  eigenvalue of $G$, with an eigenvector.
+\end{theorem}
+
+The paper cites [Engel--Nagel, Corollaries~IV.3.11 and~IV.3.12] for the spectral mapping and
+the spectral bound, and [Engel--Nagel, Corollary~V.3.2] for the attainment.  The Lean proof is a
+direct point-spectrum argument.  Module \texttt{FastDynamo/Dynamics/SemigroupSpectralMapping.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:immediate-compactness, lem:dynamics:generator-basic,
+    lem:dynamics:growth-bound-limit}
+  Every point of $\sigma(G)$ is an eigenvalue (compact resolvent), and an eigenvector
+  $Gx=\lambda x$ gives $S(t)x=\e^{t\lambda}x$, so $\e^{t\lambda}\in\sigma(S(t))$ and
+  $\e^{t\re\lambda}\leq\norm{S(t)}$.  Conversely $S(t)$, $t>0$, is compact
+  (Lemma~\ref{lem:dynamics:immediate-compactness}), so a non-zero $\mu\in\sigma(S(t))$ is an
+  eigenvalue with finite-dimensional eigenspace; that eigenspace is invariant under the bounded
+  operator $GS(t)$, which therefore has an eigenvector there, and it is an eigenvector of $G$
+  whose eigenvalue $\lambda$ has $\e^{t\lambda}=\mu$.  For the growth bound: the eigenvector
+  bound gives $\re\lambda\leq\omega_0(S)$; by Lemma~\ref{lem:dynamics:growth-bound-limit} and
+  Gelfand's formula $\e^{\omega_0(S)}$ is the spectral radius of the compact operator $S(1)$,
+  which is attained at a non-zero spectral point $\e^\lambda$, $\lambda\in\sigma(G)$, with
+  $\re\lambda=\omega_0(S)$.
+\end{proof}
+
+\begin{lemma}[Mean conservation]
+  \label{lem:dynamics:mean-conservation}
+  \lean{FastDynamo.HasZeroMean, FastDynamo.productCoeffCLM_zero_zero_eq_integral,
+    FastDynamo.hasZeroMean_productInductionAction,
+    FastDynamo.exists_productSolenoidal_mean_eq_one,
+    FastDynamo.one_le_norm_solenoidalInductionSemigroup,
+    FastDynamo.gamma_eq_lim, FastDynamo.zero_le_gamma,
+    FastDynamo.zero_mem_spectrum_generator_solenoidalInductionSemigroup}
+  \leanok
+  \uses{thm:dynamics:solenoidal-generator, lem:dynamics:growth-bound-limit,
+    lem:dynamics:generator-basic}
+  Let $u$ be transverse divergence-free and $\eps>0$.  For every divergence-free
+  $B\in\Hs^2$, $\int_{\T^3}L_{\eps,u}B\dd x=0$; $\Lp^2_\sigma$ contains a constant field of norm
+  one; hence $0\in\sigma(L_{\eps,u})$ and $\norm{\e^{tL_{\eps,u}}}\geq1$ for every $t\geq0$.
+  Consequently $\gamma(u,\eps)$ is a real number $L$ with
+  $0\leq L\leq M_u$ and $t^{-1}\log\norm{\e^{tL_{\eps,u}}}\to L$.
+\end{lemma}
+
+The first three facts are the paper's argument for $0\in\sigma(L_{\eps,u})$ in the proof of
+Lemma~A.1; the paper does not state $\norm{\e^{tL_{\eps,u}}}\geq1$ or $\gamma\geq0$.  The mean
+is the integral over the product torus with its probability Haar measure, which is Lebesgue
+measure on $\T^3$ (\texttt{HasZeroMean}, \texttt{FastDynamo/Finish/ZeroMean.lean}).  Modules
+\texttt{FastDynamo/Dynamics/Assembly/InductionMeanConservation.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/InductionSemigroupSpectrum.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:growth-bound-limit, lem:dynamics:generator-basic}
+  The zeroth Fourier coefficient is the mean; that of $\eps\Delta B$ and of the weak curl
+  vanishes.  So $L_{\eps,u}$ maps into the zero-mean fields and is not surjective onto
+  $\Lp^2_\sigma$, which contains the constant field $c=(1,0,0)$: $0\in\sigma(L_{\eps,u})$.
+  The mean of $\e^{tL_{\eps,u}}c$ has right derivative zero, so it stays $1$, and
+  $\norm{\e^{tL_{\eps,u}}c}\geq1=\norm c$.  The minorant $1\leq\norm{\e^{tL_{\eps,u}}}$ makes
+  the limit of Lemma~\ref{lem:dynamics:growth-bound-limit} finite and non-negative, and the
+  Hille--Yosida bound gives $L\leq M_u$.
+\end{proof}
+
+\begin{theorem}[The spectral theory of the induction semigroup]
+  \label{thm:dynamics:induction-spectrum}
+  \lean{FastDynamo.isAnalyticSemigroup_solenoidalInductionSemigroup,
+    FastDynamo.exists_isResolvent_generator_solenoidalInductionSemigroup,
+    FastDynamo.isCompactOperator_of_isResolvent_generator_solenoidalInductionSemigroup,
+    FastDynamo.isCompactOperator_solenoidalInductionSemigroup,
+    FastDynamo.spectrum_solenoidalInductionSemigroup_diff_zero,
+    FastDynamo.gamma_eq_iSup_re_spectrum,
+    FastDynamo.exists_eigenvalue_re_eq_gamma}
+  \leanok
+  \uses{thm:dynamics:solenoidal-generator, lem:dynamics:sectorial,
+    thm:dynamics:analytic-generation, lem:dynamics:compact-embedding,
+    lem:dynamics:immediate-compactness, thm:dynamics:spectral-mapping,
+    lem:dynamics:mean-conservation, prop:dynamics:product-resolvent}
+  Let $u$ be transverse divergence-free and $\eps>0$.  The semigroup $\e^{tL_{\eps,u}}$ on
+  $\Lp^2_\sigma$ is analytic of angle $\pi/4$; its generator $L_{\eps,u}$ has a non-empty
+  resolvent set and a compact resolvent at every point of it; $\e^{tL_{\eps,u}}$ is compact
+  for $t>0$; \eqref{eq:dynamics:compact-semigroup-spectral-mapping} holds; and
+  $\gamma(u,\eps)=\sup\{\re\lambda:\lambda\in\sigma(L_{\eps,u})\}$, attained at an
+  eigenvalue.
+\end{theorem}
+
+These are the instances, at the induction semigroup, of the abstract statements of this
+section; Lemma~\ref{lem:semigroup-spectral-growth} collects them with the generator and the
+limit.  Module \texttt{FastDynamo/Dynamics/Assembly/InductionSemigroupSpectrum.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:sectorial, thm:dynamics:analytic-generation,
+    lem:dynamics:compact-embedding, lem:dynamics:immediate-compactness,
+    thm:dynamics:spectral-mapping, lem:dynamics:mean-conservation}
+  Analyticity: Theorem~\ref{thm:dynamics:analytic-generation} at the product Hille--Yosida ray
+  with the sector condition of Lemma~\ref{lem:dynamics:sectorial}, then restriction to
+  $\Lp^2_\sigma$.  Compact resolvent: at a real $r$ beyond the ray constant the resolvent of
+  the generator is the restricted product resolvent
+  (\texttt{exists\_isResolvent\_generator\_solenoidalInductionSemigroup\_eq}), which maps into
+  $\Hs^2$ and is compact by Lemma~\ref{lem:dynamics:compact-embedding}; the resolvent identity
+  transfers compactness to every point of the resolvent set.  The rest is
+  Lemma~\ref{lem:dynamics:immediate-compactness} and
+  Theorem~\ref{thm:dynamics:spectral-mapping}, the spectrum being non-empty by
+  Lemma~\ref{lem:dynamics:mean-conservation}, and the growth bound of the product semigroup
+  being that of its transport to the literal torus.
+\end{proof}
+
+\section{Solutions of the induction equation}
+\label{sec:dynamics:solutions}
+
+\begin{lemma}[The energy identity]
+  \label{lem:dynamics:energy-identity}
+  \lean{FastDynamo.productGradientEnergy,
+    FastDynamo.inner_productH2Embedding_laplacian_eq_neg_gradientEnergy,
+    FastDynamo.re_inner_productInductionTransverseTransport_eq_zero,
+    FastDynamo.re_inner_productInductionAxialTransport_eq_zero,
+    FastDynamo.re_inner_productInductionAction_eq,
+    FastDynamo.hasDerivAt_half_norm_sq_of_isForwardStrongSolution,
+    FastDynamo.hasDerivAt_half_norm_sq_of_isStrongSolution,
+    FastDynamo.realStrongSolution_hasDerivAt_half_norm_sq}
+  \leanok
+  \uses{def:main:induction-operator, def:dynamics:semigroup-interface}
+  Let $u$ be transverse divergence-free and $\eps\in\R$.  For every $B\in\Hs^2(\T^3;\CC^3)$,
+  \[
+    \re\inner{B}{\mathcal A_\eps B}=\re\inner{B}{(B\cdot\nabla)u}-\eps\norm{\nabla B}_2^2,
+  \]
+  and along every strong solution $B$ of $\partial_tB=\mathcal A_\eps B$ (at every positive
+  time, for a forward strong solution)
+  \[
+    \frac12\frac{\dd}{\dd t}\norm{B(t)}_2^2
+    =\re\inner{B(t)}{(B(t)\cdot\nabla)u}-\eps\norm{\nabla B(t)}_2^2 .
+  \]
+  In particular this holds along the real solution $B^\eps$ of Theorem~\ref{thm:main}.
+\end{lemma}
+
+This is the paper's \texttt{eq:energy-competition}, which the paper displays formally (``this
+competition is expressed by the energy identity'').  The Lean identity is for complex fields with
+the real part of the pairing; for a real field the pairing is the paper's
+$\int_{\T^3}B\cdot(B\cdot\nabla)u\dd x$.  The proof uses no divergence condition on $B$:
+both transport terms of $\mathcal A_\eps$ drop out because $\Div u=0$ and $u$ is independent of
+$x_3$.  Off divergence-free fields, however, $\mathcal A_\eps$ is not $L_{\eps,u}$, so the
+paper's identity is the case $\Div B=0$, where the auxiliary and the curl forms agree; along
+solutions of the curl-form equation itself with divergence-free datum the identity is part of
+Lemma~\ref{lem:dynamics:physical-uniqueness}.  Module
+\texttt{FastDynamo/Dynamics/EnergyIdentity.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{def:main:induction-operator}
+  In Fourier variables $\re\inner{B}{\eps\Delta B}=-\eps\norm{\nabla B}_2^2$; the transverse
+  transport term is skew because $\Div_\perp u_\perp=0$, and the axial transport term
+  $u_3\partial_3B$ is skew because $u_3$ does not depend on $x_3$.  Along a strong solution,
+  $\frac{\dd}{\dd t}\norm{B}_2^2=2\re\inner{B}{\mathcal A_\eps B}$.
+\end{proof}
+
+\begin{lemma}[Uniqueness of the solution of the induction equation]
+  \label{lem:dynamics:physical-uniqueness}
+  \lean{FastDynamo.productHMinus2Synthesis,
+    FastDynamo.exists_norm_stateResolvent_le_productL2ToHMinus2,
+    FastDynamo.productHMinus2DivergenceFunctional,
+    FastDynamo.productDivergenceFromH2_eq_zero_of_isForwardStrongSolution,
+    FastDynamo.productPhysicalInductionOperator_forwardStrongSolutionsUnique,
+    FastDynamo.isForwardStrongSolution_productPhysicalInductionOperator_domainOrbit,
+    FastDynamo.productH2Embedding_eq_productInductionSemigroup_of_isForwardStrongSolution,
+    FastDynamo.productH2Embedding_eq_solenoidalInductionSemigroup_of_isForwardStrongSolution,
+    FastDynamo.hasDerivAt_half_norm_sq_of_isForwardStrongSolution_physical}
+  \leanok
+  \uses{def:finish:physical-operator, lem:dynamics:product-dissipative,
+    thm:dynamics:product-semigroup, thm:dynamics:solenoidal-semigroup,
+    lem:finish:physical-compatibility, lem:dynamics:energy-identity}
+  Let $u$ be transverse divergence-free and $\eps>0$.  Two forward strong solutions
+  $B_1,B_2:[0,\infty)\to\Hs^2(\T^3;\CC^3)$ of
+  $\partial_tB=\curl(u\times B)+\eps\Delta B$, the time derivative taken in $\Hs^{-2}$, with
+  $B_1(0)=B_2(0)$ agree for all $t\geq0$.  A forward strong solution with divergence-free
+  initial value stays divergence-free, and it is the orbit
+  $B(t)=\e^{tL_{\eps,u}}B(0)$ of the semigroup on $\Lp^2_\sigma$; conversely the orbit of
+  every divergence-free $\Hs^2$ datum is a forward strong solution.  Along a forward strong
+  solution with divergence-free initial value the energy identity
+  \texttt{eq:energy-competition} holds at every $t>0$:
+  $\frac12\frac{\dd}{\dd t}\norm{B(t)}_2^2
+  =\re\inner{B(t)}{(B(t)\cdot\nabla)u}-\eps\norm{\nabla B(t)}_2^2$.
+\end{lemma}
+
+This is what the definite article in ``\emph{its} solution'' of Theorem~\ref{thm:main} asks
+for.  The paper has no separate statement: Theorem~\ref{thm:main} asserts the norm law for
+``its solution'', and its proof writes that solution down.  The solution class is the Lean
+one: $\Hs^2$-valued curves on the product torus, with one-sided derivative at $t=0$ and
+two-sided derivative at $t>0$ in the Fourier model of $\Hs^{-2}$, and no divergence condition
+on the data; conclusions are for $t\geq0$.  It contains the class of clause~(16) of
+Definition~\ref{def:main:physical-clauses}, whose curve is a strong solution at every real
+time.  Modules \texttt{FastDynamo/Dynamics/Assembly/NegativeSobolevResolvent.lean},
+\texttt{FastDynamo/Dynamics/Assembly/PhysicalInductionUniqueness.lean} and
+\texttt{FastDynamo/Dynamics/Assembly/SemigroupOrbit.lean}.
+
+\begin{proof}
+  \leanok
+  \uses{lem:dynamics:product-dissipative, lem:finish:physical-compatibility,
+    lem:dynamics:energy-identity}
+  The divergence of a forward strong solution satisfies, Fourier mode by Fourier mode, the
+  heat equation $\dot c=-4\pi^2\eps\abs\xi^2c$, because the curl term has no divergence; so a
+  divergence-free datum stays divergence-free.  On divergence-free fields the curl form is the
+  $\Hs^{-2}$ image of $\mathcal A_\eps$ (Lemma~\ref{lem:finish:physical-compatibility}).  For the
+  difference $w$ of two solutions, the resolvent $R(r)$ of $\mathcal A_\eps$ at a real $r>M_u$ is
+  bounded in the $\Hs^{-2}$ norm (by the energy inequality and the skewness of transport), so
+  $R(r)w(t)$ is an $\Lp^2$ forward strong solution of $\partial_t=\mathcal A_\eps$ with initial
+  value $0$, hence $0$ by Lemma~\ref{lem:dynamics:product-dissipative}; $R(r)$ is injective, so
+  $w=0$.  The same argument with the orbit of the realization of
+  Theorem~\ref{thm:dynamics:product-semigroup} as second solution identifies a solution with
+  divergence-free datum with the semigroup orbit.  That orbit is an $\Lp^2$ forward strong
+  solution of $\partial_t=\mathcal A_\eps$, so Lemma~\ref{lem:dynamics:energy-identity} gives
+  the energy identity along it, and the two curves agree on $[0,\infty)$.
+\end{proof}

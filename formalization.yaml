@@ -1,0 +1,286 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+# formalization.yaml v0.4: provenance, sources, process and review of this formalisation.
+version: "v0.4"
+
+project:
+  name: "A fast dynamo with zero topological entropy"
+  description: >-
+    A Lean 4 formalisation, built on mathlib, of L. Niebel, "A fast dynamo with zero topological
+    entropy" (arXiv:2608.02586v3), an arXiv preprint. The fast-dynamo question, going back to
+    Vainshtein and Zel'dovich, asks whether the exponential growth rate of the magnetic field in the
+    kinematic induction equation survives the limit of vanishing magnetic diffusivity; for
+    autonomous velocities on the flat three-torus it is the conjecture recorded as Problem 1994-28
+    in Arnold's Problems (Conjecture 1.1 of the paper), which asks for a smooth velocity. For
+    sufficiently smooth velocities the absence of exponential particle stretching excludes fast
+    dynamo action (Vishik; Friedlander and Vishik), and the entropy bound of Klapper and Young
+    excludes a C^infinity fast dynamo with zero topological entropy; the paper shows that at
+    Lipschitz regularity fast dynamo action is compatible with zero topological entropy and zero
+    ideal exponential growth. The theorem concerns Lipschitz velocities and does not address the
+    smooth conjecture, which, as Remark 1.3 of the paper records, has been resolved (Coti Zelati,
+    Sorella and Villringer, arXiv:2609.04153). The
+    compared theorem is Theorem 1.2 of the paper: there are an autonomous, divergence-free,
+    Lipschitz velocity field u on the flat torus T^3 = R^3/Z^3 and constants eps0, gamma0 > 0 such
+    that for every magnetic diffusivity 0 < eps <= eps0 the kinematic induction equation dB/dt =
+    curl(u x B) + eps Laplacian(B), div B = 0, has an induction semigroup on the divergence-free
+    fields L^2_sigma whose operator norm is at least exp(gamma0 t) for all t >= 0 (u is a fast
+    dynamo), with an eigenmode exp(2 pi i K x3) b(y) of eigenvalue of real part at least gamma0 and
+    a real solution of exact growth exp(t Re lambda); while every time map of the particle flow of u
+    is continuous and has topological entropy zero, and the ideal (eps = 0) induction equation has
+    exactly one solution group, whose operator norm grows subexponentially. The statement in
+    Challenge.lean uses only mathlib notions and fourteen documented definitions. The repository
+    formalises, in its own terms and with every deviation recorded in DEVIATIONS.md, all statements
+    of the paper except Conjecture 1.1 and Remarks 1.3, 7.5 and 8.4, in about 129,000 lines of Lean
+    in 411 library modules; every audited declaration depends only on the standard axioms propext,
+    Classical.choice and Quot.sound, and there is no sorry outside the deliberate one in
+    Challenge.lean.
+  authors:
+    - "Lukas Niebel"
+  license: "Apache-2.0"
+  responsible_maintainers:
+    - "Lukas Niebel"
+
+classification:
+  arxiv: ["math.AP", "math-ph", "math.SP"]
+  msc2020: ["76W05", "35P05", "47A10", "35B25", "37B40"]
+
+sources:
+  - title: "A fast dynamo with zero topological entropy"
+    authors:
+      - "Lukas Niebel"
+    id: "arXiv:2608.02586v3"
+    type: "paper"
+    location: "https://arxiv.org/abs/2608.02586v3"
+    relationship: "formalizes"
+    note: >-
+      The formalisation follows this version of the paper section by section. The author of the
+      paper directed the formalisation. CORRESPONDENCE.md maps every statement of the paper to its
+      Lean declarations, and DEVIATIONS.md lists every difference between the Lean statements and
+      arguments and the paper. Previous formalisations of this result: none known.
+    author_endorsement: "participated"
+  - title: "Origin of magnetic fields in astrophysics (turbulent \"dynamo\" mechanisms)"
+    authors:
+      - "S. I. Vainshtein"
+      - "Ya. B. Zel'dovich"
+    id: "doi:10.1070/PU1972v015n02ABEH004960"
+    type: "paper"
+    location: "Sov. Phys. Usp. 15 (1972), no. 2, 159-172"
+    relationship: "background"
+    note: "Introduced the question of slow and fast dynamos (section 1.1 of the paper)."
+  - title: "Arnold's Problems"
+    contributors:
+      - name: "V. I. Arnold"
+        role: "editor"
+    id: "doi:10.1007/b138219"
+    type: "book"
+    location: "Springer-Verlag, Berlin, and PHASIS, Moscow, 2004, Problem 1994-28"
+    relationship: "background"
+    note: >-
+      Problem 1994-28 is the smooth autonomous fast-dynamo conjecture on the flat three-torus,
+      Conjecture 1.1 of the paper; it is not formalised.
+  - title: "Magnetic field generation by the motion of a highly conducting fluid"
+    authors:
+      - "M. M. Vishik"
+    id: "doi:10.1080/03091928908219531"
+    type: "paper"
+    location: "Geophys. Astrophys. Fluid Dyn. 48 (1989), nos. 1-3, 151-167"
+    relationship: "background"
+    note: >-
+      Cited by the paper (section 1.4) for the fact that, for sufficiently smooth velocities, the
+      absence of exponential particle stretching excludes fast dynamo action.
+  - title: "Dynamo theory, vorticity generation, and exponential stretching"
+    authors:
+      - "S. Friedlander"
+      - "M. M. Vishik"
+    id: "doi:10.1063/1.165829"
+    type: "paper"
+    location: "Chaos 1 (1991), no. 2, 198-205"
+    relationship: "background"
+    note: "Cited by the paper (section 1.4) together with Vishik (1989)."
+  - title: "Rigorous bounds on the fast dynamo growth rate involving topological entropy"
+    authors:
+      - "I. Klapper"
+      - "L. S. Young"
+    id: "doi:10.1007/BF02101659"
+    type: "paper"
+    location: "Comm. Math. Phys. 173 (1995), no. 3, 623-646"
+    relationship: "background"
+    note: >-
+      The entropy bound that, as the paper notes (section 1.4), excludes a C^infinity fast dynamo
+      with zero topological entropy.
+  - title: "Alpha-unstable flows and the fast dynamo problem"
+    authors:
+      - "M. Coti Zelati"
+      - "M. Sorella"
+      - "D. Villringer"
+    id: "arXiv:2504.00855v1"
+    type: "paper"
+    location: "https://arxiv.org/abs/2504.00855v1"
+    relationship: "background"
+    note: >-
+      An autonomous Lipschitz fast dynamo on R^3 by multiscale localisation (section 1.4 of the
+      paper); the paper assigns its diffusivity intervals as in Section 4.1 of this work (sections
+      1.3 and 3.2 of the paper).
+  - title: "Smooth autonomous fast dynamo action on the three-torus"
+    authors:
+      - "M. Coti Zelati"
+      - "M. Sorella"
+      - "D. Villringer"
+    id: "arXiv:2609.04153v1"
+    type: "paper"
+    location: "https://arxiv.org/abs/2609.04153v1"
+    relationship: "background"
+    note: >-
+      Resolves Conjecture 1.1 of the paper (Remark 1.3 of the paper); its smooth fast dynamos have
+      positive topological entropy. Not used by the formalisation.
+  - title: "Theory of the hydromagnetic generator"
+    authors:
+      - "Y. B. Ponomarenko"
+    id: "doi:10.1007/BF00853190"
+    type: "paper"
+    location: "J. Appl. Mech. Tech. Phys. 14 (1973), 775-778"
+    relationship: "background"
+    note: >-
+      The screw (Ponomarenko) flow; its modal reduction, transmission conditions and Bessel
+      dispersion relation underlie the local model of section 2 of the paper.
+
+related_formalizations: []
+
+status:
+  scope: >-
+    The compared theorem, FastDynamoChallenge.fast_dynamo_zero_entropy (Challenge.lean, proved in
+    Solution.lean), is Theorem 1.2 of the paper in mathlib's terms: the velocity is Lipschitz and
+    divergence free on Fourier coefficients; for every 0 < eps <= eps0 an induction semigroup on
+    L^2_sigma exists and every strongly continuous semigroup whose generator agrees with
+    curl(u x .) + eps Laplacian on H^2 and L^2_sigma has operator norm at least exp(gamma0 t) for all
+    t >= 0; there is an eigenmode supported on the axial frequency K != 0 with eigenvalue of real
+    part at least gamma0, and its real part is a non-zero datum whose orbit is
+    Re(exp(t lambda) V) with norm exp(t Re lambda) times the initial norm; the particle flow
+    exists and every time map of every flow is continuous with zero cover entropy; the ideal
+    induction equation has exactly one solution group on L^2_sigma, and t^-1 log of its norm tends
+    to 0. The library proves in addition, in its own terms: explicit witnesses eps0 and gamma0
+    with gamma0 >= 288, the independence of the velocity of x3 and u != 0, Lemma A.1 (generation,
+    analyticity, compactness, spectral mapping, the growth rate as a limit equal to the spectral
+    bound), Remarks 1.4 to 1.7 (among them the theorem for the normalised velocity and the
+    vanishing-diffusivity limit), the energy identity and the notions of dynamo of section 1.1,
+    and every proposition, lemma and corollary of sections 2 to 8, Corollary 8.3 included. Not
+    formalised: Conjecture 1.1 and Remarks 1.3, 7.5 and 8.4; the proof of Theorem 1.2 depends on
+    none of them.
+  # Excluding the deliberate sorry of Challenge.lean.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: []
+
+automation:
+  methods:
+    - method: "agent"
+      models:
+        - "Claude Opus 5.5"
+        - "Claude Fable 5.2"
+        - "Claude Opus 5"
+        - "Claude Fable 5.1"
+        - "Claude Fable 5"
+      framework: "Claude Code"
+      tool_setup: >-
+        The Lean code, the blueprint and the documentation were written by AI coding agents
+        (Anthropic's Claude models, run through Claude Code) under the supervision of the author,
+        who supplied the paper, directed the work and set its policies. The list of models is
+        given from memory and may be incomplete.
+      cost:
+        spend_usd: "subscription-based"
+  spend_usd: "subscription-based"
+  notes: >-
+    The author supplied the paper, directed the work and set its policies; AI coding agents wrote
+    the Lean code, the blueprint and the documentation. Lean checks the proofs against the formal
+    statements, and Comparator checks that Solution.lean proves the statement of Challenge.lean
+    with the axioms propext, Quot.sound and Classical.choice only. The correspondence between the
+    formal statements and the paper is documented in CORRESPONDENCE.md and DEVIATIONS.md.
+
+fidelity:
+  divergences: >-
+    Differences between the compared theorem and Theorem 1.2 as printed (in full: DEVIATIONS.md,
+    entry B14). (1) The velocity is a Lipschitz function rather than a W^{1,infinity} class, and
+    divergence-free means sum_i m_i u_i^(m) = 0 for every m in Z^3: equivalent. (2) L^2_sigma is the
+    orthogonal complement of the gradients of the Fourier characters, and H^2 is defined by Fourier
+    weights: equivalent. (3) The operator curl(u x B) + eps Laplacian(B) is given by its Fourier
+    symbol, with the curl in the divergence form sum_j d_j(u_i B_j - u_j B_i): equivalent. (4) The
+    growth rate gamma(u, eps) is not defined. The clause asserts the existence of a strongly
+    continuous semigroup on L^2_sigma whose generator agrees with the operator on H^2 and L^2_sigma,
+    and bounds the operator norm of every such semigroup below by exp(gamma0 t) for all t >= 0. The
+    library proves Lemma A.1 of the paper for velocities independent of x3 (DEVIATIONS.md, CA.1),
+    which covers the velocity of the theorem, and the semigroup it gives is such a semigroup. That
+    it is the only one (a generator has no proper extension that is again a generator) is a standard
+    argument that is not formalised for this notion; the compared theorem asserts existence only,
+    does not use uniqueness, and its clauses hold for every such semigroup. For a strongly
+    continuous semigroup gamma(u, eps) = lim t^-1 log ||S(t)|| = inf_{t>0} t^-1 log ||S(t)||, so the
+    bound is equivalent to gamma(u, eps) >= gamma0 for every 0 < eps <= eps0, the interval on which
+    the paper states the growth clause, and it gives the liminf clause: equivalent. (5) The
+    eigenmode exp(2 pi i K x3) b(y) is expressed as Fourier support on m3 = K; b in H^2 and b != 0
+    become V in H^2 and V != 0; the eigen-equation holds in the sense of distributions, on Fourier
+    coefficients. (6) "Its solution" is the semigroup orbit for t >= 0; real fields are C^3-valued
+    with real entries. (7) The particle flow is characterised through integral curves of the
+    periodic lift of u; its existence is asserted and the entropy clause holds for every such flow;
+    topological entropy is mathlib's Dynamics.coverEntropy, the Bowen-Dinaburg entropy defined
+    through covers by dynamical balls. (8) The ideal solution group is the unique strongly
+    continuous group on L^2_sigma whose orbits solve dB/dt = curl(u x B) tested against the Fourier
+    characters and integrated in time. (9) One existential block over u, eps0, gamma0, with one
+    triple (K, lambda, V) for each eps. (10) Not stated in the compared theorem, but proved in the
+    library: the explicit eps0 and gamma0 >= 288, the independence of u of x3, u != 0, Remark 1.5,
+    Lemma A.1, Remarks 1.6 and 1.7, Corollary 8.3. The library proves the theorem in a product-torus
+    model T^2 x T and transports it to UnitAddTorus (Fin 3); the deviations of the library's own
+    statements and arguments from the paper (the model, solution classes, choices of constants,
+    different routes) are listed in DEVIATIONS.md.
+
+review:
+  status: "author-verified"
+  reviewers:
+    - "Lukas Niebel"
+  notes: >-
+    Lean checks each proof against its formal statement. The author reviewed that the statements
+    are the intended theorems. Each public statement was compared with the paper by independent
+    model reviews before its proof was accepted, and the comparator declaration is checked
+    mechanically. This is not external peer review.
+
+alignment:
+  namespace: "FastDynamoChallenge"
+  statements:
+    - source: "Theorem 1.2 (thm:main)"
+      lean: "FastDynamoChallenge.fast_dynamo_zero_entropy"
+      module: "Solution"
+      status: "proved"
+      note: >-
+        The compared theorem; its statement is that of Challenge.lean, with the differences from
+        the printed theorem listed under fidelity.divergences.
+    - source: "Theorem 1.2 (thm:main), in the library's own terms"
+      lean: "FastDynamo.mainTheoremComplete_holds"
+      module: "FastDynamo.Dynamics.MainLagrangianClauses"
+      status: "proved"
+      note: >-
+        Every clause of the theorem at explicit witnesses, in the product model; deviations in
+        DEVIATIONS.md, Part B.
+    - source: "Theorem 1.2 (thm:main), with explicit constants"
+      lean: "FastDynamo.main_theorem_strengthened"
+      module: "FastDynamo.MainTheoremStrengthened"
+      status: "proved"
+      note: >-
+        Explicit eps0 and gamma0 >= 288, the growth-rate clause, the semigroup orbit and the
+        literal three-torus clauses.
+    - source: "Lemma A.1 (lem:semigroup-spectral-growth)"
+      lean: "FastDynamo.semigroupSpectralGrowth_holds"
+      module: "FastDynamo.Dynamics.Assembly.SemigroupSpectralGrowth"
+      status: "proved"
+      note: "For axially independent divergence-free velocities; DEVIATIONS.md, CA.1."
+    - source: "Remark 1.7"
+      lean: "FastDynamo.tendstoUniformlyOn_resistiveEvolution_mainIdealGroup"
+      module: "FastDynamo.Dynamics.VanishingDiffusivity.Limit"
+      status: "proved"
+      note: "At the velocity of Theorem 1.2; DEVIATIONS.md, C1.5."
+    - source: "Corollary 8.3 (cor:magnetic-scale)"
+      lean: "FastDynamo.main_theorem_magnetic_scale"
+      module: "FastDynamo.Finish.MagneticScaleMain"
+      status: "proved"
+      note: "With explicit constants; DEVIATIONS.md, C8.2."
+
+acknowledgements: >-
+  Built on Lean 4 and mathlib. Lukas Niebel is funded by SNSF Starting Grant TMSGI2_226018 and by
+  the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany's Excellence
+  Strategy EXC 2044/2-390685587, Mathematics Münster: Dynamics-Geometry-Structure.

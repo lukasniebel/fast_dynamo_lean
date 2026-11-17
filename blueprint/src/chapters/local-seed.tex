@@ -1,0 +1,794 @@
+% Chapter: the local seed.  Section 2 of the paper (sec:local-model).
+% Owned shared labels: def:local:seed.
+% Paper labels: lem:jump-horizontal-mode (Lemma 2.1), prop:local-seed (Proposition 2.2).
+
+Section~2 of the paper builds the seed on \emph{two}-component horizontal fields.  At unit
+diffusivity the horizontal equations in the axial Fourier mode $\e^{2\pi ix_3}$ close on
+$b\colon\R^2\to\CC^2$, and the weak form of the resulting generator
+\eqref{eq:local:horizontal-induction} carries no derivative of the velocity once the
+stretching term is integrated by parts.  This is what allows the seed to be built for a
+\emph{discontinuous} velocity, the Ponomarenko screw flow, whose unstable eigenvalue is
+produced by an intermediate-value argument on an explicit segment of the Bessel dispersion
+relation.  The eigenvalue is isolated by the analytic Fredholm theorem, the velocity is
+smoothed and the diffusivity is varied in \emph{one} form estimate
+\eqref{eq:local:form-small}, and a fixed compactly supported test vector $f_*$ detects the
+spectral subspace throughout.  The output is the record of Definition~\ref{def:local:seed},
+inhabited at $k_*=1$ by Proposition~\ref{prop:local-seed}; the axial component of the
+magnetic field is not part of the seed at all and is recovered only in the finish chapter
+(Lemma~\ref{lem:axial-recovery}).
+
+Throughout this chapter $\Lp^2$ inner products are linear in the first argument, as in the
+paper; the Lean convention is the opposite one, and every statement below is the
+transcription $\inner f\phi=\texttt{inner}\ \CC\ (j\phi)\ f$ of the paper's pairing
+(the module docstring of \texttt{FastDynamo/Local/HorizontalWeakForm.lean} records it).
+
+\section{The horizontal operator on $\R^2$ and its weak form}
+
+\begin{definition}[The horizontal generator and its sesquilinear form]
+  \label{def:local:horizontal-operator}
+  \lean{FastDynamo.HorizontalWeakForm.horizontalDiffusionForm,
+    FastDynamo.HorizontalWeakForm.horizontalTransportForm,
+    FastDynamo.HorizontalWeakForm.horizontalAxialForm,
+    FastDynamo.HorizontalWeakForm.horizontalStretchDivergenceForm,
+    FastDynamo.HorizontalWeakForm.horizontalStretchGradientForm,
+    FastDynamo.HorizontalWeakForm.horizontalWeakForm,
+    FastDynamo.HorizontalWeakForm.HorizontalFormDomain,
+    FastDynamo.HorizontalWeakForm.horizontalFormOperator,
+    FastDynamo.HorizontalWeakForm.horizontalFormOperator_exists_iff,
+    FastDynamo.HorizontalWeakForm.horizontalFormOperator_isEigenpair_iff}
+  \leanok
+  Fix $N=2\pi$ (the paper writes $4\pi^2$ and $2\pi i$ for $N^2$ and $iN$).  For a velocity $w=(w_\perp,w_3)$ independent of $x_3$ with
+  $\Div_\perp w_\perp=0$ the horizontal generator at unit diffusivity is
+  \begin{equation}
+    A_wb=(\Delta_\perp-N^2)b-w_\perp\cdot\nabla_\perp b-iNw_3b
+      +(b\cdot\nabla_\perp)w_\perp,
+    \qquad b\colon\R^2\to\CC^2 .
+    \label{eq:local:horizontal-induction}
+  \end{equation}
+  Integrating the stretching term by parts removes every derivative of $w$, so for
+  $w\in\Lp^\infty(\R^2;\R^3)$ the sesquilinear form
+  \begin{align}
+    \mathfrak l_w(b,\phi)
+    ={}&\inner{\nabla_\perp b}{\nabla_\perp\phi}+N^2\inner b\phi
+       +\inner{w_\perp\cdot\nabla_\perp b}\phi+iN\inner{w_3b}\phi\notag\\
+      &+\int_{\R^2}w_\perp\cdot
+        \bigl((\Div_\perp b)\overline\phi+(b\cdot\nabla_\perp)\overline\phi\bigr)\dd y
+    \label{eq:local:sectorial-form}
+  \end{align}
+  is defined for $b,\phi\in\Hs^1(\R^2;\CC^2)$.  We write $-A_w$ for the operator on
+  $\Lp^2(\R^2;\CC^2)$ associated with $\mathfrak l_w$ in Kato's sense: $b\in D(A_w)$ with
+  $A_wb=f$ exactly when $b\in\Hs^1$ and $\mathfrak l_w(b,\phi)=-\inner f\phi$ for every
+  $\phi\in\Hs^1$.
+\end{definition}
+
+In Lean the five summands of \eqref{eq:local:sectorial-form} are the five declarations
+listed above, all on \texttt{WholePlaneC2H1} $=\Hs^1(\R^2;\CC^2)$ with a velocity of type
+\texttt{WholePlaneC3LInf}; \texttt{horizontalFormOperator} is the generic
+\texttt{associatedFormProdOperator} of \texttt{FastDynamo/Operator/AssociatedForm.lean}
+applied to $\mathfrak l_w$ with the pivot $\Hs^1\hookrightarrow\Lp^2$, so the domain is a
+graph subspace of $\Hs^1\times\Lp^2$ rather than a subset of $\Lp^2$.  The two
+characterisations \texttt{horizontalFormOperator\_exists\_iff} and
+\texttt{\_isEigenpair\_iff} are the paper's domain description and the eigenvalue
+equation $\mathfrak l_w(b,\phi)=-\lambda\inner b\phi$ verbatim.  The module is
+\texttt{FastDynamo/Local/HorizontalWeakForm.lean} and
+\texttt{FastDynamo/Local/HorizontalFormOperator.lean}.
+
+\begin{lemma}[Boundedness, Gårding inequality and sectoriality]
+  \label{lem:local:garding}
+  \lean{FastDynamo.HorizontalWeakForm.norm_horizontalWeakForm_apply_le,
+    FastDynamo.HorizontalWeakForm.horizontalWeakForm_garding,
+    FastDynamo.HorizontalWeakForm.horizontalWeakForm_abs_im_le,
+    FastDynamo.HorizontalWeakForm.horizontalGardingConstant,
+    FastDynamo.HorizontalWeakForm.horizontalShiftedWeakForm,
+    FastDynamo.HorizontalWeakForm.horizontalShiftedWeakForm_hasComplexCoercivityConstant,
+    FastDynamo.HorizontalWeakForm.horizontalShiftedWeakForm_sectorial}
+  \leanok
+  \uses{def:local:horizontal-operator}
+  For $w\in\Lp^\infty(\R^2;\R^3)$ the form $\mathfrak l_w$ is bounded on
+  $\Hs^1\times\Hs^1$, and
+  \[
+    \re\mathfrak l_w(b,b)\geq\tfrac12\norm{\nabla_\perp b}_2^2-C\norm b_2^2,
+    \qquad
+    \abs{\im\mathfrak l_w(b,b)}\leq C'\bigl(\norm{\nabla_\perp b}_2^2+\norm b_2^2\bigr),
+  \]
+  with $C,C'$ depending only on $N$ and $\norm w_\infty$.  Consequently, for
+  $\alpha=C+\tfrac12$, the shifted form $\mathfrak l_w+\alpha\inner\cdot\cdot$ is coercive on
+  $\Hs^1$ with constant $\tfrac12$, and its imaginary part on the diagonal is at most $2C'$
+  times its real part; so $\mathfrak l_w$ is closed and sectorial.
+\end{lemma}
+
+The Lean constants are explicit: $C=50\norm w_\infty^2+\abs N\norm w_\infty$
+(\texttt{horizontalGardingConstant}), $C'=(5+\abs N)\norm w_\infty$, and the sectoriality
+slope is $2C'$; all are generous, and no later step uses their value.  The first inequality
+is the paper's \texttt{eq:sectorial-estimate-b}.  \textbf{Deviation (shape of the
+imaginary-part bound).}  The paper's second display is
+$\abs{\im\mathfrak l_w(b,b)}\leq\re\mathfrak l_w(b,b)+C\norm b_2^2$ for every $b\in\Hs^1$,
+after increasing $C$ if necessary: a sector of slope one about the shifted real part.  Lean
+bounds the imaginary part by the full $\Hs^1$ norm instead and obtains, after the shift by
+$\alpha$, a sector of slope $2C'$, which depends on $N$ and $\norm w_\infty$.  Both say that
+$\mathfrak l_w$ is sectorial, which is all the paper uses (Kato's representation theorem);
+the slope-one form is not formalised.  The coercivity after the shift is stated in the
+$\Hs^1$ graph norm rather than in the paper's split form, which is the same statement because
+$\norm b_{\Hs^1}^2=\norm b_2^2+\norm{\nabla_\perp b}_2^2$ by construction of the graph
+space.
+
+\begin{proof}
+  \leanok
+  \uses{def:local:horizontal-operator}
+  The three velocity terms carrying a derivative are bounded by
+  $5\norm w_\infty\norm b_2\bigl(\norm{\partial_1b}_2+\norm{\partial_2b}_2\bigr)$ and the
+  axial term by $\abs N\norm w_\infty\norm b_2^2$; Young's inequality
+  $5Mm(G_0+G_1)\leq\tfrac14(G_0^2+G_1^2)+50M^2m^2$ absorbs the first into the diffusion
+  term and leaves $\tfrac34$ of it, which is more than the claimed $\tfrac12$.  The
+  imaginary part is estimated by the same three bounds without absorption, and
+  $2\norm{\partial_jb}_2\norm b_2\leq\norm{\partial_jb}_2^2+\norm b_2^2$.  Adding a large
+  real multiple of the $\Lp^2$ inner product makes the real part dominate, which is
+  coercivity, and the quotient of imaginary by real part is then bounded, which is
+  sectoriality.
+\end{proof}
+
+\section{An unstable eigenvalue for the discontinuous screw flow}
+
+\begin{definition}[The Ponomarenko screw flow]
+  \label{def:local:jump-flow}
+  \lean{FastDynamo.HorizontalMode.horizontalJumpInteriorVelocity,
+    FastDynamo.HorizontalMode.horizontalJumpVelocity,
+    FastDynamo.HorizontalMode.horizontalJumpVelocityLInf,
+    FastDynamo.HorizontalMode.horizontalModeVelocity,
+    FastDynamo.PonomarenkoFreeOmegaInterface.jumpAxialSpeed,
+    FastDynamo.PonomarenkoFreeOmegaInterface.scale_mul_jumpAxialSpeed}
+  \leanok
+  \uses{def:local:horizontal-operator}
+  For $\Omega>0$ put $U=-\Omega/N$ and, in polar coordinates,
+  \begin{equation}
+    V^0(y)=\one_{\{r<1\}}\bigl(\Omega re_\theta+Ue_3\bigr).
+    \label{eq:local:jump-flow}
+  \end{equation}
+  The normal component vanishes on both sides of $r=1$, so
+  $\Div_\perp V^0_\perp=0$ in the sense of distributions and $V^0\in\Lp^\infty$ has
+  compact support.
+\end{definition}
+
+In Lean $\Omega$ is a \emph{free} real parameter: \texttt{horizontalJumpVelocity Omega U}
+is the Cartesian field $(-\Omega y_2,\Omega y_1,U)$ cut off by the indicator of the closed
+unit disc, and \texttt{horizontalModeVelocity N Omega} pins $U=-\Omega/N$ through
+\texttt{jumpAxialSpeed}.  The paper's open disc $\{r<1\}$ and the Lean closed disc
+differ on a null set, hence define the same $\Lp^\infty$ class; this is recorded in the
+module docstring.  Making $\Omega$ free is the change that lets the dispersion relation be
+read as a \emph{condition on $\kappa$ alone}, which is what the intermediate-value
+argument needs.
+
+\begin{definition}[The dispersion relation and its certificate]
+  \label{def:local:dispersion}
+  \lean{FastDynamo.ponomarenkoDispersion_analyticOnNhd,
+    FastDynamo.ModifiedBessel.ponomarenkoDispersion_eq_neg_two_div_mul_deriv_I1_mul_K1,
+    FastDynamo.PonomarenkoFreeOmegaInterface.TransverseInterfaceLaws,
+    FastDynamo.PonomarenkoFreeOmegaInterface.CertifiedInterfaceData,
+    FastDynamo.PonomarenkoFreeOmegaInterface.transverseInterfaceLaws_of_dispersion,
+    FastDynamo.ponomarenkoLocalEigenvalue}
+  \leanok
+  \uses{def:local:jump-flow}
+  Separating the angular index $j=1$ and writing $B_\pm=B_r\pm iB_\theta$, the bounded
+  solutions of the radial system are the modified Bessel branches $I_2,I_0$ inside and
+  $K_2,K_0$ outside, at the transverse wave number $\kappa$ with
+  $\lambda_*=\kappa^2-N^2$.  The four transmission conditions
+  $\jump{B_r}=\jump{B_\theta}=\jump{B_r'}=0$ and $\jump{B_\theta'}=\Omega B_r(1)$ have a
+  non-trivial solution exactly when
+  \begin{equation}
+    \mathcal D(\kappa):=I_0(\kappa)K_0(\kappa)-I_2(\kappa)K_2(\kappa)
+    =-\frac{2i}{\Omega}.
+    \label{eq:local:dispersion}
+  \end{equation}
+  A \emph{certificate} is a triple $(N,\Omega,\kappa)$ with $N>0$, $\re\kappa>0$,
+  $\Omega>0$, \eqref{eq:local:dispersion}, the four transmission laws,
+  $\re(\kappa^2-N^2)>0$, and the non-vanishing of $I_\nu(\kappa)$ and $K_\nu(\kappa)$ for
+  $\nu=0,1,2$ and of the interior radial component at $r=1$.
+\end{definition}
+
+\texttt{CertifiedInterfaceData N Omega kappa} is exactly that record; the transmission laws
+are a separate record \texttt{TransverseInterfaceLaws}, which
+\texttt{transverseInterfaceLaws\_of\_dispersion} derives from
+\eqref{eq:local:dispersion} and $\re\kappa>0$, so the record is carried only for
+convenience.  The Lean branches are the \emph{cross-normalised} pair
+$B_+=K_2(\kappa)I_2(\kappa r)$, $B_-=-K_0(\kappa)I_0(\kappa r)$ inside (and the mirrored
+pair outside), a non-zero constant multiple of the paper's solution
+(\texttt{eq:bessel-solutions} with $S=C_++C_-=1$) written without denominators; with that
+normalisation the two Wronskian jumps
+$\jump{B_+'}=-1$, $\jump{B_-'}=+1$ hold identically and
+\eqref{eq:local:dispersion} is equivalent to $\Omega B_r(1)=i$.
+
+\begin{lemma}[An admissible root on the segment $\kappa=\varrho(1+it)$]
+  \label{lem:local:segment-root}
+  \lean{FastDynamo.norm_ponomarenkoSegmentDispersion_sub_inv_cube_le,
+    FastDynamo.exists_ponomarenkoSegmentDispersionRe_eq_zero,
+    FastDynamo.modifiedBessel_denominators_ne_zero_on_segment,
+    FastDynamo.exists_certifiedInterfaceData_of_segment,
+    FastDynamo.exists_certifiedInterfaceData_two_pi}
+  \leanok
+  \uses{def:local:dispersion}
+  For $\varrho\geq32$ and $\abs t\leq3/4$,
+  \[
+    \abs{\varrho^3\mathcal D(\varrho(1+it))-(1+it)^{-3}}\leq\frac{225}{4\varrho^2}
+    \leq\frac1{16},
+  \]
+  and $\re(1+it)^{-3}=(1-3t^2)(1+t^2)^{-3}$ changes sign between $t=\tfrac12$ and
+  $t=\tfrac34$ while $\im(1+it)^{-3}\leq-\tfrac13$ there.  Hence there is
+  $t_\varrho\in(\tfrac12,\tfrac34)$ with $\re\mathcal D(\varrho(1+it_\varrho))=0$; setting
+  $\kappa=\varrho(1+it_\varrho)$ and $\Omega=-2/\im\mathcal D(\kappa)>0$ produces a
+  certificate, with
+  \[
+    \re\lambda_*=\varrho^2(1-t_\varrho^2)-N^2\geq\tfrac7{16}\varrho^2-N^2 .
+  \]
+  In particular at $N=2\pi$ and $\varrho=32$ a certificate exists with
+  $\re\lambda_*\geq448-4\pi^2>0$.
+\end{lemma}
+
+\textbf{Deviation (explicit numerals).}  Every threshold here is explicit and is proved in
+Lean at the stated numerals; the numerals are choices of the formalisation, not of the
+paper.  The paper restricts to $\kappa=\varrho(1+it)$ with $t\in[\tfrac12,\tfrac34]$ and
+$\varrho>0$ ``sufficiently large'', uses \texttt{eq:bessel-product-expansion} with an
+unquantified $O(\varrho^{-5})$ remainder, and concludes
+$\re\lambda_*=\varrho^2(1-t_\varrho^2)-4\pi^2\geq\tfrac7{16}\varrho^2-4\pi^2>0$ after
+``increasing $\varrho$ if necessary'' (\texttt{eq:local-eigenvalue}); it fixes no value of
+$\varrho$ and no numerical lower bound for $\re\lambda_*$.  Lean proves the expansion with
+the explicit error $225/(4\varrho^2)$ for $\varrho\geq32$ ($\varrho=32$ is the smallest power
+of two above the binding constraint $\varrho\geq30$), carries the hypothesis
+$N^2<\tfrac7{16}\varrho^2$ in place of ``increasing $\varrho$'', and discharges it at
+$N=2\pi$, $\varrho=32$ by $(2\pi)^2<448$; hence the numeral $448-4\pi^2$.  The
+existence theorem also exposes $\re\kappa=\varrho$, $\im\kappa\in(\varrho/2,3\varrho/4)$
+and $\norm\kappa\leq\tfrac54\varrho$, which the later sector estimates consume.
+
+\begin{proof}
+  \leanok
+  \uses{def:local:dispersion}
+  The product $zI_1(z)K_1(z)$ obeys $\abs{zI_1K_1-\tfrac12}\leq3(\re z)^{-2}$ in the
+  sector $\norm z\leq2\re z$, by the Gaussian representations of $I_1$ and $K_1$; since
+  $(I_1K_1)'(z)=-z\mathcal D(z)/2$, so that $\mathcal D$ is $-2/z$ times the derivative of
+  that product, one gets the expansion above on a disc of radius $1/5$
+  around each segment point by Cauchy's estimate, and the stated constants follow by
+  summing $2\delta+2\eta$.  The sign pattern of $(1+it)^{-3}$ at $t=\tfrac12,\tfrac34$
+  survives the error $1/16$, so the intermediate value theorem gives $t_\varrho$.  That the
+  four Bessel values $I_0,I_2,K_0,K_2$ do not vanish at $\kappa$ follows from the four
+  collapse identities for $z^3\mathcal D(z)$ together with
+  $\norm{\kappa^3\mathcal D(\kappa)}\leq2$ and $\norm{\kappa I_1K_1-\tfrac12}<\tfrac12$,
+  which force $\norm\kappa\leq3$, contradicting $\re\kappa=\varrho\geq32$.  Finally
+  $\im\mathcal D(\kappa)<0$ on the segment makes $\Omega$ positive, and
+  $t_\varrho^2\leq9/16$ gives the growth floor.
+\end{proof}
+
+\begin{definition}[The Cartesian eigenmode]
+  \label{def:local:cartesian-mode}
+  \lean{FastDynamo.HorizontalMode.horizontalMode,
+    FastDynamo.HorizontalMode.horizontalEigenvalue,
+    FastDynamo.HorizontalMode.horizontalMode_ne_zero,
+    FastDynamo.HorizontalMode.horizontalMode_tail_le,
+    FastDynamo.HorizontalMode.HorizontalModeWeakEquation,
+    FastDynamo.HorizontalMode.horizontalModeWeakEquation_iff_distributional}
+  \leanok
+  \uses{def:local:dispersion, def:local:horizontal-operator}
+  Given a certificate, the field $b$ with
+  \[
+    b_1+ib_2=\e^{2i\theta}B_+(r),\qquad b_1-ib_2=B_-(r)
+  \]
+  is smooth on each side of $r=1$, continuous across it, decays exponentially, and lies in
+  $\Hs^1(\R^2;\CC^2)$.  Its eigenvalue is $\lambda_*=\kappa^2-N^2$.
+\end{definition}
+
+The Lean mode is built branch by branch: the origin regularity comes from the
+$r^2$-analyticity of $I_0$ and $I_2$, the exterior decay from the Gaussian representation
+of $K_\nu$, and the $\Hs^1$ membership from a slice fundamental theorem of calculus.  The
+weak eigenvalue equation is stated in two equivalent forms, against all
+$\phi\in\Hs^1$ and as an identity of tempered distributions; the equivalence rests on the
+injectivity of $\Hs^{-1}(\R^2;\CC^2)\to\cS'(\R^2;\CC^2)$ and is a theorem, not a
+definitional move.
+
+\begin{lemma}[An unstable eigenvalue of the discontinuous flow]
+  \label{lem:jump-horizontal-mode}
+  \lean{FastDynamo.HorizontalMode.horizontalModeWeakIdentity_holds,
+    FastDynamo.HorizontalMode.horizontalMode_isEigenpair_of_certified,
+    FastDynamo.HorizontalMode.exists_horizontalMode_eigenpair_two_pi}
+  \leanok
+  \uses{def:local:jump-flow, def:local:cartesian-mode, lem:local:segment-root,
+    def:local:horizontal-operator}
+  There exists $\Omega>0$ such that, for the velocity $V^0$ of
+  \eqref{eq:local:jump-flow}, the operator $A_{V^0}$ has an eigenvalue $\lambda_*$ with
+  $\re\lambda_*>0$.  An associated non-zero eigenfunction lies in the angular mode
+  $b=\e^{i\theta}(B_re_r+B_\theta e_\theta)$, is smooth on each side of $r=1$ and decays
+  exponentially at infinity.
+\end{lemma}
+
+\textbf{Deviation: cross-normalised branches instead of the pair $(C_+,C_-)$.}  The
+paper writes the interior and exterior solutions as
+$C_\pm I_{\nu_\pm}(\kappa r)/I_{\nu_\pm}(\kappa)$ and
+$C_\pm K_{\nu_\pm}(\kappa r)/K_{\nu_\pm}(\kappa)$ (\texttt{eq:bessel-solutions}), and
+therefore needs $I_\nu(\kappa)K_\nu(\kappa)\neq0$ for its denominators; it obtains this
+from the expansion \texttt{eq:bessel-product-expansion},
+$I_\nu(\kappa)K_\nu(\kappa)=\tfrac1{2\kappa}-\tfrac{4\nu^2-1}{16\kappa^3}+O(\varrho^{-5})$
+for $\nu\in\{0,2\}$, for $\varrho$ sufficiently large, and then normalises by
+$S=C_++C_-=1$.  Lean cross-normalises instead -- $K_\nu(\kappa)I_\nu(\kappa r)$ inside and
+$I_\nu(\kappa)K_\nu(\kappa r)$ outside -- so the two branches match at $r=1$ identically,
+the Wronskian gives the derivative jumps $\mp1$ with no denominator, and the eigenfunction
+obtained is a non-zero constant multiple of the paper's eigenfunction with $S=1$.  The
+Bessel values do not vanish: $I_\nu(\kappa),K_\nu(\kappa)\neq0$
+for $\nu=0,1,2$ on the whole segment for $\varrho\geq32$
+(\texttt{modifiedBessel\_denominators\_ne\_zero\_on\_segment}, by the argument given in the
+proof of Lemma~\ref{lem:local:segment-root} rather than from the expansion); these facts are
+fields of the certificate, and $K_0(\kappa)\neq0$ is how $b\neq0$ is read off, the first
+Cartesian component of the Lean field at the origin being $-K_0(\kappa)/2$.  Lean also
+routes the expansion through the single order-one product $zI_1(z)K_1(z)$, using the exact
+algebraic identity $z^3\mathcal D(z)=2z-4zI_1(z)K_1(z)$, rather than expanding $\nu=0$ and
+$\nu=2$ separately: the sectorised estimate $\abs{zI_1(z)K_1(z)-\tfrac12}\leq3/(\re z)^2$
+(\texttt{FastDynamo/\allowbreak Local/\allowbreak PonomarenkoSectorOrderOneProduct.lean}) is the effective form of
+\texttt{eq:bessel-product-expansion}, and the segment statement
+$\varrho^3\mathcal D(\varrho(1+it))=(1+it)^{-3}+O(\varrho^{-2})$ carries the explicit
+constant $225/(4\varrho^2)$.  The root itself is produced, in the paper and here, by the
+intermediate value theorem in $t\in[\tfrac12,\tfrac34]$.
+
+At $N=2\pi$ the Lean theorem has no hypothesis and also returns the numeral
+$448-4\pi^2\leq\re\lambda_*$, which comes from the formalisation's choice $\varrho=32$
+(Lemma~\ref{lem:local:segment-root}); the paper asserts only $\re\lambda_*>0$, via
+$\re\lambda_*\geq\tfrac7{16}\varrho^2-4\pi^2$.  The auxiliary clauses of the paper's
+statement -- the angular form of the eigenfunction, smoothness on each side of the circle,
+exponential decay -- are separate declarations (\texttt{horizontalMode},
+\texttt{horizontalInteriorField\_contDiff}, \texttt{horizontalMode\_tail\_le}) rather than
+conjuncts of the headline theorem.  The paper's sentence ``the transmission conditions
+cancel the interface distributions'' is, in Lean, a \emph{pointwise} identity between the
+two one-sided jump densities on the unit circle, so the result does not depend on the
+normalisation of the circle measure.
+
+\begin{proof}
+  \leanok
+  \uses{def:local:cartesian-mode, lem:local:segment-root, def:local:jump-flow}
+  Writing $D_j=\partial_jb+w_\perp b_j$ for the pivot field, the weak equation
+  $\mathfrak l_{V^0}(b,\phi)=-\lambda_*\inner b\phi$ is equivalent to the distributional
+  identity $\sum_j\partial_jD_j=M+\lambda_*b$ with
+  $M=N^2b+w_\perp\cdot\nabla_\perp b+iNw_3b+w_\perp\Div_\perp b$.  Away from $r=1$ this is
+  the bulk identity: the Cartesian Laplacian acts on the two circular combinations
+  $b_1\pm ib_2$ with angular indices $(j\pm1)^2=4,0$, giving $\Delta_\perp b=\kappa^2b$,
+  while the
+  transport and stretching terms cancel because $(b\cdot\nabla_\perp)V^0_\perp
+  =V^0_\perp\cdot\nabla_\perp b-i\Omega b$ and $iNU=-i\Omega$.  Across $r=1$ the
+  distributional derivative of $D_j$ acquires a surface term with density
+  $n_j\jump{D_j}$; the outward normal is the position vector and
+  $\jump{\partial_rb}=\Omega B_re_\theta$ is the fourth transmission law, which is
+  \eqref{eq:local:dispersion}.  The two one-sided densities are therefore pointwise
+  opposite and the surface term vanishes.  Lemma~\ref{lem:local:segment-root} supplies a
+  certificate, and $b\neq0$ because its first component at the origin is
+  $-K_0(\kappa)/2\neq0$.
+\end{proof}
+
+\section{Spectral isolation and regularisation}
+
+\begin{lemma}[Compactness of the velocity form and the analytic Fredholm family]
+  \label{lem:local:compactness}
+  \lean{FastDynamo.HorizontalWeakForm.freeHorizontalForm,
+    FastDynamo.HorizontalWeakForm.horizontalVelocityForm,
+    FastDynamo.HorizontalWeakForm.horizontalPencilForm,
+    FastDynamo.HorizontalWeakForm.freeHorizontalForm_hasComplexCoercivityConstant,
+    FastDynamo.HorizontalWeakForm.freeHorizontalForm_bijective,
+    FastDynamo.HorizontalWeakForm.isCompactOperator_horizontalVelocityZeroOrder_of_ae_zero_off,
+    FastDynamo.isCompactOperator_adjoint}
+  \leanok
+  \uses{def:local:horizontal-operator, lem:local:garding}
+  Let $w\in\Lp^\infty(\R^2;\R^3)$ vanish almost everywhere off a set of finite measure.
+  On $V=\Hs^1(\R^2;\CC^2)$ with antidual $V^*=\Hs^{-1}$, write
+  $\mathbb A_w(z)=F_z+K_w$ with $F_z=z-(\Delta_\perp-N^2)$.  Then $F_z\colon V\to V^*$ is
+  an isomorphism for $\re z>0$, $K_w\colon V\to V^*$ is compact, and
+  $\mathbb A_w(z)=F_z(\id+F_z^{-1}K_w)$ is an analytic Fredholm family on $\{\re z>0\}$.
+\end{lemma}
+
+Three deviations.  First, the hypothesis on the velocity: the paper takes $w$ with compact
+support, $\supp w\subset D(0,R_w)$, and restricts to that disc; Lean assumes only that $w$
+vanishes almost everywhere off a measurable set $s$ of finite measure and restricts to $s$,
+local Rellich compactness being proved for finite-measure sets
+(\texttt{FastDynamo/Analysis/WholePlaneBandLimitedRellichUnconditional.lean}).  This is more
+general, and is applied to $V^0$, which vanishes off the unit disc.  Second, the paper
+inverts $F_z$ by the Fourier multiplier $(z+\abs\xi^2+4\pi^2)^{-1}$; Lean instead observes that
+$\re F_z(b,b)=\norm{\nabla b}_2^2+(N^2+\re z)\norm b_2^2$ and applies complex
+Lax--Milgram, with coercivity constant $\min(1,\re z)$.  A form is determined by its
+values, so the operator is the same.  Third, Mathlib has no Schauder theorem, so the
+compactness of the adjoint $R^*$ needed for the ``derivative on the input'' half of the
+argument is \texttt{isCompactOperator\_adjoint}, proved here from scratch in the
+Hilbert-space shortcut $\norm{S^\dagger y}^2=\re\inner y{SS^\dagger y}$.  The argument itself
+is the paper's: §2.3 of the paper takes $R\colon\Hs^1(\R^2)\to\Lp^2(D(0,R_w))$ compact by
+Rellich, $R^*\colon\Lp^2(D(0,R_w))\to\Hs^{-1}(\R^2)$ compact as its adjoint, and decomposes
+each of the three kinds of term through $R$, multiplication and $R^*$; only the proof of the
+adjoint step is supplied here.
+
+\begin{proof}
+  \leanok
+  \uses{lem:local:garding}
+  Let $s$ be the finite-measure set off which $w$ vanishes.  Terms with a derivative on
+  the test function factor through the compact restriction $\Hs^1(\R^2)\to\Lp^2(s)$;
+  terms with a derivative on the input factor through its adjoint, a compact map
+  $\Lp^2(s)\to\Hs^{-1}(\R^2)$, after the coefficient has been moved across the
+  inner product (multiplication by a real $\Lp^\infty$ coefficient is self-adjoint); the
+  zeroth-order term factors through the same restriction.  Multiplication by a bounded
+  coefficient is continuous in each case, so $K_w$ is compact by Rellich's theorem.  Since
+  $F_z$ is affine in $z$, $z\mapsto F_1^{-1}F_z$ is entire and its inverse is analytic on
+  the invertible locus by the Neumann series, which makes the family analytic Fredholm.
+\end{proof}
+
+\begin{lemma}[Discreteness of the right-half-plane spectrum and the isolating contour]
+  \label{lem:local:isolation}
+  \lean{FastDynamo.HorizontalWeakForm.horizontalSpectrum,
+    FastDynamo.HorizontalWeakForm.isDiscrete_horizontalSpectrum,
+    FastDynamo.HorizontalWeakForm.exists_ne_zero_horizontalPencilForm_eq_zero,
+    FastDynamo.HorizontalWeakForm.exists_isEigenpair_of_mem_horizontalSpectrum,
+    FastDynamo.HorizontalWeakForm.mem_horizontalSpectrum_iff,
+    FastDynamo.HorizontalWeakForm.exists_punctured_ball_isInvertible_horizontalPencilForm,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation.projection,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation.isIdempotentElem_projection,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation.finiteDimensional_projection_range,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation.projection_apply_eigenvector,
+    FastDynamo.HorizontalWeakForm.HorizontalIsolation.projection_ne_zero,
+    FastDynamo.HorizontalMode.modeIsolation,
+    FastDynamo.HorizontalMode.modeIsolation_spec}
+  \leanok
+  \uses{lem:local:compactness, lem:jump-horizontal-mode}
+  Let $w$ be as in Lemma~\ref{lem:local:compactness}.  The set of $z$ with $\re z>0$ at
+  which $\mathbb A_w(z)$ is not invertible is discrete, every point of $\{\re z>0\}$ has a
+  punctured neighbourhood on which $\mathbb A_w(z)$ is invertible, and that set is exactly the
+  set of eigenvalues of $A_w$ with positive real part; so the spectrum of $A_w$ in the open
+  right half-plane consists of isolated eigenvalues.  Applied to $w=V^0$ this fixes a
+  positively oriented circle $\Gamma$, centred at $\lambda_*$ and of radius at most
+  $\tfrac14\re\lambda_*$, whose closed interior $\cG$ lies in $\{\re z>0\}$ and meets that
+  set only in $\lambda_*$; the Riesz projection
+  $P^0=(2\pi i)^{-1}\int_\Gamma(z-A_{V^0})^{-1}\dd z$ is idempotent, of finite rank, and
+  satisfies $P^0b=b\neq0$ for the eigenmode $b$.
+\end{lemma}
+
+The paper's analytic Fredholm paragraph in §2.3 concludes that $\mathbb A_w(z)$ is invertible
+except at a discrete set of points of the open right half-plane, that at each exceptional point
+Fredholm index zero gives a non-zero kernel, which the definition of $A_w$ identifies with
+$\ker(z-A_w)$, and hence that the spectrum of $A_w$ in the open right half-plane consists of
+isolated eigenvalues.  Lean formalises all of it: the discreteness
+(\texttt{isDiscrete\_horizontalSpectrum}, where \texttt{horizontalSpectrum} is \emph{defined}
+as the non-invertibility set of $\mathbb A_w(z)$ in $\{\re z>0\}$), the punctured
+neighbourhoods, and the identification of that set with the eigenvalues
+(\texttt{mem\_horizontalSpectrum\_iff}, \texttt{FastDynamo/Local/HorizontalSpectrumEigenvalue.lean}).
+The non-zero kernel at an exceptional point comes from the factorisation
+$\mathbb A_w(z)=F_z(\id-K(z))$ and the Fredholm alternative for the compact $K(z)$, which is
+the paper's index-zero statement in the form ``injective implies invertible''.  The eigenvector
+lies in the form-operator domain of $A_w$, which is the paper's $D(A_w)$ for $w\in\Lp^\infty$ with
+compact support; the hypotheses are those of \texttt{isDiscrete\_horizontalSpectrum}
+($w$ vanishing off a set of finite measure).  In the other direction, Lean proves that the
+Riesz projection of every isolating circle has finite rank
+(\texttt{HorizontalIsolation.finiteDimensional\_projection\_range}), which the paper does not
+state.  The radius bound $r\leq\tfrac14\re\lambda_*$, which gives
+$g_*\geq\tfrac34\re\lambda_*$, is a choice of the formalisation; the paper chooses $\Gamma$
+only qualitatively.
+
+The Lean contour is a \texttt{SpectralCircle}: a centre, a radius, and the proof that the
+closed disc lies in $\{\re z>0\}$; its \texttt{growthFloor} is
+$\re(\text{centre})-\text{radius}$, which \emph{is} $\min_{\zeta\in\cG}\re\zeta$.  The
+resolvent delivered by the isolation bundle is domain valued, that is $\Lp^2\to D(A_w)$
+with the $\Hs^1$ graph domain; the upgrade to $\Lp^2\to\Hs^2$ is
+Lemma~\ref{lem:local:h2-resolvent} and is where \eqref{eq:local:continuation-bound} is
+proved.
+
+\begin{proof}
+  \leanok
+  \uses{lem:local:compactness, lem:jump-horizontal-mode}
+  The analytic Fredholm theorem applied to $\id+F_z^{-1}K_w$ on the connected open set
+  $\{\re z>0\}$, at the invertible real base point supplied by the Gårding estimate of
+  Lemma~\ref{lem:local:garding} (the paper uses \texttt{eq:sectorial-estimate-b} in the
+  same way), shows that the non-invertibility set is discrete.  An eigenvector of $A_w$
+  makes $\mathbb A_w$ singular at its eigenvalue; conversely, at a point of non-invertibility
+  the Fredholm alternative for the compact part gives a non-zero null vector, which solves the
+  weak eigenvalue identity and is therefore an eigenvector.  Around $\lambda_*$ pick a punctured ball
+  of invertibility; a circle of radius at most $\tfrac14\re\lambda_*$ inside it is $\Gamma$.
+  Idempotence of the contour integral is the annular resolvent identity, finite rank
+  follows from the compactness of the state resolvent, and $P^0b=b$ is Cauchy's formula
+  for $(z-A_{V^0})^{-1}b=(z-\lambda_*)^{-1}b$.
+\end{proof}
+
+\begin{definition}[The smoothed velocity and the diffusivity family]
+  \label{def:local:smoothed-velocity}
+  \lean{FastDynamo.HorizontalMode.horizontalSmoothedVelocityLInf,
+    FastDynamo.HorizontalMode.horizontalSmoothedModeVelocity,
+    FastDynamo.HorizontalMode.horizontalSmoothingErrorL4,
+    FastDynamo.HorizontalWeakForm.horizontalWeakFormDelta,
+    FastDynamo.HorizontalWeakForm.horizontalPencilFormDelta,
+    FastDynamo.HorizontalWeakForm.horizontalFormDeltaOperator,
+    FastDynamo.horizontalLocalOperator}
+  \leanok
+  \uses{def:local:jump-flow, def:local:horizontal-operator}
+  For $0<h<1/2$ let $\chi_h$ be a smooth radial cut-off with $0\leq\chi_h\leq1$, equal to
+  one on $[0,1-h]$ and zero on $[1+h,\infty)$, and set
+  \begin{equation}
+    v_h(y)=\chi_h(\abs y)(-\Omega y_2,\Omega y_1,U)\in\C_c^\infty(\R^2;\R^3),
+    \qquad\Div_\perp(v_h)_\perp=0 .
+    \label{eq:local:smooth-velocity}
+  \end{equation}
+  This display is the paper's \texttt{eq:smooth-local-velocity}; the
+  solenoidality is immediate from $\nabla\chi_h(\abs y)\cdot y^\perp=0$.
+  For $\delta>0$ put
+  $\mathfrak l_{h,\delta}=\mathfrak l_{v_h}
+   +(\delta-1)\bigl(\inner{\nabla_\perp\cdot}{\nabla_\perp\cdot}+N^2\inner\cdot\cdot\bigr)$,
+  with shifted form operator $\mathbb A_{h,\delta}(z)$ and generator
+  \begin{equation}
+    \cL_\delta b=\delta(\Delta_\perp-N^2)b-v_\perp\cdot\nabla_\perp b-iNv_3b
+      +(b\cdot\nabla_\perp)v_\perp,
+    \qquad D(\cL_\delta)=\Hs^2(\R^2;\CC^2).
+    \label{eq:local:generator}
+  \end{equation}
+\end{definition}
+
+A note on $N$.  The paper has no axial wave number parameter: it works in the axial mode
+$\e^{2\pi ix_3}$ and writes $4\pi^2$ and $2\pi i$ in \texttt{eq:horizontal-induction},
+\texttt{eq:local-generator} and everywhere else.  This chapter keeps the symbol $N$, because
+the Lean
+development does: \texttt{LocalSeedParameters.wavenumber} is $2\pi k_*$ with $k_*$ a
+positive natural-number field, and the concrete inhabitant is taken at $k_*=1$
+(\texttt{exists\_localSeedC2\_two\_pi}), so every statement below is the paper's at
+$k_*=1$ and is more general otherwise.  Keeping $k_*$ free costs nothing and is what makes
+the rescaling (Lemma~5.2 of the paper) in a later chapter a statement about an arbitrary scale family.
+
+The whole $\delta$-dependence is the single affine term $(\delta-1)\cdot$(diffusion form),
+which is what makes the constant of \eqref{eq:local:form-small} independent of $z$: a
+difference of two members of the family is $z$-free, the free form $F_z$ cancelling.
+\texttt{horizontalLocalOperator N delta w} is the \emph{strong} operator
+\eqref{eq:local:generator} on $\Hs^2$; that it agrees with the form operator on the form
+domain is \texttt{FastDynamo/Local/HorizontalFormStrongIdentification.lean} and is the
+bridge the resolvent bound below needs.
+
+\begin{lemma}[The one form perturbation estimate]
+  \label{lem:local:form-small}
+  \lean{FastDynamo.HorizontalWeakForm.horizontalPencilFormDelta_sub,
+    FastDynamo.HorizontalWeakForm.complexFormOpNorm_horizontalPencilFormDelta_sub_le,
+    FastDynamo.HorizontalMode.exists_norm_horizontalSmoothingErrorL4_le,
+    FastDynamo.HorizontalWeakForm.exists_complexFormOpNorm_horizontalModePencil_sub_le}
+  \leanok
+  \uses{def:local:smoothed-velocity, def:local:jump-flow}
+  There is $C$, independent of $z$, of $h\in(0,\tfrac12)$ and of $\delta$, with
+  \begin{equation}
+    \norm{\mathbb A_{h,\delta}(z)-\mathbb A_{0,1}(z)}_{V\to V^*}
+    \leq C\bigl(h^{1/4}+\abs{\delta-1}\bigr).
+    \label{eq:local:form-small}
+  \end{equation}
+\end{lemma}
+
+\begin{proof}
+  \leanok
+  \uses{def:local:smoothed-velocity}
+  The difference splits as $(K_{v_h}-K_{V^0})+(\delta-1)\cdot$(diffusion form) with no $z$
+  in it.  The velocity difference is uniformly bounded and supported in an annulus of area
+  $O(h)$, so $\norm{v_h-V^0}_4\leq Ch^{1/4}$; each first-order term is then estimated with
+  H\"older exponents $(4,4,2)$ or $(4,2,4)$ according to which field carries the
+  derivative, using $\Hs^1(\R^2)\hookrightarrow\Lp^4(\R^2)$, and the coefficient is moved
+  onto the test function by self-adjointness of multiplication by a real $\Lp^\infty$
+  field.  The zeroth-order term is bounded the same way and the diffusion difference
+  directly on $V\times V$.
+\end{proof}
+
+\begin{lemma}[The Riesz projections move by less than a quarter]
+  \label{lem:local:riesz-perturbation}
+  \lean{FastDynamo.HorizontalWeakForm.HorizontalNeumannData,
+    FastDynamo.HorizontalWeakForm.HorizontalNeumannData.projection,
+    FastDynamo.HorizontalWeakForm.HorizontalNeumannData.norm_stateResolvent_sub_le_two,
+    FastDynamo.HorizontalWeakForm.HorizontalNeumannData.norm_projection_sub_le_two,
+    FastDynamo.HorizontalMode.exists_seedNeumannData,
+    FastDynamo.HorizontalMode.exists_seedThresholds}
+  \leanok
+  \uses{lem:local:form-small, lem:local:isolation}
+  The inverses $\mathbb A_{0,1}(z)^{-1}$ are uniformly bounded on $\Gamma$, so for
+  $h^{1/4}+\abs{\delta-1}$ small a Neumann series gives
+  $\sup_{z\in\Gamma}\norm{\mathbb A_{h,\delta}(z)^{-1}-\mathbb A_{0,1}(z)^{-1}}
+  \leq C(h^{1/4}+\abs{\delta-1})$; restricting to $\Lp^2$ gives the resolvents of
+  $\cL_{h,\delta}$ on $\Gamma$, and integrating gives
+  $\norm{P_{h,\delta}-P^0}_{2\to2}\leq C(h^{1/4}+\abs{\delta-1})$.  There are thresholds
+  $h_1,\eta_1>0$ with $\norm{P_{h,\delta}-P^0}<\tfrac14$ whenever $h\leq h_1$ and
+  $\abs{\delta-1}\leq\eta_1$.
+\end{lemma}
+
+The Lean perturbation is run on the open annulus $B(\lambda_*,3r/2)\setminus\bar
+B(\lambda_*,r/4)$ rather than on $\Gamma$ alone; this costs nothing, because
+\eqref{eq:local:form-small} is $z$-free, and it buys idempotence of the perturbed
+projection from the annular Riesz calculus.  The explicit thresholds are
+$h_1=\min(h_0,(8(K+1))^{-4})$ and $\eta_1=\min(\eta_0,(8(K+1))^{-1})$, which give
+$K(h^{1/4}+\abs{\delta-1})\leq K/(4(K+1))<\tfrac14$.
+
+\begin{proof}
+  \leanok
+  \uses{lem:local:form-small, lem:local:isolation}
+  Uniform boundedness of $\mathbb A_{0,1}(z)^{-1}$ on the compact annulus is continuity of
+  the inverse plus compactness.  With $\eta=C(h^{1/4}+\abs{\delta-1})$ bounding the
+  perturbation, the algebraic identity $S^{-1}=\id-(TD)S^{-1}$ gives
+  $\norm{S^{-1}}\leq(1-B\eta)^{-1}$ and hence the resolvent difference; the contour
+  integral of a bound is the bound times the length of $\Gamma$ divided by $2\pi$, that is
+  times the radius.  The thresholds are the stated explicit minima.
+\end{proof}
+
+\begin{lemma}[A compactly supported spectral witness]
+  \label{lem:local:witness}
+  \lean{FastDynamo.rayleighRe,
+    FastDynamo.wholePlaneC2DiskCutoff,
+    FastDynamo.exists_diskSupported_witness,
+    FastDynamo.HorizontalMode.exists_horizontalSeedWitness}
+  \leanok
+  \uses{lem:local:isolation}
+  There are $L_*>0$ and $f_*\in\Lp^2(\R^2;\CC^2)$ with $\norm{f_*}_2=1$, $f_*=0$ almost
+  everywhere off $D(0,L_*)$, and $\re\inner{P^0f_*}{f_*}>\tfrac34$.
+\end{lemma}
+
+\textbf{Deviation.}  The paper asks for $f_*\in\C_c^\infty(\R^2;\CC^2)$ in Proposition~2.2
+and obtains it by density in the proof; Lean produces
+the indicator truncation $\one_{D(0,L)}x$ of a normalised element of $\Ran P^0$,
+renormalised, which is an $\Lp^2$ field with compact support and not a smooth one.  Nothing
+downstream uses smoothness: the global layer consumes only $\norm{f_*}_2=1$, the almost
+everywhere support statement and $\re\inner{P_\delta f_*}{f_*}>\tfrac12$.  The support
+statement is also realised on the \emph{closed} disc ($L_*<\norm y$ implies $f_*(y)=0$
+a.e.), which is the weaker and therefore the safe direction, since
+\eqref{eq:transfer:scaled-witness-support} is strict.
+
+\begin{proof}
+  \leanok
+  \uses{lem:local:isolation}
+  Take a unit $x\in\Ran P^0$, which exists because $P^0\neq0$.  Then
+  $\re\inner{P^0x}x=1$, and $\one_{D(0,L)}x\to x$ in $\Lp^2$ as $L\to\infty$ by dominated
+  convergence, so the normalised Rayleigh quotient
+  $y\mapsto\re\inner{P^0y}y/\norm y^2$, which is continuous away from the origin, exceeds
+  $\tfrac34$ for $L$ large.
+\end{proof}
+
+\begin{lemma}[The uniform $\Lp^2\to\Hs^2$ resolvent bound]
+  \label{lem:local:h2-resolvent}
+  \lean{FastDynamo.exists_wholePlaneH2_of_laplacian_eq_l2,
+    FastDynamo.HorizontalWeakForm.horizontalStrongPairMap,
+    FastDynamo.HorizontalWeakForm.norm_horizontalStrongPairMap_le_bound,
+    FastDynamo.HorizontalWeakForm.horizontalLocalResolventBoundOfBounds,
+    FastDynamo.HorizontalWeakForm.horizontalStrongResolvent_stateResolvent,
+    FastDynamo.HorizontalWeakForm.horizontalStrongResolvent_rieszProjection}
+  \leanok
+  \uses{def:local:smoothed-velocity, lem:local:riesz-perturbation}
+  For $\delta$ in a compact interval $I=[\delta_-,\delta_+]$ with $\delta_->0$ the form
+  domain of $\mathfrak l_{h,\delta}$ is $\Hs^2(\R^2;\CC^2)$, the strong operator
+  $\cL_\delta$ of \eqref{eq:local:generator} has the same resolvent as the form operator,
+  hence the same Riesz projection, and there is one constant $L$ with
+  \begin{equation}
+    \sup_{\delta\in I,\ z\in\Gamma}
+      \norm{(z-\cL_\delta)^{-1}}_{\Lp^2\to\Hs^2}\leq L .
+    \label{eq:local:continuation-bound}
+  \end{equation}
+\end{lemma}
+
+\textbf{Lean proves more than the paper asks.}  The paper's
+\texttt{eq:local-continuation-bound} in Proposition~2.2 (\texttt{prop:local-seed}) is the
+$\Lp^2\to\Hs^1$ bound; what is stated and proved here is the $\Lp^2\to\Hs^2$ bound, and the
+paper's bound is its corollary through the embedding $\Hs^2\hookrightarrow\Hs^1$.  This is not extra work.  The Lean
+$\cL_\delta$ is a \texttt{DomainOperator} with bundled domain $\Hs^2(\R^2;\CC^2)$ -- the
+domain identification that the paper's proof of Proposition~2.2 performs too -- and
+\texttt{HasResolventOn} stores a domain-valued inverse $\Lp^2\to\Hs^2$, so the $\Hs^2$
+operator norm is the only norm available at that type.  Only the $\Lp^2$ and gradient halves
+are ever consumed, by \texttt{norm\_embedding\_inv\_apply\_le} and
+\texttt{norm\_deriv\_inv\_apply\_le}, which is exactly the $\Hs^1$ content that
+Corollary~\ref{cor:scaled-local-resolvents} needs.
+
+The $\Hs^2$ estimate $\norm b_{\Hs^2}\leq C(\norm b_2+\norm{\Delta_\perp b}_2)$ is obtained
+from Banach's isomorphism theorem applied to $h\mapsto(h,\Delta h)$ onto the closed pair
+space, not from the Fourier symbol; the constant is therefore unspecified, which is all
+\eqref{eq:local:continuation-bound} asks for.  The identification of the two Riesz
+projections is the step that transports the witness clause, proved for the form operator,
+to the strong generator that the global layer uses.
+
+\begin{proof}
+  \leanok
+  \uses{def:local:smoothed-velocity, lem:local:riesz-perturbation}
+  An element of the form-operator domain lies in $\Hs^1$; since $v_h$ is smooth with
+  bounded derivatives the lower-order terms lie in $\Lp^2$, so
+  $\delta\Delta_\perp b\in\Lp^2$ and $b\in\Hs^2$, with
+  $\delta\norm{\Delta_\perp b}_2\leq\norm f_2+C_v\norm b_{\Hs^1}$.  The form inverse gives
+  $\norm b_{\Hs^1}\leq C\norm f_2$ uniformly on $I\times\Gamma$ by
+  Lemma~\ref{lem:local:riesz-perturbation}, and $\delta\geq\delta_->0$ turns the two into
+  one $\delta$-free bound.  The two resolvents have the same ambient value because the
+  $\Hs^2$ lift of a graph element has the same $\Lp^2$ value, and Riesz projections of
+  operators with equal state resolvents on the same circle agree.
+\end{proof}
+
+\section{The local seed package}
+
+\begin{definition}[The local seed]
+  \label{def:local:seed}
+  \lean{FastDynamo.LocalSeedParameters, FastDynamo.LocalSeedC2,
+    FastDynamo.LocalSeedC2.velocity,
+    FastDynamo.LocalSeedC2.coefficients,
+    FastDynamo.LocalSeedC2.resolver,
+    FastDynamo.LocalSeedC2.norm_resolver_le,
+    FastDynamo.LocalSeedC2.projection,
+    FastDynamo.LocalSeedC2.re_inner_projection_witness_gt,
+    FastDynamo.LocalSeedC2.growthFloor,
+    FastDynamo.LocalSeedC2.growthFloor_pos}
+  \leanok
+  \uses{def:local:smoothed-velocity, lem:local:h2-resolvent, lem:local:witness}
+  A \emph{local seed} is the data
+  \[
+    \bigl(N=2\pi k_*,\ v=v_h,\ I=[\delta_-,\delta_+],\ \Gamma,\ \cG,\ g_*,\ f_*,\ L_*,\ L\bigr)
+  \]
+  with $0<\delta_-<1<\delta_+$, $v$ helical with $\Div_\perp v_\perp=0$, $\Gamma$ a
+  positively oriented circle with $\cG\subset\{\re z>0\}$,
+  $\Gamma\subset\rho(\cL_\delta)$ for every $\delta\in I$ with the uniform bound
+  \eqref{eq:local:continuation-bound}, the witness clause
+  \eqref{eq:local:spectral-witness} and the gap
+  $g_*=\min_{\zeta\in\cG}\re\zeta>0$.
+\end{definition}
+
+The Lean record is \texttt{FastDynamo.LocalSeedC2}
+(\texttt{FastDynamo/Local/LocalSeedC2.lean}), extending
+\texttt{LocalSeedParameters} by the velocity data, the family of resolvents and the
+witness.  The velocity is a \emph{definition} of the record, not a field, so the record
+cannot be inhabited by a non-helical field, and $\Div_\perp v_\perp=0$ is a theorem about
+it.  The growth floor is \texttt{contour.growthFloor}$=\re(\text{centre})-\text{radius}$,
+which is exactly $\min_{\zeta\in\cG}\re\zeta$ over the closed disc.
+
+\begin{proposition}[Uniform instability of the reference model on $\R^2$]
+  \label{prop:local-seed}
+  \lean{FastDynamo.HorizontalMode.exists_localSeedC2_two_pi,
+    FastDynamo.HorizontalMode.localSeedC2,
+    FastDynamo.HorizontalMode.localSeedC2_kStar,
+    FastDynamo.HorizontalMode.localSeedC2_wavenumber,
+    FastDynamo.HorizontalMode.seedGrowthFloorBound,
+    FastDynamo.HorizontalMode.seedGrowthFloorBound_le_localSeedC2_growthFloor,
+    FastDynamo.HorizontalMode.localSeedC2_angularSpeed_pos}
+  \leanok
+  \uses{def:local:seed, lem:local:riesz-perturbation, lem:local:witness,
+    lem:local:h2-resolvent, lem:jump-horizontal-mode}
+  With $N=2\pi$ there are $h\in(0,\tfrac12]$, an interval $I=[\delta_-,\delta_+]$ with
+  $0<\delta_-<1<\delta_+$, a compactly supported unit $f_*$ and $L_*>0$ with the following
+  properties.  For the velocity $v=v_h$ of \eqref{eq:local:smooth-velocity} and
+  $\delta\in I$, the generator $\cL_\delta$ of \eqref{eq:local:generator} satisfies
+  $\Gamma\subset\rho(\cL_\delta)$ together with \eqref{eq:local:continuation-bound}, and the
+  Riesz projections $P_\delta=(2\pi i)^{-1}\int_\Gamma(z-\cL_\delta)^{-1}\dd z$ obey
+  \begin{equation}
+    \norm{f_*}_2=1,\qquad\supp f_*\subset D(0,L_*),\qquad
+    \re\inner{P_\delta f_*}{f_*}>\tfrac12\quad(\delta\in I).
+    \label{eq:local:spectral-witness}
+  \end{equation}
+  In particular each $\cL_\delta$ has spectrum inside $\Gamma$ and
+  $g_*=\min_{\zeta\in\cG}\re\zeta>0$.
+\end{proposition}
+
+The Lean inhabitant is at $k_*=1$, hence $N=2\pi$, with $h=\min(h_0,h_1,\tfrac12)$ and
+$I=[1-\eta,1+\eta]$, $\eta=\min(\eta_0,\eta_1,\tfrac12)$, so
+$0<\tfrac12\leq\delta_-<1<\delta_+\leq\tfrac32$; the growth floor obeys
+\[
+  g_*\ \geq\ \tfrac34\bigl(448-4\pi^2\bigr)\ \approx\ 306.4,
+  \qquad\text{and in particular}\qquad g_*\geq288 .
+\]
+These numerals come from the formalisation's choices $\varrho=32$
+(Lemma~\ref{lem:local:segment-root}) and $r\leq\tfrac14\re\lambda_*$
+(Lemma~\ref{lem:local:isolation}); the paper asserts only $g_*>0$
+(\texttt{eq:spectral-gap}).  Three points of shape.  First, the clauses
+``$v_h\in\C_c^\infty$ and $\Div_\perp(v_h)_\perp=0$'' are not part of the proposition: the
+paper states them with \texttt{eq:smooth-local-velocity} itself, just before the
+proposition, and the proposition only says ``for the reference velocity profile on $\R^2$,
+$v=v_h$, from equation \eqref{eq:local:smooth-velocity}''.  The Lean record has the same shape: the velocity
+is stored as the triple $(h,\Omega,U)$, and the vanishing of $v_h$ outside $D(0,1+h)$ is a
+theorem about it (\texttt{parameterizedSmoothedVelocity\_eq\_zero\_of\_radius\_le\_norm}),
+not a field; the horizontal divergence-freeness is proved for the assembled global velocity
+(Lemma~\ref{lem:global-velocity}), not for $v_h$ on its own.  Second,
+the resolvent bound quoted above is the $\Lp^2\to\Hs^2$ one of
+Lemma~\ref{lem:local:h2-resolvent}; the paper asks only for the $\Lp^2\to\Hs^1$ bound,
+which follows from it, and the deviation is recorded at that node.  Third, two small
+differences of the Lean inhabitant: the smoothing width is built as a minimum with
+$\tfrac12$, so $h=\tfrac12$ is not excluded where the paper writes
+$h\in(0,\tfrac12)$ (hence $h\in(0,\tfrac12]$ above), and $f_*$ is an $\Lp^2$ field with compact support rather than a
+$\C_c^\infty$ one (Lemma~\ref{lem:local:witness}); nothing downstream uses either.
+
+\begin{proof}
+  \leanok
+  \uses{lem:jump-horizontal-mode, lem:local:isolation, lem:local:riesz-perturbation,
+    lem:local:witness, lem:local:h2-resolvent, def:local:seed}
+  Lemma~\ref{lem:jump-horizontal-mode} supplies $\Omega$, $\kappa$ and $\lambda_*$ at
+  $N=2\pi$, and Lemma~\ref{lem:local:isolation} the contour $\Gamma$ with
+  $g_*\geq\tfrac34\re\lambda_*$ and the projection $P^0$.
+  Lemma~\ref{lem:local:witness} gives $f_*$, $L_*$ with $\re\inner{P^0f_*}{f_*}>\tfrac34$,
+  and Lemma~\ref{lem:local:riesz-perturbation} thresholds with
+  $\norm{P_\delta-P^0}<\tfrac14$; subtracting gives
+  $\re\inner{P_\delta f_*}{f_*}>\tfrac12$, so $P_\delta\neq0$ and the spectrum inside
+  $\Gamma$ is non-empty.  Lemma~\ref{lem:local:h2-resolvent} supplies the single constant
+  $L$ of \eqref{eq:local:continuation-bound} and identifies the projection of the strong
+  generator with the one just estimated.  Assembling the pieces into the record of
+  Definition~\ref{def:local:seed} finishes.
+\end{proof}
