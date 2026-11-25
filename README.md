@@ -426,10 +426,10 @@ To build it, install `leanblueprint` (it needs a TeX distribution and Graphviz) 
 `leanblueprint web` or `leanblueprint pdf` from the repository root. The release gate checks that
 every declaration cited in the blueprint exists in the built library.
 
-The workflow [`.github/workflows/blueprint.yml`](.github/workflows/blueprint.yml), which is run
-manually and deploys nothing, builds the blueprint (web and pdf) and the API documentation and
-assembles them with [`home_page/`](home_page/), the landing page, into the `documentation-site`
-artifact of the run.
+The workflow [`.github/workflows/blueprint.yml`](.github/workflows/blueprint.yml), which runs on
+every push to `main` and deploys nothing, builds the blueprint (web and pdf) and the API
+documentation and assembles them with [`home_page/`](home_page/), the landing page, into the
+`documentation-site` artifact of the run.
 
 ## How this was built
 
